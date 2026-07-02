@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/popupBuilderController');
+router.get('/stats', requireAuth, c.getStats);
+router.get('/', requireAuth, c.listPopups);
+router.post('/', requireAuth, c.createPopup);
+router.put('/:id', requireAuth, c.updatePopup);
+router.delete('/:id', requireAuth, c.deletePopup);
+router.post('/:id/impression', requireAuth, c.trackImpression);
+router.post('/:id/conversion', requireAuth, c.trackConversion);
+module.exports = router;

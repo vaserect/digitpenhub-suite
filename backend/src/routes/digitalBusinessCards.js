@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/digitalBusinessCardsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',  c.getStats);
+r.get('/',       c.listCards);
+r.post('/',      c.createCard);
+r.put('/:id',    c.updateCard);
+r.delete('/:id', c.deleteCard);
+r.post('/:id/view', c.incrementView);
+module.exports = r;

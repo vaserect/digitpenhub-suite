@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/barcodesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',      c.getStats);
+r.get('/',           c.listBarcodes);
+r.post('/',          c.createBarcode);
+r.put('/:id',        c.updateBarcode);
+r.delete('/:id',     c.deleteBarcode);
+r.post('/:id/scan',  c.trackScan);
+module.exports = r;

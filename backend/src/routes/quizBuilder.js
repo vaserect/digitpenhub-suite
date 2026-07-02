@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/quizBuilderController');
+router.get('/stats', requireAuth, c.getStats);
+router.get('/', requireAuth, c.listQuizzes);
+router.get('/:id', requireAuth, c.getQuiz);
+router.post('/', requireAuth, c.createQuiz);
+router.put('/:id', requireAuth, c.updateQuiz);
+router.delete('/:id', requireAuth, c.deleteQuiz);
+router.get('/:quizId/responses', requireAuth, c.listResponses);
+router.post('/:quizId/respond', requireAuth, c.submitResponse);
+module.exports = router;

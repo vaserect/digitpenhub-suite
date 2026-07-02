@@ -1,0 +1,13 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/tasksController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',            c.getStats);
+r.get('/',                 c.listTasks);
+r.post('/',                c.createTask);
+r.put('/:id',              c.updateTask);
+r.delete('/:id',           c.deleteTask);
+r.get('/:id/comments',     c.listComments);
+r.post('/:id/comments',    c.addComment);
+module.exports = r;

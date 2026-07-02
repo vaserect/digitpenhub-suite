@@ -1,0 +1,11 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/urlShortenerController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',   c.getStats);
+r.get('/',        c.listLinks);
+r.post('/',       c.createLink);
+r.put('/:id',     c.updateLink);
+r.delete('/:id',  c.deleteLink);
+module.exports = r;

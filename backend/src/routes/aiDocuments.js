@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/aiDocumentsController');
+router.get('/stats', requireAuth, c.getStats);
+router.get('/', requireAuth, c.listDocuments);
+router.get('/:id', requireAuth, c.getDocument);
+router.post('/', requireAuth, c.createDocument);
+router.put('/:id', requireAuth, c.updateDocument);
+router.delete('/:id', requireAuth, c.deleteDocument);
+router.post('/generate', requireAuth, c.generateContent);
+module.exports = router;

@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS popups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  trigger_type TEXT DEFAULT 'delay',
+  trigger_delay INTEGER DEFAULT 5,
+  trigger_scroll INTEGER DEFAULT 50,
+  headline TEXT,
+  body_text TEXT,
+  cta_text TEXT,
+  cta_url TEXT,
+  image_url TEXT,
+  bg_color TEXT DEFAULT '#ffffff',
+  text_color TEXT DEFAULT '#000000',
+  accent_color TEXT DEFAULT '#2563eb',
+  position TEXT DEFAULT 'center',
+  size TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'draft',
+  impressions INTEGER DEFAULT 0,
+  conversions INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);

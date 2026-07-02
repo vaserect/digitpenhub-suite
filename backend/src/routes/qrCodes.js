@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/qrCodesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',         c.getStats);
+r.get('/',              c.listQrCodes);
+r.post('/',             c.createQrCode);
+r.put('/:id',           c.updateQrCode);
+r.delete('/:id',        c.deleteQrCode);
+r.post('/:id/scan',     c.trackScan);
+module.exports = r;

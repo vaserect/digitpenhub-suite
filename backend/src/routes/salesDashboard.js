@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/salesDashboardController');
+const r = Router();
+r.use(requireAuth);
+r.get('/summary',       c.getSalesSummary);
+r.get('/revenue-months',c.getRevenueByMonth);
+r.get('/top-products',  c.getTopProducts);
+r.get('/recent',        c.getRecentSales);
+module.exports = r;

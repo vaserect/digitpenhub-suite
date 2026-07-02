@@ -1,0 +1,16 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/inventoryController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',           c.getStats);
+r.get('/categories',      c.listCategories);
+r.post('/categories',     c.createCategory);
+r.delete('/categories/:id', c.deleteCategory);
+r.get('/products',        c.listProducts);
+r.post('/products',       c.createProduct);
+r.put('/products/:id',    c.updateProduct);
+r.delete('/products/:id', c.deleteProduct);
+r.get('/transactions',    c.listTransactions);
+r.post('/transactions',   c.addTransaction);
+module.exports = r;

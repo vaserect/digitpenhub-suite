@@ -1,0 +1,14 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/documentsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',          c.getStats);
+r.get('/folders',        c.listFolders);
+r.post('/folders',       c.createFolder);
+r.delete('/folders/:id', c.deleteFolder);
+r.get('/',               c.listDocuments);
+r.post('/',              c.createDocument);
+r.put('/:id',            c.updateDocument);
+r.delete('/:id',         c.deleteDocument);
+module.exports = r;

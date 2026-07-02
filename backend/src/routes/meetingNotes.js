@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/meetingNotesController');
+router.get('/stats', requireAuth, c.getStats);
+router.get('/', requireAuth, c.listNotes);
+router.get('/:id', requireAuth, c.getNote);
+router.post('/', requireAuth, c.createNote);
+router.put('/:id', requireAuth, c.updateNote);
+router.delete('/:id', requireAuth, c.deleteNote);
+module.exports = router;

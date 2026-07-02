@@ -1,0 +1,14 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/payrollController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',            c.getStats);
+r.get('/',                 c.listRuns);
+r.post('/',                c.createRun);
+r.get('/:id',              c.getRun);
+r.put('/:id',              c.updateRun);
+r.delete('/:id',           c.deleteRun);
+r.post('/:runId/items',    c.addItem);
+r.delete('/:runId/items/:itemId', c.removeItem);
+module.exports = r;

@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/subscriptionsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',           c.getStats);
+r.get('/plans',           c.listPlans);
+r.post('/plans',          c.createPlan);
+r.put('/plans/:id',       c.updatePlan);
+r.delete('/plans/:id',    c.deletePlan);
+r.get('/',                c.listSubscriptions);
+r.post('/',               c.createSubscription);
+r.put('/:id',             c.updateSubscription);
+r.delete('/:id',          c.deleteSubscription);
+module.exports = r;

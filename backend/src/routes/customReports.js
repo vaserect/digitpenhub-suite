@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/customReportsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/modules',      c.listModules);
+r.get('/run/:module',  c.runAdhoc);
+r.get('/',             c.listReports);
+r.post('/',            c.createReport);
+r.post('/:id/run',     c.runReport);
+r.delete('/:id',       c.deleteReport);
+module.exports = r;

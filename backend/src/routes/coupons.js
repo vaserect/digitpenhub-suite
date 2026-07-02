@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/couponsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',      c.getStats);
+r.get('/',           c.listCoupons);
+r.post('/',          c.createCoupon);
+r.put('/:id',        c.updateCoupon);
+r.delete('/:id',     c.deleteCoupon);
+r.post('/validate',  c.validateCoupon);
+module.exports = r;

@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/passwordManagerController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',  c.getStats);
+r.get('/',       c.listEntries);
+r.post('/',      c.createEntry);
+r.get('/:id',    c.getEntry);
+r.put('/:id',    c.updateEntry);
+r.delete('/:id', c.deleteEntry);
+module.exports = r;

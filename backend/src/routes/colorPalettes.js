@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/colorPalettesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/',       c.listPalettes);
+r.post('/',      c.createPalette);
+r.put('/:id',    c.updatePalette);
+r.delete('/:id', c.deletePalette);
+module.exports = r;

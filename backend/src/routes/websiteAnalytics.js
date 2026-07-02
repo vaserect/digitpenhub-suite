@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/websiteAnalyticsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/overview',  c.getOverview);
+r.get('/modules',   c.getTopModules);
+r.get('/daily',     c.getDailyActivity);
+r.get('/recent',    c.getRecentActivity);
+module.exports = r;

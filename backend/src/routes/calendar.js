@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/calendarController');
+const r = Router();
+r.use(requireAuth);
+r.get('/',        c.listEvents);
+r.post('/',       c.createEvent);
+r.put('/:id',     c.updateEvent);
+r.delete('/:id',  c.deleteEvent);
+module.exports = r;

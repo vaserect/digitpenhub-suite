@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/referralsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats', c.getStats);
+r.get('/programs', c.listPrograms);
+r.post('/programs', c.createProgram);
+r.put('/programs/:id', c.updateProgram);
+r.delete('/programs/:id', c.deleteProgram);
+r.get('/referrals', c.listReferrals);
+r.post('/referrals', c.createReferral);
+r.put('/referrals/:id', c.updateReferral);
+r.delete('/referrals/:id', c.deleteReferral);
+module.exports = r;

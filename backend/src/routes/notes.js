@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/notesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/',        c.listNotes);
+r.post('/',       c.createNote);
+r.put('/:id',     c.updateNote);
+r.delete('/:id',  c.deleteNote);
+module.exports = r;

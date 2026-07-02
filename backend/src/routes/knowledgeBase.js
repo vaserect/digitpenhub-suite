@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/knowledgeBaseController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',               c.getStats);
+r.get('/categories',          c.listCategories);
+r.post('/categories',         c.createCategory);
+r.delete('/categories/:id',   c.deleteCategory);
+r.get('/articles',            c.listArticles);
+r.post('/articles',           c.createArticle);
+r.get('/articles/:id',        c.getArticle);
+r.put('/articles/:id',        c.updateArticle);
+r.delete('/articles/:id',     c.deleteArticle);
+module.exports = r;

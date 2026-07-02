@@ -1,0 +1,11 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/assetsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',   c.getStats);
+r.get('/',        c.listAssets);
+r.post('/',       c.createAsset);
+r.put('/:id',     c.updateAsset);
+r.delete('/:id',  c.deleteAsset);
+module.exports = r;

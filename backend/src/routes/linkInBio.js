@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/linkInBioController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',               c.getStats);
+r.get('/',                    c.listPages);
+r.post('/',                   c.createPage);
+r.put('/:id',                 c.updatePage);
+r.delete('/:id',              c.deletePage);
+r.get('/:pageId/links',       c.listLinks);
+r.post('/:pageId/links',      c.createLink);
+r.put('/links/:id',           c.updateLink);
+r.delete('/links/:id',        c.deleteLink);
+module.exports = r;

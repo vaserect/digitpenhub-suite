@@ -1,0 +1,13 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/digitalProductsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',              c.getStats);
+r.get('/',                   c.listProducts);
+r.post('/',                  c.createProduct);
+r.put('/:id',                c.updateProduct);
+r.delete('/:id',             c.deleteProduct);
+r.get('/:productId/sales',   c.listSales);
+r.post('/:productId/sales',  c.recordSale);
+module.exports = r;

@@ -1,0 +1,15 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/affiliatesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats', c.getStats);
+r.get('/', c.listAffiliates);
+r.post('/', c.createAffiliate);
+r.put('/:id', c.updateAffiliate);
+r.delete('/:id', c.deleteAffiliate);
+r.get('/conversions', c.listConversions);
+r.post('/conversions', c.createConversion);
+r.put('/conversions/:id', c.updateConversion);
+r.delete('/conversions/:id', c.deleteConversion);
+module.exports = r;

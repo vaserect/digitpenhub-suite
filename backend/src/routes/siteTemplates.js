@@ -1,0 +1,10 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/siteTemplatesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/categories', c.listCategories);
+r.get('/', c.listSiteTemplates);
+r.get('/:id', c.getSiteTemplate);
+r.post('/:id/use', c.useSiteTemplate);
+module.exports = r;

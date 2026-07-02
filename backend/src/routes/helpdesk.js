@@ -1,0 +1,13 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/helpdeskController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',           c.getStats);
+r.get('/',                c.listTickets);
+r.post('/',               c.createTicket);
+r.get('/:id',             c.getTicket);
+r.put('/:id',             c.updateTicket);
+r.delete('/:id',          c.deleteTicket);
+r.post('/:id/replies',    c.addReply);
+module.exports = r;

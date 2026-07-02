@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/quotationsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',   c.getStats);
+r.get('/',        c.listQuotations);
+r.get('/:id',     c.getQuotation);
+r.post('/',       c.createQuotation);
+r.put('/:id',     c.updateQuotation);
+r.delete('/:id',  c.deleteQuotation);
+module.exports = r;

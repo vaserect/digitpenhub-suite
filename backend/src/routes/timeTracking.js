@@ -1,0 +1,16 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/timeTrackingController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',            c.getStats);
+r.get('/projects',         c.listProjects);
+r.post('/projects',        c.createProject);
+r.put('/projects/:id',     c.updateProject);
+r.delete('/projects/:id',  c.deleteProject);
+r.get('/entries',          c.listEntries);
+r.post('/entries/start',   c.startTimer);
+r.put('/entries/:id/stop', c.stopTimer);
+r.post('/entries',         c.createEntry);
+r.delete('/entries/:id',   c.deleteEntry);
+module.exports = r;

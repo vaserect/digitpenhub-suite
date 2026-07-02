@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/posController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',               c.getStats);
+r.post('/sessions',           c.openSession);
+r.put('/sessions/:id/close',  c.closeSession);
+r.get('/sessions',            c.listSessions);
+r.post('/sales',              c.createSale);
+r.get('/sales',               c.listSales);
+module.exports = r;

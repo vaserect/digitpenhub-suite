@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS brand_kits (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name            TEXT NOT NULL DEFAULT 'Default Brand Kit',
+  primary_color   TEXT NOT NULL DEFAULT '#2563eb',
+  secondary_color TEXT NOT NULL DEFAULT '#64748b',
+  accent_color    TEXT NOT NULL DEFAULT '#f59e0b',
+  background_color TEXT NOT NULL DEFAULT '#ffffff',
+  text_color      TEXT NOT NULL DEFAULT '#1e293b',
+  primary_font    TEXT NOT NULL DEFAULT 'Inter',
+  secondary_font  TEXT NOT NULL DEFAULT 'Inter',
+  logo_url        TEXT,
+  favicon_url     TEXT,
+  tagline         TEXT,
+  website         TEXT,
+  extra_colors    JSONB NOT NULL DEFAULT '[]',
+  extra_fonts     JSONB NOT NULL DEFAULT '[]',
+  social_links    JSONB NOT NULL DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

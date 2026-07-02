@@ -1,0 +1,16 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/smsController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',              c.getStats);
+r.get('/contacts',           c.listContacts);
+r.post('/contacts',          c.createContact);
+r.post('/contacts/bulk',     c.bulkCreateContacts);
+r.put('/contacts/:id',       c.updateContact);
+r.delete('/contacts/:id',    c.deleteContact);
+r.get('/campaigns',          c.listCampaigns);
+r.post('/campaigns',         c.createCampaign);
+r.post('/campaigns/:id/send', c.sendCampaign);
+r.delete('/campaigns/:id',   c.deleteCampaign);
+module.exports = r;

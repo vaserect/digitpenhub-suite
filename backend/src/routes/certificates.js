@@ -1,0 +1,11 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/certificatesController');
+const r = Router();
+r.use(requireAuth);
+r.get('/stats',  c.getStats);
+r.get('/',       c.listCertificates);
+r.post('/',      c.createCertificate);
+r.put('/:id',    c.updateCertificate);
+r.delete('/:id', c.deleteCertificate);
+module.exports = r;

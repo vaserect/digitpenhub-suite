@@ -1,25 +1,34 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import AuthShell from '../../../components/ui/AuthShell';
+import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import PageState from '../../../components/ui/PageState';
 
 export default function AcceptInvitePage() {
   const { token } = useParams();
   const router = useRouter();
   const [inv, setInv] = useState(null);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [formError, setFormError] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetch(`/api/v1/team/invite/${token}`)
       .then(r => r.json())
-      .then(d => { if (d.email) setInv(d); else setError(d.error); })
-      .catch(() => setError('Could not load invitation.'));
+      .then(d => { if (d.email) setInv(d); else setLoadError(d.error); })
+      .catch(() => setLoadError('Could not load invitation.'));
   }, [token]);
 
   async function accept(e) {
-    e.preventDefault(); setError('');
+    e.preventDefault();
+    setFormError('');
+    setSubmitting(true);
     const res = await fetch(`/api/v1/team/invite/${token}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,58 +36,57 @@ export default function AcceptInvitePage() {
     });
     const d = await res.json();
     if (res.ok) setDone(true);
-    else setError(d.error);
+    else setFormError(d.error);
+    setSubmitting(false);
   }
 
-  if (error) return (
-    <div style={centerStyle}>
-      <div style={cardStyle}>
-        <h2 style={{ color: '#dc2626' }}>Invalid Invitation</h2>
-        <p style={{ color: '#6b7280' }}>{error}</p>
-        <a href="/login" style={{ color: '#2563eb' }}>Go to login</a>
-      </div>
-    </div>
-  );
+  if (loadError) {
+    return (
+      <AuthShell
+        title="Invitation unavailable"
+        description="This invite link may be expired, revoked, or already used."
+        footer={<p className="login-foot"><Link href="/login">Go to login</Link></p>}
+      >
+        <PageState compact tone="danger" icon="!" title="We couldn’t load this invitation" description={loadError} />
+      </AuthShell>
+    );
+  }
 
-  if (done) return (
-    <div style={centerStyle}>
-      <div style={cardStyle}>
-        <h2 style={{ color: '#16a34a' }}>Account Created!</h2>
-        <p>You can now sign in with your email and password.</p>
-        <button onClick={() => router.push('/login')} style={btnStyle}>Go to Login</button>
-      </div>
-    </div>
-  );
+  if (done) {
+    return (
+      <AuthShell title="Account created" description="You can now sign in with your email and password.">
+        <PageState
+          compact
+          tone="success"
+          icon="✓"
+          title="You're all set"
+          description="Your team access is ready."
+          action={<Button className="w-full" onClick={() => router.push('/login')}>Go to login</Button>}
+        />
+      </AuthShell>
+    );
+  }
 
-  if (!inv) return <div style={centerStyle}><p>Loading...</p></div>;
+  if (!inv) {
+    return (
+      <AuthShell title="Loading invitation" description="Confirming your invite link and workspace details.">
+        <PageState compact loading title="Loading invitation" description="Checking the invitation token and preparing your access." />
+      </AuthShell>
+    );
+  }
 
   return (
-    <div style={centerStyle}>
-      <div style={cardStyle}>
-        <h2 style={{ margin: '0 0 4px' }}>You're invited!</h2>
-        <p style={{ color: '#6b7280', marginTop: 4 }}>
-          Join <strong>{inv.org_name}</strong> as <strong>{inv.role}</strong>
-        </p>
-        <p style={{ color: '#6b7280', fontSize: 13 }}>Signing up as: {inv.email}</p>
-        <form onSubmit={accept} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 20 }}>
-          {error && <div style={{ color: '#dc2626', fontSize: 13 }}>{error}</div>}
-          <label style={labelStyle}>
-            Your Name
-            <input value={fullName} onChange={e => setFullName(e.target.value)} required style={inputStyle} />
-          </label>
-          <label style={labelStyle}>
-            Choose Password
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} style={inputStyle} />
-          </label>
-          <button type="submit" style={btnStyle}>Create Account</button>
-        </form>
-      </div>
-    </div>
+    <AuthShell
+      title="You're invited"
+      description={`Join ${inv.org_name} as ${inv.role}.`}
+      footer={<p className="login-foot">Signing up as: {inv.email}</p>}
+    >
+      <form onSubmit={accept}>
+        {formError && <p className="error-note">{formError}</p>}
+        <Input label="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoFocus />
+        <Input label="Choose password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} helper="At least 8 characters." />
+        <Button className="w-full" type="submit" loading={submitting}>{submitting ? 'Creating account…' : 'Create account'}</Button>
+      </form>
+    </AuthShell>
   );
 }
-
-const centerStyle = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' };
-const cardStyle = { background: '#fff', borderRadius: 16, padding: '2.5rem', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' };
-const btnStyle = { background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 15, width: '100%' };
-const inputStyle = { padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, width: '100%', boxSizing: 'border-box' };
-const labelStyle = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14, fontWeight: 600 };

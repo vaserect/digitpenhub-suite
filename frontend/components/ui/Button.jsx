@@ -22,8 +22,20 @@ export default function Button({
   }[size] || 'btn-md';
 
   return (
-    <button className={["btn", variantClass, sizeClass, className].filter(Boolean).join(' ')} disabled={loading || props.disabled} {...props}>
-      {loading ? <span className="btn-loading">Loading…</span> : children}
+    <button
+      className={["btn", variantClass, sizeClass, loading ? 'is-loading' : '', className].filter(Boolean).join(' ')}
+      disabled={loading || props.disabled}
+      aria-busy={loading}
+      {...props}
+    >
+      {loading ? (
+        <span className="btn-loading">
+          <span className="btn-spinner" aria-hidden="true" />
+          <span>{children}</span>
+        </span>
+      ) : (
+        children
+      )}
     </button>
   );
 }

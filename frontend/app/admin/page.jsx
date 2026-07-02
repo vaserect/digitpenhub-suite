@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import PageState from '../../components/ui/PageState';
 
 const fmt = (n) => Number(n).toLocaleString();
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
@@ -528,11 +529,7 @@ export default function AdminPanel() {
   }
 
   if (!ready) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
-        <p style={{ color: '#64748b' }}>Checking access…</p>
-      </div>
-    );
+    return <PageState fullscreen loading title="Checking admin access" description="Loading permissions and editorial tools." />;
   }
 
   const tabs = isSuperAdmin

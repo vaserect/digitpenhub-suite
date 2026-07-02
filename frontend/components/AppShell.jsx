@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, setUpgradeHandler } from '../lib/api';
 import Sidebar from './ui/Sidebar';
@@ -25,6 +25,15 @@ import BulkActionBar from './ui/BulkActionBar';
 import Input from './ui/Input';
 import Modal from './ui/Modal';
 import ModulePage from './ui/ModulePage';
+import PageState from './ui/PageState';
+import StarterTemplateModal from './ui/StarterTemplateModal';
+import {
+  getInvoiceStarterTemplates,
+  getLeadFormStarterTemplates,
+  getQuoteStarterTemplates,
+  getReportStarterTemplates,
+  getSurveyFormStarterTemplates,
+} from '../lib/starterTemplates';
 
 function initials(name) {
   return name
@@ -132,6 +141,38 @@ function InvoiceStatusBadge({ status }) {
   );
 }
 
+function createBlankEmailCampaign() {
+  return { subject: '', previewText: '', bodyHtml: '', listId: '' };
+}
+
+function createBlankLeadFormDraft() {
+  return { name: '', thankYouMessage: '', fields: [] };
+}
+
+function createBlankInvoiceDraft() {
+  return { invoiceNumber: '', clientId: '', status: 'draft', issueDate: '', dueDate: '', subtotal: '', taxRate: '', total: '', notes: '' };
+}
+
+function createBlankInvoiceItem() {
+  return { description: '', quantity: '1', unitPrice: '', amount: '' };
+}
+
+function createBlankQuoteDraft() {
+  return { clientName: '', clientEmail: '', clientAddress: '', items: [{ description: '', qty: 1, unitPrice: 0 }], discount: '0', taxRate: '0', notes: '', validUntil: '' };
+}
+
+function createBlankFbDraft() {
+  return { name: '', description: '', fields: [], status: 'active', submitMessage: 'Thank you for your submission!' };
+}
+
+function createBlankFbNewField() {
+  return { label: '', type: 'text', required: false, options: '', showIfFieldId: '', showIfValue: '' };
+}
+
+function cloneTemplateDraft(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export default function AppShell() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -195,13 +236,13 @@ export default function AppShell() {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', company: '', address: '' });
-  const [newInvoice, setNewInvoice] = useState({ invoiceNumber: '', clientId: '', status: 'draft', issueDate: '', dueDate: '', subtotal: '', taxRate: '', total: '', notes: '' });
-  const [invoiceItems, setInvoiceItems] = useState([{ description: '', quantity: '1', unitPrice: '', amount: '' }]);
+  const [newInvoice, setNewInvoice] = useState(createBlankInvoiceDraft());
+  const [invoiceItems, setInvoiceItems] = useState([createBlankInvoiceItem()]);
   const [editingClientId, setEditingClientId] = useState(null);
   const [editClientDraft, setEditClientDraft] = useState({ name: '', email: '', phone: '', company: '', address: '' });
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
-  const [editInvoiceDraft, setEditInvoiceDraft] = useState({ invoiceNumber: '', clientId: '', status: 'draft', issueDate: '', dueDate: '', subtotal: '', taxRate: '', total: '', notes: '' });
-  const [editInvoiceItems, setEditInvoiceItems] = useState([{ description: '', quantity: '1', unitPrice: '', amount: '' }]);
+  const [editInvoiceDraft, setEditInvoiceDraft] = useState(createBlankInvoiceDraft());
+  const [editInvoiceItems, setEditInvoiceItems] = useState([createBlankInvoiceItem()]);
   const [invoiceFilter, setInvoiceFilter] = useState('all');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceFormError, setInvoiceFormError] = useState('');
@@ -213,6 +254,7 @@ export default function AppShell() {
   const [invoiceDeleting, setInvoiceDeleting] = useState(false);
   const [clientConfirmDelete, setClientConfirmDelete] = useState(null);
   const [clientDeleting, setClientDeleting] = useState(false);
+  const [invoiceTemplateOpen, setInvoiceTemplateOpen] = useState(false);
   const INVOICE_PAGE_SIZE = 10;
 
   // Milestone 6: Email Marketing
@@ -239,7 +281,7 @@ export default function AppShell() {
   const [emailTplCategoryFilter, setEmailTplCategoryFilter] = useState('');
   const [emailTplSearch, setEmailTplSearch] = useState('');
   const [emailTplLoading, setEmailTplLoading] = useState(false);
-  const [newCampaign, setNewCampaign] = useState({ subject: '', previewText: '', bodyHtml: '', listId: '' });
+  const [newCampaign, setNewCampaign] = useState(createBlankEmailCampaign());
   const [editingCampaignId, setEditingCampaignId] = useState(null);
   const [editCampaignDraft, setEditCampaignDraft] = useState({ subject: '', previewText: '', bodyHtml: '', listId: '' });
   const [emailFormError, setEmailFormError] = useState('');
@@ -254,13 +296,14 @@ export default function AppShell() {
   const [leadConfirming, setLeadConfirming] = useState(false);
   const [leadsTab, setLeadsTab] = useState('forms'); // forms | inbox | pipeline
   const [showLeadFormBuilder, setShowLeadFormBuilder] = useState(false);
-  const [leadFormDraft, setLeadFormDraft] = useState({ name: '', thankYouMessage: '', fields: [] });
+  const [leadFormDraft, setLeadFormDraft] = useState(createBlankLeadFormDraft());
   const [editingLeadFormId, setEditingLeadFormId] = useState(null);
   const [viewEmbedFormId, setViewEmbedFormId] = useState(null);
   const [leadInboxFilter, setLeadInboxFilter] = useState('all');
   const [editingSubmissionId, setEditingSubmissionId] = useState(null);
   const [editSubmissionDraft, setEditSubmissionDraft] = useState({ status: 'new', notes: '' });
   const [leadFormError, setLeadFormError] = useState('');
+  const [leadTemplateOpen, setLeadTemplateOpen] = useState(false);
 
   // Milestone 8: Analytics
   const [analyticsOverview, setAnalyticsOverview] = useState(null);
@@ -322,6 +365,12 @@ export default function AppShell() {
     window.scrollTo({ top: 0, behavior: 'instant' });
     mainRef.current?.scrollTo({ top: 0, behavior: 'instant' });
   }
+
+  const invoiceStarterTemplates = useMemo(() => getInvoiceStarterTemplates(), []);
+  const quoteStarterTemplates = useMemo(() => getQuoteStarterTemplates(), []);
+  const leadStarterTemplates = useMemo(() => getLeadFormStarterTemplates(), []);
+  const surveyStarterTemplates = useMemo(() => getSurveyFormStarterTemplates(), []);
+  const reportStarterTemplates = useMemo(() => getReportStarterTemplates(), []);
 
   // Milestone 15: Expenses & Finance
   const [expTab, setExpTab] = useState('expenses');
@@ -522,9 +571,10 @@ export default function AppShell() {
   const [quoteQuery, setQuoteQuery]         = useState('');
   const [quoteForm, setQuoteForm]           = useState(false);
   const [editingQuote, setEditingQuote]     = useState(null);
-  const [quoteDraft, setQuoteDraft]         = useState({ clientName:'', clientEmail:'', clientAddress:'', items:[{ description:'', qty:1, unitPrice:0 }], discount:'0', taxRate:'0', notes:'', validUntil:'' });
+  const [quoteDraft, setQuoteDraft]         = useState(createBlankQuoteDraft());
   const [quoteConfirmDelete, setQuoteConfirmDelete] = useState(null);
   const [quoteDeleting, setQuoteDeleting]   = useState(false);
+  const [quoteTemplateOpen, setQuoteTemplateOpen] = useState(false);
 
   // ── Task Management ───────────────────────────────────────────────────────
   const [tmLoaded, setTmLoaded]             = useState(false);
@@ -547,13 +597,14 @@ export default function AppShell() {
   const [fbTab, setFbTab]                   = useState('forms');
   const [fbForm, setFbForm]                 = useState(false);
   const [editingFbForm, setEditingFbForm]   = useState(null);
-  const [fbDraft, setFbDraft]               = useState({ name:'', description:'', fields:[], status:'active', submitMessage:'Thank you for your submission!' });
+  const [fbDraft, setFbDraft]               = useState(createBlankFbDraft());
   const [fbResponses, setFbResponses]       = useState([]);
   const [fbViewingResponses, setFbViewingResponses] = useState(null);
-  const [fbNewField, setFbNewField]         = useState({ label:'', type:'text', required:false, options:'', showIfFieldId:'', showIfValue:'' });
+  const [fbNewField, setFbNewField]         = useState(createBlankFbNewField());
   const [fbFormConfirmDelete, setFbFormConfirmDelete] = useState(null);
   const [fbFormDeleting, setFbFormDeleting] = useState(false);
   const [fbQuery, setFbQuery]               = useState('');
+  const [fbTemplateOpen, setFbTemplateOpen] = useState(false);
 
   // ── Help Desk ─────────────────────────────────────────────────────────────
   const [hdLoaded, setHdLoaded]             = useState(false);
@@ -803,8 +854,10 @@ export default function AppShell() {
   const [crRunning, setCrRunning]           = useState(false);
   const [crSaveForm, setCrSaveForm]         = useState(false);
   const [crSaveName, setCrSaveName]         = useState('');
+  const [crSaveDescription, setCrSaveDescription] = useState('');
   const [crConfirmDelete, setCrConfirmDelete] = useState(null);
   const [crDeleting, setCrDeleting]           = useState(false);
+  const [crTemplateOpen, setCrTemplateOpen] = useState(false);
 
   // ── Batch 4 state ────────────────────────────────────────────────────────
   // Sales Dashboard
@@ -1393,27 +1446,35 @@ export default function AppShell() {
     window.localStorage.setItem('dph-theme', theme);
   }, [theme]);
 
+  const loadWorkspace = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const meRes = await apiFetch('/api/v1/auth/me');
+      setUser(meRes.user);
+    } catch (err) {
+      // Session likely expired/revoked between the middleware check and this
+      // render. Hard navigation (not router.push) so the stale session
+      // cookie is guaranteed to be re-evaluated fresh rather than bouncing
+      // right back here via a cached client-side render.
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      const modulesRes = await apiFetch('/api/v1/modules');
+      setCategories(modulesRes.categories || []);
+      setOrgPlan(modulesRes.plan || null);
+    } catch (err) {
+      setLoadError(err.message || 'Could not load the workspace.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const [meRes, modulesRes] = await Promise.all([
-          apiFetch('/api/v1/auth/me'),
-          apiFetch('/api/v1/modules'),
-        ]);
-        setUser(meRes.user);
-        setCategories(modulesRes.categories);
-        setOrgPlan(modulesRes.plan || null);
-      } catch (err) {
-        // Session likely expired/revoked between the middleware check and this
-        // render. Hard navigation (not router.push) so the stale session
-        // cookie is guaranteed to be re-evaluated fresh rather than bouncing
-        // right back here via a cached client-side render.
-        window.location.href = '/login';
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [router]);
+    loadWorkspace();
+  }, [loadWorkspace]);
 
   useEffect(() => {
     if (user?.fullName != null) setAcctNameDraft(user.fullName);
@@ -2729,6 +2790,24 @@ export default function AppShell() {
     return { subtotal: sub, taxAmount: tax, total: sub - disc + tax };
   }
 
+  function startBlankQuote() {
+    setEditingQuote(null);
+    setQuoteDraft(createBlankQuoteDraft());
+    setQuoteForm(true);
+  }
+
+  function useQuoteStarterTemplate(template) {
+    setEditingQuote(null);
+    setQuoteDraft({
+      ...createBlankQuoteDraft(),
+      ...cloneTemplateDraft(template.draft),
+      items: cloneTemplateDraft(template.items),
+    });
+    setQuoteForm(true);
+    setQuoteTemplateOpen(false);
+    showToast('Template applied — personalize the client details before sending.');
+  }
+
   async function handleSaveQuote(e) {
     e.preventDefault();
     const { subtotal, taxAmount, total } = quoteLineTotal(quoteDraft.items, quoteDraft.discount, quoteDraft.taxRate);
@@ -2738,7 +2817,7 @@ export default function AppShell() {
     const data = await apiFetch(url, { method, body: JSON.stringify(payload) });
     if (data.error) { showToast(data.error); return; }
     setQuoteForm(false); setEditingQuote(null);
-    setQuoteDraft({ clientName:'', clientEmail:'', clientAddress:'', items:[{ description:'', qty:1, unitPrice:0 }], discount:'0', taxRate:'0', notes:'', validUntil:'' });
+    setQuoteDraft(createBlankQuoteDraft());
     const [s, l] = await Promise.all([apiFetch('/api/v1/quotations/stats'), apiFetch('/api/v1/quotations/')]);
     setQuoteStats(s); setQuotes(l.quotations || []);
   }
@@ -2825,6 +2904,22 @@ export default function AppShell() {
     } catch { setFbLoaded(true); }
   }
 
+  function startBlankFbForm() {
+    setEditingFbForm(null);
+    setFbDraft(createBlankFbDraft());
+    setFbNewField(createBlankFbNewField());
+    setFbForm(true);
+  }
+
+  function useFbStarterTemplate(template) {
+    setEditingFbForm(null);
+    setFbDraft(cloneTemplateDraft(template.draft));
+    setFbNewField(createBlankFbNewField());
+    setFbForm(true);
+    setFbTemplateOpen(false);
+    showToast('Template applied — review the questions before publishing.');
+  }
+
   async function handleSaveFbForm(e) {
     e.preventDefault();
     const method = editingFbForm ? 'PUT' : 'POST';
@@ -2832,7 +2927,8 @@ export default function AppShell() {
     const data = await apiFetch(url, { method, body: JSON.stringify(fbDraft) });
     if (data.error) { showToast(data.error); return; }
     setFbForm(false); setEditingFbForm(null);
-    setFbDraft({ name:'', description:'', fields:[], status:'active', submitMessage:'Thank you for your submission!' });
+    setFbDraft(createBlankFbDraft());
+    setFbNewField(createBlankFbNewField());
     const [s, f] = await Promise.all([apiFetch('/api/v1/forms/stats'), apiFetch('/api/v1/forms/')]);
     setFbStats(s); setFbForms(f.forms || []);
   }
@@ -2862,12 +2958,12 @@ export default function AppShell() {
       label: fbNewField.label,
       type: fbNewField.type,
       required: fbNewField.required,
-      id: Date.now(),
+      id: `field_${Date.now()}`,
       options: fbNewField.type === 'select' || fbNewField.type === 'radio' ? fbNewField.options.split(',').map((s) => s.trim()).filter(Boolean) : [],
-      showIf: fbNewField.showIfFieldId ? { fieldId: Number(fbNewField.showIfFieldId), operator: 'equals', value: fbNewField.showIfValue } : null,
+      showIf: fbNewField.showIfFieldId ? { fieldId: fbNewField.showIfFieldId, operator: 'equals', value: fbNewField.showIfValue } : null,
     };
     setFbDraft((d) => ({ ...d, fields: [...d.fields, field] }));
-    setFbNewField({ label:'', type:'text', required:false, options:'', showIfFieldId:'', showIfValue:'' });
+    setFbNewField(createBlankFbNewField());
   }
 
   function fbRemoveField(id) { setFbDraft((d) => ({ ...d, fields: d.fields.filter((f) => f.id !== id) })); }
@@ -3736,11 +3832,30 @@ export default function AppShell() {
     setCrData(data); setCrRunning(false);
   }
 
+  function startBlankSavedReport() {
+    setCrSaveName('');
+    setCrSaveDescription('');
+    setCrSaveForm(true);
+  }
+
+  async function useReportStarterTemplate(template) {
+    setCrSelectedModule(template.module);
+    setCrSaveName(template.name);
+    setCrSaveDescription(template.description);
+    setCrTemplateOpen(false);
+    setCrSaveForm(true);
+    await handleRunAdhoc(template.module);
+    showToast('Template loaded — review the preview, then save it if you want to keep it.');
+  }
+
   async function handleSaveReport(e) {
     e.preventDefault();
-    const data = await apiFetch('/api/v1/custom-reports/', { method:'POST', body:JSON.stringify({ name:crSaveName, module:crSelectedModule }) });
+    const data = await apiFetch('/api/v1/custom-reports/', {
+      method:'POST',
+      body:JSON.stringify({ name:crSaveName, description: crSaveDescription, module:crSelectedModule }),
+    });
     if (data.error) { showToast(data.error); return; }
-    setCrSaveForm(false); setCrSaveName('');
+    setCrSaveForm(false); setCrSaveName(''); setCrSaveDescription('');
     const r = await apiFetch('/api/v1/custom-reports/'); setCrReports(r.reports||[]);
   }
 
@@ -4724,6 +4839,21 @@ export default function AppShell() {
     setBlockDraft({});
   }
 
+  function startBlankEmailCampaign() {
+    setEditingCampaignId(null);
+    setNewCampaign(createBlankEmailCampaign());
+    setEmailFormError('');
+    setShowCampaignForm(true);
+  }
+
+  function toggleBlankEmailCampaign() {
+    if (showCampaignForm) {
+      setShowCampaignForm(false);
+      return;
+    }
+    startBlankEmailCampaign();
+  }
+
   async function openEmailTemplateGallery() {
     setEmailTplGalleryOpen(true);
     setEmailTplLoading(true);
@@ -4759,6 +4889,8 @@ export default function AppShell() {
       return;
     }
     const t = data.template;
+    setEditingCampaignId(null);
+    setEmailFormError('');
     setNewCampaign({ subject: t.subject, previewText: t.preview_text || '', bodyHtml: t.body_html, listId: '' });
     setEmailTplGalleryOpen(false);
     setShowCampaignForm(true);
@@ -5145,6 +5277,22 @@ export default function AppShell() {
     }
   }
 
+  function startBlankLeadForm() {
+    setEditingLeadFormId(null);
+    setLeadFormDraft(createBlankLeadFormDraft());
+    setLeadFormError('');
+    setShowLeadFormBuilder(true);
+  }
+
+  function useLeadStarterTemplate(template) {
+    setEditingLeadFormId(null);
+    setLeadFormDraft(cloneTemplateDraft(template.draft));
+    setLeadFormError('');
+    setShowLeadFormBuilder(true);
+    setLeadTemplateOpen(false);
+    showToast('Template applied — adjust the copy or fields before publishing.');
+  }
+
   function addLeadField(type) {
     const id = `field_${Date.now()}`;
     const defaults = {
@@ -5202,7 +5350,7 @@ export default function AppShell() {
           body: JSON.stringify({ name: leadFormDraft.name, fields: leadFormDraft.fields, thankYouMessage: leadFormDraft.thankYouMessage }),
         });
       }
-      setLeadFormDraft({ name: '', thankYouMessage: '', fields: [] });
+      setLeadFormDraft(createBlankLeadFormDraft());
       setShowLeadFormBuilder(false);
       await loadLeads();
     } catch (err) {
@@ -5358,7 +5506,7 @@ export default function AppShell() {
           listId: newCampaign.listId || null,
         }),
       });
-      setNewCampaign({ subject: '', previewText: '', bodyHtml: '', listId: '' });
+      setNewCampaign(createBlankEmailCampaign());
       setShowCampaignForm(false);
       await loadEmail();
     } catch (err) {
@@ -5687,8 +5835,33 @@ export default function AppShell() {
     await loadInvoices();
   }
 
-  function createEmptyInvoiceItem() {
-    return { description: '', quantity: '1', unitPrice: '', amount: '' };
+  function startBlankInvoice() {
+    setEditingInvoiceId(null);
+    setInvoiceFormError('');
+    setNewInvoice(createBlankInvoiceDraft());
+    setInvoiceItems([createBlankInvoiceItem()]);
+    setShowInvoiceForm(true);
+  }
+
+  function useInvoiceStarterTemplate(template) {
+    const nextItems = template.items.map((item) => ({
+      description: item.description,
+      quantity: String(item.quantity),
+      unitPrice: String(item.unitPrice),
+      amount: (Number(item.quantity) * Number(item.unitPrice)).toFixed(2),
+    }));
+    setEditingInvoiceId(null);
+    setInvoiceFormError('');
+    setInvoiceItems(nextItems);
+    setNewInvoice(
+      syncInvoiceTotals(nextItems, {
+        ...createBlankInvoiceDraft(),
+        ...cloneTemplateDraft(template.draft),
+      })
+    );
+    setShowInvoiceForm(true);
+    setInvoiceTemplateOpen(false);
+    showToast('Template applied — finish the client and invoice number before saving.');
   }
 
   function syncInvoiceTotals(items, invoiceDraft) {
@@ -5724,23 +5897,23 @@ export default function AppShell() {
   }
 
   function addInvoiceItemRow() {
-    setInvoiceItems((prev) => [...prev, createEmptyInvoiceItem()]);
+    setInvoiceItems((prev) => [...prev, createBlankInvoiceItem()]);
   }
 
   function addEditInvoiceItemRow() {
-    setEditInvoiceItems((prev) => [...prev, createEmptyInvoiceItem()]);
+    setEditInvoiceItems((prev) => [...prev, createBlankInvoiceItem()]);
   }
 
   function removeInvoiceItemRow(index) {
     const nextRows = invoiceItems.filter((_, rowIndex) => rowIndex !== index);
-    setInvoiceItems(nextRows.length ? nextRows : [createEmptyInvoiceItem()]);
-    setNewInvoice((prev) => syncInvoiceTotals(nextRows.length ? nextRows : [createEmptyInvoiceItem()], prev));
+    setInvoiceItems(nextRows.length ? nextRows : [createBlankInvoiceItem()]);
+    setNewInvoice((prev) => syncInvoiceTotals(nextRows.length ? nextRows : [createBlankInvoiceItem()], prev));
   }
 
   function removeEditInvoiceItemRow(index) {
     const nextRows = editInvoiceItems.filter((_, rowIndex) => rowIndex !== index);
-    setEditInvoiceItems(nextRows.length ? nextRows : [createEmptyInvoiceItem()]);
-    setEditInvoiceDraft((prev) => syncInvoiceTotals(nextRows.length ? nextRows : [createEmptyInvoiceItem()], prev));
+    setEditInvoiceItems(nextRows.length ? nextRows : [createBlankInvoiceItem()]);
+    setEditInvoiceDraft((prev) => syncInvoiceTotals(nextRows.length ? nextRows : [createBlankInvoiceItem()], prev));
   }
 
   async function handleCreateInvoice(e) {
@@ -5778,8 +5951,8 @@ export default function AppShell() {
           items: payloadItems,
         }),
       });
-      setNewInvoice({ invoiceNumber: '', clientId: '', status: 'draft', issueDate: '', dueDate: '', subtotal: '', taxRate: '', total: '', notes: '' });
-      setInvoiceItems([{ description: '', quantity: '1', unitPrice: '', amount: '' }]);
+      setNewInvoice(createBlankInvoiceDraft());
+      setInvoiceItems([createBlankInvoiceItem()]);
       setShowInvoiceForm(false);
       await loadInvoices();
     } catch (err) {
@@ -5847,11 +6020,11 @@ export default function AppShell() {
             unitPrice: String(item.unit_price || 0),
             amount: String(item.amount || 0),
           }))
-        : [createEmptyInvoiceItem()];
+        : [createBlankInvoiceItem()];
       setEditInvoiceItems(items);
       setEditInvoiceDraft((prev) => syncInvoiceTotals(items, prev));
     } catch (err) {
-      setEditInvoiceItems([createEmptyInvoiceItem()]);
+      setEditInvoiceItems([createBlankInvoiceItem()]);
     }
   }
 
@@ -6423,17 +6596,25 @@ export default function AppShell() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>
-        Loading workspace…
-      </div>
+      <PageState
+        fullscreen
+        loading
+        title="Loading workspace"
+        description="Pulling your modules, navigation, and current workspace settings."
+      />
     );
   }
 
   if (loadError) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', fontSize: '0.9rem', fontWeight: 600 }}>
-        {loadError}
-      </div>
+      <PageState
+        fullscreen
+        tone="danger"
+        icon="!"
+        title="Couldn't load the workspace"
+        description={loadError}
+        action={<Button onClick={loadWorkspace}>Try again</Button>}
+      />
     );
   }
 
@@ -6453,9 +6634,16 @@ export default function AppShell() {
         onMarkAllRead={handleMarkAllRead}
         onToggleSidebar={() => setNavOpen((v) => !v)}
       >
-        <button className="ghost-btn" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-        </button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="theme-toggle-btn"
+          type="button"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        >
+          <span className="theme-toggle-icon" aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span className="theme-toggle-label">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+        </Button>
       </Topbar>
 
       <div className={["app-shell", navOpen ? 'nav-open' : ''].filter(Boolean).join(' ')}>
@@ -7502,9 +7690,12 @@ export default function AppShell() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {leadsTab === 'forms' && (
-                    <button className="primary-btn" onClick={() => { setShowLeadFormBuilder((v) => !v); setEditingLeadFormId(null); setLeadFormDraft({ name: '', thankYouMessage: '', fields: [] }); setLeadFormError(''); }}>
-                      {showLeadFormBuilder ? 'Cancel' : '+ New form'}
-                    </button>
+                    <>
+                      <Button variant="secondary" onClick={() => setLeadTemplateOpen(true)}>Choose a template</Button>
+                      <Button onClick={() => { if (showLeadFormBuilder) setShowLeadFormBuilder(false); else startBlankLeadForm(); }}>
+                        {showLeadFormBuilder ? 'Cancel' : 'Start from scratch'}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -7612,7 +7803,17 @@ export default function AppShell() {
                   {!leadsLoaded ? (
                     <div className="empty-note">Loading forms…</div>
                   ) : leadForms.length === 0 ? (
-                    <div className="empty-note">No forms yet — build your first one above.</div>
+                    <EmptyState
+                      icon="🧲"
+                      title="No lead forms yet"
+                      description="Start with a blank capture form or use a ready-made inquiry template."
+                      action={(
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Button onClick={startBlankLeadForm}>Start from scratch</Button>
+                          <Button variant="secondary" onClick={() => setLeadTemplateOpen(true)}>Choose a template</Button>
+                        </div>
+                      )}
+                    />
                   ) : (
                     <div style={{ display: 'grid', gap: 10 }}>
                       {leadForms.map((form) => (
@@ -7794,6 +7995,14 @@ export default function AppShell() {
                 danger
                 loading={leadConfirming}
               />
+              <StarterTemplateModal
+                isOpen={leadTemplateOpen}
+                onClose={() => setLeadTemplateOpen(false)}
+                title="Choose a lead form template"
+                description="Start with a proven inquiry flow, then tailor the fields for your team."
+                templates={leadStarterTemplates}
+                onUse={useLeadStarterTemplate}
+              />
             </div>
           )}
 
@@ -7818,7 +8027,7 @@ export default function AppShell() {
                   {emailTab === 'campaigns' && (
                     <>
                       <Button variant="secondary" onClick={openEmailTemplateGallery}>Choose a template</Button>
-                      <button className="primary-btn" onClick={() => { setShowCampaignForm((v) => !v); setEmailFormError(''); }}>+ New campaign</button>
+                      <Button onClick={toggleBlankEmailCampaign}>{showCampaignForm ? 'Cancel' : 'Start from scratch'}</Button>
                     </>
                   )}
                 </div>
@@ -8000,7 +8209,17 @@ export default function AppShell() {
                   {!emailLoaded ? (
                     <div className="empty-note">Loading campaigns…</div>
                   ) : emailCampaigns.length === 0 ? (
-                    <div className="empty-note">No campaigns yet — create your first one above.</div>
+                    <EmptyState
+                      icon="✉️"
+                      title="No campaigns yet"
+                      description="Start from a blank draft or use one of the ready-made email templates."
+                      action={(
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Button onClick={startBlankEmailCampaign}>Start from scratch</Button>
+                          <Button variant="secondary" onClick={openEmailTemplateGallery}>Choose a template</Button>
+                        </div>
+                      )}
+                    />
                   ) : (
                     <div style={{ display: 'grid', gap: 12 }}>
                       {emailCampaigns.map((campaign) => (
@@ -8103,7 +8322,10 @@ export default function AppShell() {
                 <div><h1>Invoices</h1><p className="module-sub">Create clients and turn work into polished invoices in one place.</p></div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Button variant="secondary" onClick={() => setShowClientForm((v) => !v)}>+ Add client</Button>
-                  <Button onClick={() => setShowInvoiceForm((v) => !v)}>+ New invoice</Button>
+                  <Button variant="secondary" onClick={() => setInvoiceTemplateOpen(true)}>Choose a template</Button>
+                  <Button onClick={() => { if (showInvoiceForm) setShowInvoiceForm(false); else startBlankInvoice(); }}>
+                    {showInvoiceForm ? 'Cancel' : 'Start from scratch'}
+                  </Button>
                 </div>
               </div>
 
@@ -8330,8 +8552,13 @@ export default function AppShell() {
                   <EmptyState
                     icon="🧾"
                     title="No invoices yet"
-                    description="Create your first invoice to start billing clients."
-                    action={<Button onClick={() => setShowInvoiceForm(true)}>+ New invoice</Button>}
+                    description="Start with a blank invoice or choose a starter billing structure."
+                    action={(
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <Button onClick={startBlankInvoice}>Start from scratch</Button>
+                        <Button variant="secondary" onClick={() => setInvoiceTemplateOpen(true)}>Choose a template</Button>
+                      </div>
+                    )}
                   />
                 </Card>
               ) : filteredInvoices.length === 0 ? (
@@ -8508,6 +8735,14 @@ export default function AppShell() {
                 title="Delete this client?"
                 description="This cannot be undone."
                 confirmLabel="Delete"
+              />
+              <StarterTemplateModal
+                isOpen={invoiceTemplateOpen}
+                onClose={() => setInvoiceTemplateOpen(false)}
+                title="Choose an invoice template"
+                description="Pick a useful billing structure, then adjust the client, invoice number, and pricing."
+                templates={invoiceStarterTemplates}
+                onUse={useInvoiceStarterTemplate}
               />
             </div>
           )}
@@ -12086,7 +12321,12 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title="Quotations"
             description="Line-item quotes for clients — track sent, accepted, and expired status. Part of Business."
-            primaryAction={<Button onClick={() => { setEditingQuote(null); setQuoteDraft({ clientName:'', clientEmail:'', clientAddress:'', items:[{ description:'', qty:1, unitPrice:0 }], discount:'0', taxRate:'0', notes:'', validUntil:'' }); setQuoteForm(true); }}>+ New Quote</Button>}
+            primaryAction={(
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Button variant="secondary" onClick={() => setQuoteTemplateOpen(true)}>Choose a template</Button>
+                <Button onClick={startBlankQuote}>Start from scratch</Button>
+              </div>
+            )}
             stats={quoteStats ? [
               { label: 'Total', value: quoteStats.total },
               { label: 'Sent', value: quoteStats.sent },
@@ -12140,7 +12380,19 @@ export default function AppShell() {
               loading={!quoteLoaded}
               rows={filteredQuotes}
               getRowKey={(q) => q.id}
-              emptyState={<EmptyState icon="📄" title="No quotations yet" description="Create your first quote to send to a client." action={<Button onClick={() => setQuoteForm(true)}>+ New Quote</Button>} />}
+              emptyState={(
+                <EmptyState
+                  icon="📄"
+                  title="No quotations yet"
+                  description="Start from a blank quote or use a proposal template for your most common offer."
+                  action={(
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <Button onClick={startBlankQuote}>Start from scratch</Button>
+                      <Button variant="secondary" onClick={() => setQuoteTemplateOpen(true)}>Choose a template</Button>
+                    </div>
+                  )}
+                />
+              )}
               columns={[
                 { key: 'quote_number', header: 'Quote #', render: (q) => <span style={{ fontWeight:600, fontFamily:'monospace', fontSize:'0.85rem' }}>{q.quote_number}</span> },
                 { key: 'client', header: 'Client', render: (q) => (
@@ -12179,6 +12431,14 @@ export default function AppShell() {
               confirmLabel="Delete"
               danger
               loading={quoteDeleting}
+            />
+            <StarterTemplateModal
+              isOpen={quoteTemplateOpen}
+              onClose={() => setQuoteTemplateOpen(false)}
+              title="Choose a quote or proposal template"
+              description="Start with a practical service package, then tailor the pricing and scope to the client."
+              templates={quoteStarterTemplates}
+              onUse={useQuoteStarterTemplate}
             />
           </ModulePage>
         );
@@ -12357,7 +12617,12 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title="Forms & Surveys"
             description="Custom forms with conditional logic — collect structured responses from anyone, no login required. Part of Marketing."
-            primaryAction={!fbForm && <Button onClick={() => { setEditingFbForm(null); setFbDraft({ name:'', description:'', fields:[], status:'active', submitMessage:'Thank you for your submission!' }); setFbForm(true); }}>+ New Form</Button>}
+            primaryAction={!fbForm && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Button variant="secondary" onClick={() => setFbTemplateOpen(true)}>Choose a template</Button>
+                <Button onClick={startBlankFbForm}>Start from scratch</Button>
+              </div>
+            )}
             stats={fbStats ? [
               { label: 'Active Forms', value: fbStats.activeForms },
               { label: 'Total Responses', value: fbStats.totalResponses },
@@ -12379,7 +12644,7 @@ export default function AppShell() {
                 <div style={{ marginBottom:'0.75rem' }}>
                   <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.5rem' }}>Fields ({fbDraft.fields.length})</div>
                   {fbDraft.fields.map((f) => {
-                    const gateField = f.showIf ? fbDraft.fields.find((x) => x.id === f.showIf.fieldId) : null;
+                    const gateField = f.showIf ? fbDraft.fields.find((x) => String(x.id) === String(f.showIf.fieldId)) : null;
                     return (
                       <div key={f.id} style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 0.5rem', background:'var(--surface)', borderRadius:6, marginBottom:'0.3rem', flexWrap:'wrap' }}>
                         <span style={{ flex:1, fontSize:'0.85rem', minWidth:100 }}>{f.label}</span>
@@ -12409,7 +12674,7 @@ export default function AppShell() {
                       <span>Conditional logic — only show this new field if</span>
                       <select className="form-input" value={fbNewField.showIfFieldId} onChange={(e) => setFbNewField((d)=>({...d,showIfFieldId:e.target.value}))} style={{ maxWidth:180 }}>
                         <option value="">(always show)</option>
-                        {fbDraft.fields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                        {fbDraft.fields.map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
                       </select>
                       {fbNewField.showIfFieldId && (
                         <>
@@ -12433,8 +12698,13 @@ export default function AppShell() {
                 <EmptyState
                   icon="📝"
                   title="No forms yet"
-                  description="Build a form with real branching logic — fields can show or hide based on earlier answers."
-                  action={<Button onClick={() => { setEditingFbForm(null); setFbDraft({ name:'', description:'', fields:[], status:'active', submitMessage:'Thank you for your submission!' }); setFbForm(true); }}>+ New Form</Button>}
+                  description="Start from a blank builder or use a ready-made survey and intake template."
+                  action={(
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <Button onClick={startBlankFbForm}>Start from scratch</Button>
+                      <Button variant="secondary" onClick={() => setFbTemplateOpen(true)}>Choose a template</Button>
+                    </div>
+                  )}
                 />
               ) : filteredForms.length === 0 ? (
                 <EmptyState icon="🔍" title="No matching forms" description="Try a different search term." action={<Button variant="secondary" onClick={() => setFbQuery('')}>Clear search</Button>} />
@@ -12475,6 +12745,14 @@ export default function AppShell() {
               confirmLabel="Delete"
               danger
               loading={fbFormDeleting}
+            />
+            <StarterTemplateModal
+              isOpen={fbTemplateOpen}
+              onClose={() => setFbTemplateOpen(false)}
+              title="Choose a form template"
+              description="Use a structured starting point, then add or remove fields to fit your workflow."
+              templates={surveyStarterTemplates}
+              onUse={useFbStarterTemplate}
             />
           </ModulePage>
         );
@@ -14541,6 +14819,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Custom Reports</h2>
+            <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+              <button className="btn-ghost" onClick={() => setCrTemplateOpen(true)}>Choose a template</button>
+              <button className="btn-primary" onClick={startBlankSavedReport}>Start from scratch</button>
+            </div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'240px 1fr', gap:'1rem' }}>
             <div>
@@ -14552,9 +14834,21 @@ export default function AppShell() {
               ))}
               <hr style={{ margin:'0.75rem 0', borderColor:'var(--border)' }} />
               <div style={{ fontWeight:600, fontSize:'0.8rem', color:'var(--muted)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:'0.5rem' }}>Saved Reports</div>
-              {!crLoaded ? null : crReports.length === 0 ? <p style={{ fontSize:'0.8rem', color:'var(--muted)' }}>None saved yet.</p> : crReports.map((r) => (
+              {!crLoaded ? null : crReports.length === 0 ? (
+                <EmptyState
+                  icon="📊"
+                  title="No saved reports yet"
+                  description="Start from scratch or use a template that preloads a useful report type."
+                  action={(
+                    <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap', justifyContent:'center' }}>
+                      <Button size="sm" onClick={startBlankSavedReport}>Start from scratch</Button>
+                      <Button size="sm" variant="secondary" onClick={() => setCrTemplateOpen(true)}>Choose a template</Button>
+                    </div>
+                  )}
+                />
+              ) : crReports.map((r) => (
                 <div key={r.id} style={{ display:'flex', alignItems:'center', gap:4, marginBottom:4 }}>
-                  <button className="btn-ghost" style={{ flex:1, textAlign:'left', fontSize:'0.8rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} onClick={() => handleRunSavedReport(r.id)}>{r.name}</button>
+                  <button className="btn-ghost" style={{ flex:1, textAlign:'left', fontSize:'0.8rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} onClick={() => handleRunSavedReport(r.id)} title={r.description || r.name}>{r.name}</button>
                   <button className="btn-ghost" style={{ fontSize:'0.65rem', color:'var(--danger)', padding:'1px 4px', flexShrink:0 }} onClick={() => handleDeleteReport(r.id)}>×</button>
                 </div>
               ))}
@@ -14563,13 +14857,19 @@ export default function AppShell() {
               <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.75rem', alignItems:'center', flexWrap:'wrap' }}>
                 <span style={{ fontWeight:700, fontSize:'1rem' }}>{crModules.find((m)=>m.key===crSelectedModule)?.label || 'Report'}</span>
                 <button className="btn-ghost" onClick={() => handleRunAdhoc(crSelectedModule)} disabled={crRunning}>{crRunning ? 'Running…' : '▶ Run'}</button>
-                <button className="btn-ghost" onClick={() => { setCrSaveName(crModules.find((m)=>m.key===crSelectedModule)?.label||''); setCrSaveForm(true); }}>Save Report</button>
+                <button className="btn-ghost" onClick={startBlankSavedReport}>Save Report</button>
               </div>
               {crSaveForm && (
-                <form onSubmit={handleSaveReport} style={{ display:'flex', gap:'0.5rem', marginBottom:'0.75rem' }}>
-                  <input className="form-input" placeholder="Report name" value={crSaveName} onChange={(e) => setCrSaveName(e.target.value)} required style={{ flex:1 }} />
-                  <button className="btn-primary" type="submit">Save</button>
-                  <button className="btn-ghost" type="button" onClick={() => setCrSaveForm(false)}>Cancel</button>
+                <form onSubmit={handleSaveReport} style={{ display:'grid', gap:'0.5rem', marginBottom:'0.75rem' }}>
+                  <input className="form-input" placeholder="Report name" value={crSaveName} onChange={(e) => setCrSaveName(e.target.value)} required />
+                  <input className="form-input" placeholder="Short description" value={crSaveDescription} onChange={(e) => setCrSaveDescription(e.target.value)} />
+                  <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+                    <span className="ctag">Source: {crModules.find((m) => m.key === crSelectedModule)?.label || 'Report'}</span>
+                  </div>
+                  <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+                    <button className="btn-primary" type="submit">Save</button>
+                    <button className="btn-ghost" type="button" onClick={() => { setCrSaveForm(false); setCrSaveName(''); setCrSaveDescription(''); }}>Cancel</button>
+                  </div>
                 </form>
               )}
               {crRunning && <p className="muted">Running report…</p>}
@@ -14617,6 +14917,14 @@ export default function AppShell() {
             confirmLabel="Delete"
             danger
             loading={crDeleting}
+          />
+          <StarterTemplateModal
+            isOpen={crTemplateOpen}
+            onClose={() => setCrTemplateOpen(false)}
+            title="Choose a report template"
+            description="Load a useful saved-report starter, preview the data, and keep it when it fits your workflow."
+            templates={reportStarterTemplates}
+            onUse={useReportStarterTemplate}
           />
         </div>
       )}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../../lib/api';
+import AuthShell from '../../components/ui/AuthShell';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
@@ -71,18 +72,28 @@ export default function LoginPage() {
 
   if (mfaToken) {
     return (
-      <div className="login-view">
-        <div className="login-card">
-          <div className="brandmark">
-            <img src="/logo.png" alt="" />
-            <span>Digitpen Hub</span>
-          </div>
-          <h2>Two-factor verification</h2>
-          <p className="login-sub">
-            {useBackupCode
-              ? 'Enter one of your saved backup codes.'
-              : 'Enter the 6-digit code from your authenticator app.'}
-          </p>
+      <AuthShell
+        title="Two-factor verification"
+        description={
+          useBackupCode
+            ? 'Enter one of your saved backup codes.'
+            : 'Enter the 6-digit code from your authenticator app.'
+        }
+        footer={(
+          <>
+            <p className="login-foot">
+              <button type="button" className="link-btn" onClick={() => { setUseBackupCode((v) => !v); setMfaCode(''); setError(''); }}>
+                {useBackupCode ? 'Use authenticator code instead' : 'Use a backup code instead'}
+              </button>
+            </p>
+            <p className="login-foot">
+              <button type="button" className="link-btn" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }}>
+                ← Back to sign in
+              </button>
+            </p>
+          </>
+        )}
+      >
           <form onSubmit={handleMfaSubmit}>
             <Input
               label={useBackupCode ? 'Backup code' : 'Authentication code'}
@@ -97,30 +108,23 @@ export default function LoginPage() {
               {loading ? 'Verifying…' : 'Verify'}
             </Button>
           </form>
-          <p className="login-foot">
-            <button type="button" className="link-btn" onClick={() => { setUseBackupCode((v) => !v); setMfaCode(''); setError(''); }}>
-              {useBackupCode ? 'Use authenticator code instead' : 'Use a backup code instead'}
-            </button>
-          </p>
-          <p className="login-foot">
-            <button type="button" className="link-btn" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }}>
-              ← Back to sign in
-            </button>
-          </p>
-        </div>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="login-view">
-      <div className="login-card">
-        <div className="brandmark">
-          <img src="/logo.png" alt="" />
-          <span>Digitpen Hub</span>
-        </div>
-        <h2>Sign in to your workspace</h2>
-        <p className="login-sub">One secure login for every module, from CRM to billing and beyond.</p>
+    <AuthShell
+      title="Sign in to your workspace"
+      description="One secure login for every module, from CRM to billing and beyond."
+      footer={(
+        <>
+          <p className="login-foot">
+            New to Digitpen Hub? <Link href="/signup">Create a free account</Link>
+          </p>
+          <p className="login-foot">suite.digitpenhub.com</p>
+        </>
+      )}
+    >
         <form onSubmit={handleSubmit}>
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -132,11 +136,6 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
-        <p className="login-foot">
-          New to Digitpen Hub? <Link href="/signup">Create a free account</Link>
-        </p>
-        <p className="login-foot">suite.digitpenhub.com</p>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

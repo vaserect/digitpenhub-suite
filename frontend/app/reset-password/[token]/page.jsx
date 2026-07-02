@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { apiFetch } from '../../../lib/api';
+import AuthShell from '../../../components/ui/AuthShell';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 
@@ -37,13 +38,10 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="login-view">
-      <div className="login-card">
-        <div className="brandmark">
-          <img src="/logo.png" alt="" />
-          <span>Digitpen Hub</span>
-        </div>
-        <h2>Choose a new password</h2>
+    <AuthShell
+      title="Choose a new password"
+      footer={<p className="login-foot"><Link href="/login">← Back to sign in</Link></p>}
+    >
         {done ? (
           <p className="form-success-note">Password updated. Taking you to sign in…</p>
         ) : (
@@ -59,10 +57,6 @@ export default function ResetPasswordPage() {
             </form>
           </>
         )}
-        <p className="login-foot">
-          <Link href="/login">← Back to sign in</Link>
-        </p>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

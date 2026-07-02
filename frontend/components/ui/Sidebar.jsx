@@ -19,6 +19,18 @@ function ChevronIcon({ open }) {
   );
 }
 
+function NavItemLabel({ name, meta, locked = false }) {
+  return (
+    <span className="nav-item-body">
+      <span className="nav-item-topline">
+        <span className="nav-item-text">{name}</span>
+        {locked ? <span className="nav-lock">Locked</span> : null}
+      </span>
+      {meta ? <span className="nav-item-meta">{meta}</span> : null}
+    </span>
+  );
+}
+
 export default function Sidebar({
   categories = [], view, activeCategoryKey, activeModuleSlug, onHome, onCategory, onModule, liveCount,
   onBilling, onAccount, onWhiteLabel, pinnedSlugs = [], onTogglePin,
@@ -57,17 +69,17 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div className="sidebar-scroll">
         {q ? (
           <>
-            <div className="nav-section-label">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</div>
+            <div className="nav-section-label">Search results</div>
             {searchResults.map((m) => (
               <button
                 key={m.slug}
                 className={`nav-item nav-item-sub ${activeModuleSlug === m.slug ? 'is-active' : ''} ${m.locked ? 'is-locked' : ''}`}
                 onClick={() => onModule(m.slug)}
               >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}{m.locked && ' 🔒'}</span>
+                <NavItemLabel name={m.name} meta={m.categoryName} locked={m.locked} />
                 <span
                   role="button"
                   tabIndex={0}
@@ -95,7 +107,7 @@ export default function Sidebar({
                   if (!mod) return null;
                   return (
                     <button key={slug} className={`nav-item nav-item-sub ${activeModuleSlug === slug ? 'is-active' : ''}`} onClick={() => onModule(slug)}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mod.name}</span>
+                      <NavItemLabel name={mod.name} meta={mod.categoryName} />
                       <span role="button" tabIndex={0} className="nav-pin is-pinned" onClick={(e) => { e.stopPropagation(); onTogglePin(slug); }} aria-label="Unpin">
                         <StarIcon filled />
                       </span>
@@ -122,7 +134,7 @@ export default function Sidebar({
                     <div>
                       {c.modules.filter((m) => m.status === 'active').map((m) => (
                         <button key={m.slug} className={`nav-item nav-item-sub ${activeModuleSlug === m.slug ? 'is-active' : ''} ${m.locked ? 'is-locked' : ''}`} onClick={() => onModule(m.slug)}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}{m.locked && ' 🔒'}</span>
+                          <NavItemLabel name={m.name} locked={m.locked} />
                           <span
                             role="button"
                             tabIndex={0}
@@ -146,33 +158,33 @@ export default function Sidebar({
         )}
       </div>
 
-      {onAccount && (
-        <button
-          className={`nav-item ${view === 'account' ? 'is-active' : ''}`}
-          onClick={onAccount}
-          style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12, flexShrink: 0 }}
-        >
-          <span><span className="dot" />Account &amp; Security</span>
-        </button>
-      )}
-      {onBilling && (
-        <button
-          className={`nav-item ${view === 'billing' ? 'is-active' : ''}`}
-          onClick={onBilling}
-          style={{ flexShrink: 0 }}
-        >
-          <span><span className="dot" />Billing &amp; Plans</span>
-        </button>
-      )}
-      {onWhiteLabel && (
-        <button
-          className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`}
-          onClick={onWhiteLabel}
-          style={{ flexShrink: 0 }}
-        >
-          <span><span className="dot" />White Label</span>
-        </button>
-      )}
+      <div className="sidebar-footer">
+        <div className="nav-section-label">Workspace</div>
+        {onAccount && (
+          <button
+            className={`nav-item ${view === 'account' ? 'is-active' : ''}`}
+            onClick={onAccount}
+          >
+            <span><span className="dot" />Account &amp; Security</span>
+          </button>
+        )}
+        {onBilling && (
+          <button
+            className={`nav-item ${view === 'billing' ? 'is-active' : ''}`}
+            onClick={onBilling}
+          >
+            <span><span className="dot" />Billing &amp; Plans</span>
+          </button>
+        )}
+        {onWhiteLabel && (
+          <button
+            className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`}
+            onClick={onWhiteLabel}
+          >
+            <span><span className="dot" />White Label</span>
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

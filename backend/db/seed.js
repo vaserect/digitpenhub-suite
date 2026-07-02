@@ -2,6 +2,7 @@ require('dotenv').config();
 const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
 const { CATEGORIES, ACTIVE, ROUTES, slugify } = require('./categories.data');
+const { seedEmailTemplates } = require('./seedEmailTemplates');
 
 (async () => {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -133,6 +134,8 @@ const { CATEGORIES, ACTIVE, ROUTES, slugify } = require('./categories.data');
     }
 
     await dbClient.query('COMMIT');
+    console.log('Core seed complete.');
+    await seedEmailTemplates();
     console.log('Seed complete.');
   } catch (err) {
     await dbClient.query('ROLLBACK');

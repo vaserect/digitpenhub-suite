@@ -184,21 +184,38 @@ const TEMPLATES = [
   },
 ];
 
-(async () => {
+async function seedEmailTemplates() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   let inserted = 0;
   let skipped = 0;
-  for (const [i, t] of TEMPLATES.entries()) {
-    const { rows: existing } = await pool.query(`SELECT 1 FROM email_templates WHERE name = $1`, [t.name]);
-    if (existing.length) { console.log(`Skipping "${t.name}" (already seeded)`); skipped += 1; continue; }
-    await pool.query(
-      `INSERT INTO email_templates (category, name, description, subject, preview_text, body_html, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [t.category, t.name, t.description, t.subject, t.previewText, t.bodyHtml, i]
-    );
-    console.log(`✓ Inserted "${t.name}"`);
-    inserted += 1;
+  try {
+    for (const [i, t] of TEMPLATES.entries()) {
+      const { rows: existing } = await pool.query(`SELECT 1 FROM email_templates WHERE name = $1`, [t.name]);
+      if (existing.length) {
+        console.log(`Skipping "${t.name}" (already seeded)`);
+        skipped += 1;
+        continue;
+      }
+      await pool.query(
+        `INSERT INTO email_templates (category, name, description, subject, preview_text, body_html, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [t.category, t.name, t.description, t.subject, t.previewText, t.bodyHtml, i]
+      );
+      console.log(`✓ Inserted "${t.name}"`);
+      inserted += 1;
+    }
+    console.log(`\nDone. Inserted ${inserted}, skipped ${skipped}.`);
+    return { inserted, skipped };
+  } finally {
+    await pool.end();
   }
-  console.log(`\nDone. Inserted ${inserted}, skipped ${skipped}.`);
-  await pool.end();
-})().catch((err) => { console.error(err); process.exit(1); });
+}
+
+if (require.main === module) {
+  seedEmailTemplates().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { seedEmailTemplates };

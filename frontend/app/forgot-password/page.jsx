@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../../lib/api';
+import AuthShell from '../../components/ui/AuthShell';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
@@ -30,14 +31,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="login-view">
-      <div className="login-card">
-        <div className="brandmark">
-          <img src="/logo.png" alt="" />
-          <span>Digitpen Hub</span>
-        </div>
-        <h2>Reset your password</h2>
-        <p className="login-sub">Enter the email on your account and we'll send you a link to reset your password.</p>
+    <AuthShell
+      title="Reset your password"
+      description="Enter the email on your account and we'll send you a link to reset your password."
+      footer={<p className="login-foot"><Link href="/login">← Back to sign in</Link></p>}
+    >
         {sent ? (
           <p className="form-success-note">
             If an account exists for that email, a reset link has been sent. It expires in 1 hour.
@@ -51,10 +49,6 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         )}
-        <p className="login-foot">
-          <Link href="/login">← Back to sign in</Link>
-        </p>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

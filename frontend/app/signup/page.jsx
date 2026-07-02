@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../../lib/api';
+import AuthShell from '../../components/ui/AuthShell';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
@@ -40,14 +41,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="login-view">
-      <div className="login-card">
-        <div className="brandmark">
-          <img src="/logo.png" alt="" />
-          <span>Digitpen Hub</span>
-        </div>
-        <h2>Start your free workspace</h2>
-        <p className="login-sub">No credit card required. Every module — CRM, sites, invoicing, marketing — from day one.</p>
+    <AuthShell
+      title="Start your free workspace"
+      description="No credit card required. Every module — CRM, sites, invoicing, marketing — from day one."
+      footer={<p className="login-foot">Already have an account? <Link href="/login">Sign in</Link></p>}
+    >
         <form onSubmit={handleSubmit}>
           <Input label="Organization name" value={form.orgName} onChange={update('orgName')} placeholder="e.g. Acme Studio" required autoFocus />
           <Input label="Your name" value={form.fullName} onChange={update('fullName')} required />
@@ -58,10 +56,6 @@ export default function SignupPage() {
             {loading ? 'Creating your workspace…' : 'Create free account'}
           </Button>
         </form>
-        <p className="login-foot">
-          Already have an account? <Link href="/login">Sign in</Link>
-        </p>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

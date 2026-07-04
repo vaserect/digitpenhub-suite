@@ -62,8 +62,8 @@ async function generateContent(req, res) {
   if (!type || !prompt) return res.status(400).json({ error: 'type and prompt required.' });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: true, usedFallback: true, errorMessage: 'No ANTHROPIC_API_KEY configured' });
-    return res.json({ generated: buildTemplate(type, prompt, context), usedAI: false });
+    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: false, usedFallback: true, errorMessage: 'No ANTHROPIC_API_KEY configured' });
+    return res.json({ generated: buildTemplate(type, prompt), usedAI: false });
   }
   const startedAt = Date.now();
   try {
@@ -92,11 +92,11 @@ async function generateContent(req, res) {
     const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
     console.error('AI generate error:', err.message);
     logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: false, usedFallback: true, errorMessage: isTimeout ? 'Timed out after 15s' : err.message, durationMs: Date.now() - startedAt });
-    res.json({ generated: buildTemplate(type, prompt, context), usedAI: false, warning: isTimeout ? 'AI request timed out, used template instead.' : 'AI unavailable, used template.' });
+    res.json({ generated: buildTemplate(type, prompt), usedAI: false, warning: isTimeout ? 'AI request timed out, used template instead.' : 'AI unavailable, used template.' });
   }
 }
 
-function buildTemplate(type, prompt, context) {
+function buildTemplate(type, prompt) {
   const templates = {
     writer: `# ${prompt}\n\n## Introduction\n[Write your introduction here]\n\n## Main Content\n[Expand on the topic]\n\n## Key Points\n- Point 1\n- Point 2\n- Point 3\n\n## Conclusion\n[Summarise and call to action]`,
     email: `Subject: ${prompt}\n\nDear [Name],\n\n[Opening paragraph - state your purpose]\n\n[Body - provide details and value]\n\n[Call to action]\n\nBest regards,\n[Your Name]`,

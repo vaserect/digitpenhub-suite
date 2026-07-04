@@ -979,16 +979,17 @@ export default function AppShell() {
   const [pbQuery, setPbQuery]             = useState('');
   // AI Documents (Writer, Email, Proposal, Blog)
   const [aiDocLoaded, setAiDocLoaded]     = useState(false);
+  const [aiDocLoadedType, setAiDocLoadedType] = useState(null);
   const [aiDocStats, setAiDocStats]       = useState({});
   const [aiDocuments, setAiDocuments]     = useState([]);
   const [aiDocConfirmDelete, setAiDocConfirmDelete] = useState(null);
   const [aiDocDeleting, setAiDocDeleting] = useState(false);
-  const [aiDocForm, setAiDocForm]         = useState(false);
   const [aiDocEditing, setAiDocEditing]   = useState(null);
   const [aiDocContent, setAiDocContent]   = useState(null);
   const [aiDocGenerating, setAiDocGenerating] = useState(false);
-  const [aiDocDraft, setAiDocDraft]       = useState({ docType:'writer', title:'', content:'', promptUsed:'' });
+  const [aiDocDraft, setAiDocDraft]       = useState({ docType:'writer', title:'', content:'', promptUsed:'', tags:[] });
   const [aiDocPrompt, setAiDocPrompt]     = useState('');
+  const [aiDocTagInput, setAiDocTagInput] = useState('');
   const [aiDocQuery, setAiDocQuery]       = useState('');
   // Chatbot Builder
   const [cbLoaded, setCbLoaded]           = useState(false);
@@ -4202,8 +4203,8 @@ export default function AppShell() {
         apiFetch('/api/v1/ai-documents/stats'),
         apiFetch(`/api/v1/ai-documents/${type ? `?type=${type}` : ''}`),
       ]);
-      setAiDocStats(stats.stats||{}); setAiDocuments(docs.documents||[]); setAiDocLoaded(true);
-    } catch { setAiDocLoaded(true); }
+      setAiDocStats(stats.stats||{}); setAiDocuments(docs.documents||[]); setAiDocLoaded(true); setAiDocLoadedType(type);
+    } catch { setAiDocLoaded(true); setAiDocLoadedType(type); }
   }
 
   async function handleSaveAiDoc(e) {
@@ -4212,16 +4213,16 @@ export default function AppShell() {
     const url = aiDocEditing ? `/api/v1/ai-documents/${aiDocEditing.id}` : '/api/v1/ai-documents/';
     const data = await apiFetch(url, { method, body: JSON.stringify(aiDocDraft) });
     if (data.error) { showToast(data.error); return; }
-    setAiDocForm(false); setAiDocEditing(null); loadAiDocuments(aiDocDraft.docType);
+    setAiDocEditing(null); loadAiDocuments(aiDocDraft.docType);
   }
 
   async function handleAiGenerate(type, prompt) {
     if (!prompt.trim()) { showToast('Enter a prompt first.'); return; }
     setAiDocGenerating(true);
     try {
-      const data = await apiFetch('/api/v1/ai-documents/generate', { method:'POST', body: JSON.stringify({ type, prompt }) });
+      const data = await apiFetch('/api/v1/ai-documents/generate', { method:'POST', body: JSON.stringify({ type, prompt, context: aiDocDraft.context || '' }) });
       setAiDocDraft((d) => ({ ...d, content: data.generated, promptUsed: prompt }));
-      if (!data.usedAI) showToast('Template used — add ANTHROPIC_API_KEY to backend .env for real AI generation.', 'warning');
+      if (!data.usedAI) showToast('Using built-in template — AI generation requires an API key.', 'warning');
     } catch { showToast('Generation failed.'); }
     setAiDocGenerating(false);
   }
@@ -4232,6 +4233,7 @@ export default function AppShell() {
     setAiDocDeleting(true);
     try {
       await apiFetch(`/api/v1/ai-documents/${aiDocConfirmDelete.id}`, { method:'DELETE' });
+      showToast('Document deleted.');
       setAiDocuments((d) => d.filter((x) => x.id !== aiDocConfirmDelete.id));
     } finally { setAiDocDeleting(false); setAiDocConfirmDelete(null); }
   }
@@ -6233,10 +6235,10 @@ export default function AppShell() {
     // Batch 5
     if (slug === 'quiz-builder'         && !qbLoaded)   loadQuizBuilder().catch(() => {});
     if (slug === 'popup-builder'        && !pbLoaded)   loadPopupBuilder().catch(() => {});
-    if (slug === 'ai-writer'            && !aiDocLoaded) loadAiDocuments('writer').catch(() => {});
-    if (slug === 'ai-email-assistant'   && !aiDocLoaded) loadAiDocuments('email').catch(() => {});
-    if (slug === 'ai-proposal-generator' && !aiDocLoaded) loadAiDocuments('proposal').catch(() => {});
-    if (slug === 'ai-blog-generator'    && !aiDocLoaded) loadAiDocuments('blog').catch(() => {});
+    if (slug === 'ai-writer'            && aiDocLoadedType !== 'writer') loadAiDocuments('writer').catch(() => {});
+    if (slug === 'ai-email-assistant'   && aiDocLoadedType !== 'email') loadAiDocuments('email').catch(() => {});
+    if (slug === 'ai-proposal-generator' && aiDocLoadedType !== 'proposal') loadAiDocuments('proposal').catch(() => {});
+    if (slug === 'ai-blog-generator'    && aiDocLoadedType !== 'blog') loadAiDocuments('blog').catch(() => {});
     if (slug === 'ai-chatbot-builder'   && !cbLoaded)   loadChatbotBuilder().catch(() => {});
     if (slug === 'ai-meeting-notes'     && !mnLoaded)   loadMeetingNotes().catch(() => {});
     if (slug === 'ai-knowledge-base'    && !aiKbLoaded)  loadAiKnowledgeBase().catch(() => {});
@@ -16169,11 +16171,19 @@ export default function AppShell() {
               </div>
               <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem', marginBottom:'0.75rem' }}>
                 <div style={{ fontSize:'0.75rem', fontWeight:600, color:'var(--muted)', textTransform:'uppercase', marginBottom:'0.4rem' }}>AI Generate</div>
-                <div style={{ display:'flex', gap:'0.5rem' }}>
+                <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.5rem' }}>
                   <input className="form-input" style={{ flex:1 }} placeholder={promptMap[docType]} value={aiDocPrompt} onChange={(e) => setAiDocPrompt(e.target.value)} onKeyDown={(e) => e.key==='Enter' && handleAiGenerate(docType, aiDocPrompt)} />
                   <button className="btn-primary" onClick={() => handleAiGenerate(docType, aiDocPrompt)} disabled={aiDocGenerating} style={{ minWidth:90 }}>{aiDocGenerating ? 'Generating…' : '✨ Generate'}</button>
                 </div>
-                <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginTop:'0.3rem' }}>Powered by Claude AI — add ANTHROPIC_API_KEY to .env to enable</div>
+                <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.5rem' }}>
+                  <input className="form-input" style={{ flex:1 }} placeholder="Optional context (e.g. target audience, key points)" value={aiDocDraft.context || ''} onChange={(e) => setAiDocDraft((d)=>({...d,context:e.target.value}))} />
+                </div>
+                <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+                  {(aiDocDraft.tags||[]).map((t, i) => (
+                    <span key={i} style={{ background:'var(--surface-muted)', padding:'3px 8px', borderRadius:20, fontSize:'0.8rem', display:'inline-flex', alignItems:'center', gap:'0.3rem' }}>{t}<button type="button" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--danger)', fontSize:'0.75rem' }} onClick={() => setAiDocDraft((d)=>({...d,tags:d.tags.filter((_,j)=>j!==i)}))}>×</button></span>
+                  ))}
+                  <input className="form-input" style={{ flex:1, minWidth:120, padding:'3px 8px', fontSize:'0.8rem' }} placeholder="Add tag…" value={aiDocTagInput || ''} onChange={(e) => setAiDocTagInput(e.target.value)} onKeyDown={(e) => { if (e.key==='Enter') { e.preventDefault(); const v = aiDocTagInput.trim(); if (v) { setAiDocDraft((d)=>({...d,tags:[...d.tags, v]})); setAiDocTagInput(''); } } }} />
+                </div>
               </div>
               <textarea className="form-input" style={{ width:'100%', minHeight:350, fontFamily:'monospace', fontSize:'0.85rem', resize:'vertical' }} placeholder="Write or generate your content here…" value={aiDocDraft.content} onChange={(e) => setAiDocDraft((d)=>({...d,content:e.target.value}))} />
               <div style={{ display:'flex', gap:'0.5rem', marginTop:'0.75rem' }}>
@@ -16193,7 +16203,7 @@ export default function AppShell() {
               primaryAction={
                 <div style={{ display:'flex', gap:'0.5rem' }}>
                   <Button variant="ghost" onClick={() => navigator.clipboard.writeText(aiDocContent.content)}>Copy</Button>
-                  <Button variant="ghost" onClick={() => { setAiDocEditing(aiDocContent); setAiDocDraft({ docType:aiDocContent.doc_type, title:aiDocContent.title, content:aiDocContent.content, promptUsed:aiDocContent.prompt_used||'' }); setAiDocPrompt(aiDocContent.prompt_used||''); setAiDocContent('new'); }}>Edit</Button>
+                  <Button variant="ghost" onClick={() => { setAiDocEditing(aiDocContent); setAiDocDraft({ docType:aiDocContent.doc_type, title:aiDocContent.title, content:aiDocContent.content, promptUsed:aiDocContent.prompt_used||'', tags:aiDocContent.tags||[], context:'' }); setAiDocPrompt(aiDocContent.prompt_used||''); setAiDocTagInput(''); setAiDocContent('new'); }}>Edit</Button>
                   <Button variant="ghost" style={{ color:'var(--danger)' }} onClick={() => { handleDeleteAiDoc(aiDocContent.id); setAiDocContent(null); }}>Delete</Button>
                 </div>
               }
@@ -16208,7 +16218,7 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title={label}
             description={descMap[docType]}
-            primaryAction={<Button onClick={() => { setAiDocEditing(null); setAiDocDraft({ docType, title:'', content:'', promptUsed:'' }); setAiDocPrompt(''); setAiDocContent('new'); }}>+ New Document</Button>}
+            primaryAction={<Button onClick={() => { setAiDocEditing(null); setAiDocDraft({ docType, title:'', content:'', promptUsed:'', tags:[], context:'' }); setAiDocPrompt(''); setAiDocTagInput(''); setAiDocContent('new'); }}>+ New Document</Button>}
             stats={[
               { label: `${label} docs`, value: aiDocStats[docType] || 0 },
               { label: 'Total documents', value: Object.values(aiDocStats).reduce((a,b)=>a+Number(b),0) },
@@ -16224,7 +16234,7 @@ export default function AppShell() {
                 icon="✍️"
                 title="No documents yet"
                 description={`Click "+ New Document" to generate your first ${label.toLowerCase()} draft.`}
-                action={<Button onClick={() => { setAiDocEditing(null); setAiDocDraft({ docType, title:'', content:'', promptUsed:'' }); setAiDocPrompt(''); setAiDocContent('new'); }}>+ New Document</Button>}
+                action={<Button onClick={() => { setAiDocEditing(null); setAiDocDraft({ docType, title:'', content:'', promptUsed:'', tags:[], context:'' }); setAiDocPrompt(''); setAiDocTagInput(''); setAiDocContent('new'); }}>+ New Document</Button>}
               />
             ) : filteredDocs.length === 0 ? (
               <EmptyState

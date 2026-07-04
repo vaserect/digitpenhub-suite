@@ -4,7 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const { requireAuth } = require('./middleware/auth');
-const { requireModuleAccess } = require('./utils/planAccess');
+const { requireModuleAccess, getOrgPlan, FREE_TIER_MODULE_SLUGS } = require('./utils/planAccess');
 
 const authRoutes = require('./routes/auth');
 const moduleRoutes = require('./routes/modules');
@@ -102,6 +102,26 @@ app.use(cookieParser());
 app.use(express.json({ limit: '200kb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// AI documents are shared across writer/email/proposal/blog modules,
+// so use a generic access check whose message doesn't hard-code one slug.
+const requireAiDocuments = async (req, res, next) => {
+  try {
+    const plan = await getOrgPlan(req.user.orgId);
+    if (plan.all_modules) return next();
+    const hasFreeAccess = ['ai-writer', 'ai-email-assistant', 'ai-proposal-generator', 'ai-blog-generator']
+      .some((s) => FREE_TIER_MODULE_SLUGS.has(s));
+    if (hasFreeAccess) return next();
+    return res.status(403).json({
+      error: 'This feature requires a paid plan. Upgrade to unlock AI Writer tools.',
+      upgradeRequired: true,
+      moduleSlug: 'ai-documents',
+      currentPlan: plan.slug,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 app.get('/api/v1/health', (req, res) => res.json({ ok: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/modules', moduleRoutes);
@@ -170,7 +190,7 @@ app.use('/api/v1/color-palettes',     requireAuth, requireModuleAccess('color-pa
 // Batch 5
 app.use('/api/v1/quiz-builder',       requireAuth, requireModuleAccess('quiz-builder'), quizBuilderRoutes);
 app.use('/api/v1/popup-builder',      requireAuth, requireModuleAccess('popup-builder'), popupBuilderRoutes);
-app.use('/api/v1/ai-documents',       requireAuth, requireModuleAccess('ai-writer'), aiDocumentsRoutes);
+app.use('/api/v1/ai-documents', requireAuth, requireAiDocuments, aiDocumentsRoutes);
 app.use('/api/v1/chatbot-builder',    requireAuth, requireModuleAccess('ai-chatbot-builder'), chatbotBuilderRoutes);
 app.use('/api/v1/meeting-notes',      requireAuth, requireModuleAccess('ai-meeting-notes'), meetingNotesRoutes);
 app.use('/api/v1/ai-kb',              requireAuth, requireModuleAccess('ai-knowledge-base'), aiKnowledgeBaseRoutes);

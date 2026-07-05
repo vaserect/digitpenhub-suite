@@ -212,6 +212,113 @@ export default function AppShell() {
   const [crmDeleting, setCrmDeleting] = useState(false);
   const CRM_PAGE_SIZE = 10;
 
+  // Contact detail drawer: notes, tasks, tags
+  const [crmDetailContact, setCrmDetailContact] = useState(null);
+  const [crmDetailNotes, setCrmDetailNotes] = useState([]);
+  const [crmDetailTasks, setCrmDetailTasks] = useState([]);
+  const [crmDetailLoaded, setCrmDetailLoaded] = useState(false);
+  const [crmNewNote, setCrmNewNote] = useState('');
+  const [crmNewTask, setCrmNewTask] = useState({ title: '', dueDate: '' });
+  const [crmTagInput, setCrmTagInput] = useState('');
+  const [crmImporting, setCrmImporting] = useState(false);
+
+  async function openCrmDetail(contact) {
+    setCrmDetailContact(contact);
+    setCrmDetailLoaded(false);
+    const [n, t] = await Promise.all([
+      apiFetch(`/api/v1/crm/contacts/${contact.id}/notes`),
+      apiFetch(`/api/v1/crm/contacts/${contact.id}/tasks`),
+    ]);
+    setCrmDetailNotes(n.notes || []);
+    setCrmDetailTasks(t.tasks || []);
+    setCrmDetailLoaded(true);
+  }
+
+  async function handleAddCrmNote(e) {
+    e.preventDefault();
+    if (!crmNewNote.trim() || !crmDetailContact) return;
+    const data = await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}/notes`, { method: 'POST', body: JSON.stringify({ body: crmNewNote.trim() }) });
+    if (data.error) { showToast(data.error); return; }
+    setCrmDetailNotes((prev) => [data.note, ...prev]);
+    setCrmNewNote('');
+  }
+
+  async function handleDeleteCrmNote(noteId) {
+    if (!crmDetailContact) return;
+    await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}/notes/${noteId}`, { method: 'DELETE' });
+    setCrmDetailNotes((prev) => prev.filter((n) => n.id !== noteId));
+  }
+
+  async function handleAddCrmTask(e) {
+    e.preventDefault();
+    if (!crmNewTask.title.trim() || !crmDetailContact) return;
+    const data = await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}/tasks`, { method: 'POST', body: JSON.stringify(crmNewTask) });
+    if (data.error) { showToast(data.error); return; }
+    setCrmDetailTasks((prev) => [...prev, data.task]);
+    setCrmNewTask({ title: '', dueDate: '' });
+  }
+
+  async function handleToggleCrmTask(task) {
+    if (!crmDetailContact) return;
+    const data = await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ status: task.status === 'done' ? 'open' : 'done' }) });
+    if (data.task) setCrmDetailTasks((prev) => prev.map((t) => t.id === task.id ? data.task : t));
+  }
+
+  async function handleDeleteCrmTask(taskId) {
+    if (!crmDetailContact) return;
+    await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}/tasks/${taskId}`, { method: 'DELETE' });
+    setCrmDetailTasks((prev) => prev.filter((t) => t.id !== taskId));
+  }
+
+  async function handleAddCrmTag(e) {
+    e.preventDefault();
+    if (!crmTagInput.trim() || !crmDetailContact) return;
+    const nextTags = Array.from(new Set([...(crmDetailContact.tags || []), crmTagInput.trim()]));
+    const data = await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}`, { method: 'PATCH', body: JSON.stringify({ tags: nextTags }) });
+    if (data.contact) {
+      setCrmDetailContact(data.contact);
+      setContacts((prev) => prev.map((c) => c.id === data.contact.id ? data.contact : c));
+    }
+    setCrmTagInput('');
+  }
+
+  async function handleRemoveCrmTag(tag) {
+    if (!crmDetailContact) return;
+    const nextTags = (crmDetailContact.tags || []).filter((t) => t !== tag);
+    const data = await apiFetch(`/api/v1/crm/contacts/${crmDetailContact.id}`, { method: 'PATCH', body: JSON.stringify({ tags: nextTags }) });
+    if (data.contact) {
+      setCrmDetailContact(data.contact);
+      setContacts((prev) => prev.map((c) => c.id === data.contact.id ? data.contact : c));
+    }
+  }
+
+  function handleCrmImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCrmImporting(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const lines = String(reader.result).split(/\r?\n/).filter(Boolean);
+        const header = lines[0].split(',').map((h) => h.trim().toLowerCase());
+        const rows = lines.slice(1).map((line) => {
+          const cells = line.split(',');
+          const obj = {};
+          header.forEach((h, i) => { obj[h] = (cells[i] || '').trim(); });
+          return { fullName: obj.fullname || obj.name, email: obj.email, phone: obj.phone, company: obj.company };
+        });
+        const data = await apiFetch('/api/v1/crm/contacts/import', { method: 'POST', body: JSON.stringify({ contacts: rows }) });
+        if (data.error) { showToast(data.error); return; }
+        showToast(`Imported ${data.imported}, skipped ${data.duplicate} duplicates, ${data.invalid} invalid.`);
+        await loadCrm();
+      } finally {
+        setCrmImporting(false);
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
   const [pmProjects, setPmProjects] = useState([]);
   const [pmLoaded, setPmLoaded] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -6915,6 +7022,12 @@ export default function AppShell() {
                   <Tooltip label="Export the current view to CSV">
                     <Button variant="secondary" size="sm" onClick={() => exportCrmCsv(crmFilteredSorted)}>Export CSV</Button>
                   </Tooltip>
+                  <Tooltip label="Import contacts from a CSV file (columns: fullName, email, phone, company)">
+                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+                      {crmImporting ? 'Importing…' : 'Import CSV'}
+                      <input type="file" accept=".csv,text/csv" onChange={handleCrmImportFile} disabled={crmImporting} style={{ display: 'none' }} />
+                    </label>
+                  </Tooltip>
                 </div>
               )}
 
@@ -7012,6 +7125,11 @@ export default function AppShell() {
                             <td>
                               <div style={{ fontWeight: 600 }}>{c.full_name}</div>
                               {c.email && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.email}</div>}
+                              {c.tags?.length > 0 && (
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                                  {c.tags.map((t) => <span key={t} className="ctag" style={{ fontSize: 11 }}>{t}</span>)}
+                                </div>
+                              )}
                             </td>
                             <td>{c.company || '—'}</td>
                             <td>
@@ -7031,6 +7149,9 @@ export default function AppShell() {
                             <td>₦{Number(c.value_ngn).toLocaleString()}</td>
                             <td>{new Date(c.last_touch_at).toLocaleDateString()}</td>
                             <td>
+                              <Tooltip label="Notes, tasks & tags">
+                                <button className="ctag" onClick={() => openCrmDetail(c)} aria-label="Details">Details</button>
+                              </Tooltip>
                               <Tooltip label="Edit contact">
                                 <button className="ctag" onClick={() => startEditContact(c)} aria-label="Edit">Edit</button>
                               </Tooltip>
@@ -7057,6 +7178,73 @@ export default function AppShell() {
                 description="This cannot be undone."
                 confirmLabel="Delete"
               />
+
+              <Modal isOpen={!!crmDetailContact} onClose={() => setCrmDetailContact(null)} title={crmDetailContact?.full_name} description="Notes, tasks & tags" wide>
+                {crmDetailContact && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    <div>
+                      <h4 style={{ marginBottom: 8 }}>Tags</h4>
+                      <form onSubmit={handleAddCrmTag} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <input className="field-input" placeholder="Add a tag…" value={crmTagInput} onChange={(e) => setCrmTagInput(e.target.value)} />
+                        <Button type="submit" size="sm">Add</Button>
+                      </form>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+                        {(crmDetailContact.tags || []).map((t) => (
+                          <span key={t} className="ctag" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {t}
+                            <button type="button" onClick={() => handleRemoveCrmTag(t)} aria-label={`Remove ${t}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>×</button>
+                          </span>
+                        ))}
+                        {(crmDetailContact.tags || []).length === 0 && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>No tags yet.</span>}
+                      </div>
+
+                      <h4 style={{ marginBottom: 8 }}>Tasks</h4>
+                      <form onSubmit={handleAddCrmTask} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <input className="field-input" placeholder="New task…" value={crmNewTask.title} onChange={(e) => setCrmNewTask((t) => ({ ...t, title: e.target.value }))} style={{ flex: '1 1 140px' }} />
+                        <input className="field-input" type="date" value={crmNewTask.dueDate} onChange={(e) => setCrmNewTask((t) => ({ ...t, dueDate: e.target.value }))} style={{ flex: '0 1 140px' }} />
+                        <Button type="submit" size="sm">Add</Button>
+                      </form>
+                      {!crmDetailLoaded ? <SkeletonRows rows={2} /> : crmDetailTasks.length === 0 ? (
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No tasks yet.</p>
+                      ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                          {crmDetailTasks.map((t) => (
+                            <li key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                              <input type="checkbox" checked={t.status === 'done'} onChange={() => handleToggleCrmTask(t)} />
+                              <span style={{ flex: 1, textDecoration: t.status === 'done' ? 'line-through' : 'none', color: t.status === 'done' ? 'var(--text-muted)' : 'inherit' }}>{t.title}</span>
+                              {t.due_date && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(t.due_date).toLocaleDateString()}</span>}
+                              <button className="ctag danger" onClick={() => handleDeleteCrmTask(t.id)} aria-label="Delete task">×</button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 style={{ marginBottom: 8 }}>Notes</h4>
+                      <form onSubmit={handleAddCrmNote} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        <textarea className="field-input" placeholder="Add a note…" value={crmNewNote} onChange={(e) => setCrmNewNote(e.target.value)} style={{ flex: 1, minHeight: 60 }} />
+                        <Button type="submit" size="sm">Add</Button>
+                      </form>
+                      {!crmDetailLoaded ? <SkeletonRows rows={2} /> : crmDetailNotes.length === 0 ? (
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No notes yet.</p>
+                      ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {crmDetailNotes.map((n) => (
+                            <li key={n.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}>
+                              <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{n.body}</div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+                                <span>{n.author_name || 'You'} · {new Date(n.created_at).toLocaleString()}</span>
+                                <button className="ctag danger" onClick={() => handleDeleteCrmNote(n.id)} aria-label="Delete note">Delete</button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Modal>
             </div>
           )}
 

@@ -14,6 +14,8 @@ const {
   shareInvoice,
   updateInvoice,
   deleteInvoice,
+  getInvoicePdf,
+  sendInvoiceEmail,
 } = require('../controllers/invoicesController');
 
 router.get('/public/:token', getPublicInvoice);
@@ -26,6 +28,8 @@ router.delete('/clients/:id', deleteClient);
 router.get('/', listInvoices);
 router.post('/', requireUsageCapacity('invoices', `SELECT COUNT(*)::int AS count FROM invoices WHERE org_id = $1`), createInvoice);
 router.post('/:id/share', shareInvoice);
+router.get('/:id/pdf', getInvoicePdf);
+router.post('/:id/send', sendInvoiceEmail);
 router.get('/:id', getInvoice);
 router.put('/:id', updateInvoice);
 router.patch('/:id', updateInvoice);

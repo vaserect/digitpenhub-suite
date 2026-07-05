@@ -6178,15 +6178,17 @@ export default function AppShell() {
 
   async function handleSendInvoice(id) {
     try {
-      await apiFetch(`/api/v1/invoices/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'sent' }),
-      });
+      const data = await apiFetch(`/api/v1/invoices/${id}/send`, { method: 'POST' });
+      if (data.error) { showToast(data.error); return; }
       await loadInvoices();
-      showToast('Invoice marked sent.');
+      showToast(`Invoice emailed to ${data.emailedTo}.`);
     } catch (err) {
-      showToast(err.message || 'Unable to mark invoice as sent.');
+      showToast(err.message || 'Unable to send invoice.');
     }
+  }
+
+  function handleDownloadInvoicePdf(id) {
+    window.open(`/api/v1/invoices/${id}/pdf`, '_blank');
   }
 
   function copyInvoiceNumber(invoiceNumber) {
@@ -8759,6 +8761,7 @@ export default function AppShell() {
                                     {invoice.status !== 'paid' && (
                                       <MenuItem onClick={() => { handleMarkInvoicePaid(invoice.id); close(); }}>Mark paid</MenuItem>
                                     )}
+                                    <MenuItem onClick={() => { handleDownloadInvoicePdf(invoice.id); close(); }}>Download PDF</MenuItem>
                                     <MenuItem onClick={() => { handleShareInvoice(invoice.id); close(); }}>Share link</MenuItem>
                                     <MenuItem onClick={() => { copyInvoiceNumber(invoice.invoice_number); close(); }}>Copy #</MenuItem>
                                     <MenuSeparator />

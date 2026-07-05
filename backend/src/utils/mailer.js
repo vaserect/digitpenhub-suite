@@ -8,11 +8,11 @@ function makeTransport() {
 // Fire-and-forget-safe: resolves to { ok: true } or { ok: false, error } rather than throwing,
 // so a mail failure never blocks the calling request (e.g. invite creation still succeeds
 // even if the email send fails — the in-app link remains available either way).
-async function sendMail({ to, subject, html, fromName = 'DigitPen Hub' }) {
+async function sendMail({ to, subject, html, fromName = 'DigitPen Hub', attachments }) {
   try {
     const transport = makeTransport();
     const fromAddress = process.env.ADMIN_EMAIL || 'noreply@digitpenhub.com';
-    await transport.sendMail({ from: `"${fromName}" <${fromAddress}>`, to, subject, html });
+    await transport.sendMail({ from: `"${fromName}" <${fromAddress}>`, to, subject, html, attachments });
     return { ok: true };
   } catch (err) {
     console.error('sendMail failed:', err.message);

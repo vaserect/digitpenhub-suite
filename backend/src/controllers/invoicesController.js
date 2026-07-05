@@ -1,5 +1,16 @@
 const db = require('../db');
 const { notify } = require('../utils/notify');
+const { sendMail } = require('../utils/mailer');
+const { renderInvoicePdf } = require('../utils/invoicePdf');
+
+// clientId is user-supplied on create/update; without this check a request
+// could attach an invoice to another org's client row (the FK alone doesn't
+// enforce tenant isolation, only that the row exists).
+async function assertClientInOrg(clientId, orgId) {
+  if (!clientId) return true;
+  const { rows } = await db.query(`SELECT 1 FROM invoice_clients WHERE id=$1 AND org_id=$2`, [clientId, orgId]);
+  return rows.length > 0;
+}
 
 function normalizeItems(items) {
   return (Array.isArray(items) ? items : [])
@@ -108,6 +119,7 @@ async function listInvoices(req, res) {
 async function createInvoice(req, res) {
   const { clientId, invoiceNumber, status, issueDate, dueDate, subtotal, taxRate, total, notes, items } = req.body || {};
   if (!invoiceNumber || !String(invoiceNumber).trim()) return res.status(400).json({ error: 'invoiceNumber is required.' });
+  if (!(await assertClientInOrg(clientId, req.user.orgId))) return res.status(400).json({ error: 'Client not found.' });
 
   const normalizedItems = normalizeItems(items);
   if (!normalizedItems.length) {
@@ -208,6 +220,9 @@ async function updateInvoice(req, res) {
   if (invoiceNumber !== undefined && (!invoiceNumber || !String(invoiceNumber).trim())) {
     return res.status(400).json({ error: 'invoiceNumber is required.' });
   }
+  if (clientId !== undefined && !(await assertClientInOrg(clientId, req.user.orgId))) {
+    return res.status(400).json({ error: 'Client not found.' });
+  }
   const hasStatus = Object.prototype.hasOwnProperty.call(req.body || {}, 'status');
   const hasIssueDate = Object.prototype.hasOwnProperty.call(req.body || {}, 'issueDate');
   const normalizedStatus = hasStatus ? normalizeInvoiceStatus(status) : null;
@@ -280,6 +295,77 @@ async function deleteInvoice(req, res) {
   res.json({ ok: true });
 }
 
+async function loadFullInvoice(id, orgId) {
+  const { rows } = await db.query(
+    `SELECT i.*, c.name AS client_name, c.email AS client_email, c.company AS client_company
+     FROM invoices i LEFT JOIN invoice_clients c ON c.id = i.client_id
+     WHERE i.id = $1 AND i.org_id = $2`,
+    [id, orgId]
+  );
+  if (!rows.length) return null;
+  const { rows: items } = await db.query(
+    `SELECT description, quantity, unit_price, amount FROM invoice_items WHERE invoice_id = $1 ORDER BY created_at`,
+    [id]
+  );
+  return { ...rows[0], items };
+}
+
+async function getBranding(orgId) {
+  const { rows } = await db.query(`SELECT display_name, primary_color, sender_name, sender_email FROM org_branding WHERE org_id=$1`, [orgId]);
+  return rows[0] || null;
+}
+
+async function getInvoicePdf(req, res) {
+  const invoice = await loadFullInvoice(req.params.id, req.user.orgId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });
+  const branding = await getBranding(req.user.orgId);
+  const pdf = await renderInvoicePdf(invoice, branding);
+  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="invoice-${invoice.invoice_number}.pdf"` });
+  res.send(pdf);
+}
+
+async function sendInvoiceEmail(req, res) {
+  const invoice = await loadFullInvoice(req.params.id, req.user.orgId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });
+  if (!invoice.client_email) return res.status(400).json({ error: 'This client has no email address on file.' });
+
+  const branding = await getBranding(req.user.orgId);
+  const pdf = await renderInvoicePdf(invoice, branding);
+
+  let shareToken = invoice.share_token;
+  if (!shareToken) {
+    const { rows } = await db.query(
+      `UPDATE invoices SET share_token = gen_random_uuid(), updated_at = now() WHERE id = $1 RETURNING share_token`,
+      [invoice.id]
+    );
+    shareToken = rows[0].share_token;
+  }
+  const viewUrl = `${process.env.FRONTEND_ORIGIN || ''}/invoices/shared/${shareToken}`;
+  const fromName = branding?.sender_name || branding?.display_name || 'DigitPen Hub';
+  const orgName = branding?.display_name || 'Your supplier';
+
+  const result = await sendMail({
+    to: invoice.client_email,
+    subject: `Invoice ${invoice.invoice_number} from ${orgName}`,
+    html: `<p>Hi ${invoice.client_name || ''},</p><p>Please find invoice <strong>${invoice.invoice_number}</strong> attached, totalling <strong>NGN ${Number(invoice.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</strong>${invoice.due_date ? ` (due ${new Date(invoice.due_date).toLocaleDateString()})` : ''}.</p><p>You can also view it online: <a href="${viewUrl}">${viewUrl}</a></p><p>Thank you,<br/>${orgName}</p>`,
+    fromName,
+    attachments: [{ filename: `invoice-${invoice.invoice_number}.pdf`, content: pdf }],
+  });
+
+  if (!result.ok) return res.status(502).json({ error: `Could not send email: ${result.error}` });
+
+  const { rows } = await db.query(
+    `UPDATE invoices SET status='sent', updated_at=now() WHERE id=$1 AND org_id=$2 RETURNING id, invoice_number, status`,
+    [invoice.id, req.user.orgId]
+  );
+  notify(req.user.orgId, {
+    type: 'invoice_sent',
+    title: 'Invoice sent to client',
+    body: `Invoice ${invoice.invoice_number} was emailed to ${invoice.client_email}.`,
+  });
+  res.json({ invoice: rows[0], emailedTo: invoice.client_email });
+}
+
 module.exports = {
   listClients,
   createClient,
@@ -292,4 +378,6 @@ module.exports = {
   shareInvoice,
   updateInvoice,
   deleteInvoice,
+  getInvoicePdf,
+  sendInvoiceEmail,
 };

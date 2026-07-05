@@ -9,8 +9,18 @@ r.use(requireAuth);
 // Use memory storage — process in-memory, return result
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
+// pdf-lib throws on corrupt/non-PDF input. Without this wrapper the rejected
+// promise escapes Express entirely (async handlers don't forward rejections to
+// the error middleware), which crash-looped the API. Turn any failure into a
+// clean 400 instead.
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    console.error('pdf-tools error:', err.message);
+    if (!res.headersSent) res.status(400).json({ error: 'Could not process the PDF. Make sure it is a valid PDF file.' });
+  });
+
 // ── Merge PDFs ────────────────────────────────────────────────────────────────
-r.post('/merge', upload.array('files', 20), async (req, res) => {
+r.post('/merge', upload.array('files', 20), asyncHandler(async (req, res) => {
   if (!req.files?.length || req.files.length < 2) {
     return res.status(400).json({ error: 'Upload at least 2 PDF files.' });
   }
@@ -23,11 +33,11 @@ r.post('/merge', upload.array('files', 20), async (req, res) => {
   const bytes = await merged.save();
   res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="merged.pdf"' });
   res.send(Buffer.from(bytes));
-});
+}));
 
 // ── Split PDF ─────────────────────────────────────────────────────────────────
 // Returns JSON with base64-encoded pages so the client can download each
-r.post('/split', upload.single('file'), async (req, res) => {
+r.post('/split', upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a PDF file.' });
   const { pages: pageSpec } = req.body || {}; // e.g. "1-3,5,7-9" or blank = all
 
@@ -58,10 +68,10 @@ r.post('/split', upload.single('file'), async (req, res) => {
     results.push({ page: idx + 1, data: Buffer.from(bytes).toString('base64') });
   }
   res.json({ total: results.length, pages: results });
-});
+}));
 
 // ── Compress PDF (re-save with pdf-lib, strips some metadata) ─────────────────
-r.post('/compress', upload.single('file'), async (req, res) => {
+r.post('/compress', upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a PDF file.' });
   const doc = await PDFDocument.load(req.file.buffer, { updateMetadata: false });
   // pdf-lib re-save removes cross-reference streams and compresses object streams
@@ -75,10 +85,10 @@ r.post('/compress', upload.single('file'), async (req, res) => {
     'X-Compressed-Size': compressed,
   });
   res.send(Buffer.from(bytes));
-});
+}));
 
 // ── Rotate PDF pages ──────────────────────────────────────────────────────────
-r.post('/rotate', upload.single('file'), async (req, res) => {
+r.post('/rotate', upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a PDF file.' });
   const angle = parseInt(req.body.angle || '90', 10);
   if (![90, 180, 270].includes(angle)) return res.status(400).json({ error: 'angle must be 90, 180, or 270.' });
@@ -88,10 +98,10 @@ r.post('/rotate', upload.single('file'), async (req, res) => {
   const bytes = await doc.save();
   res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="rotated.pdf"' });
   res.send(Buffer.from(bytes));
-});
+}));
 
 // ── PDF info (page count, metadata) ──────────────────────────────────────────
-r.post('/info', upload.single('file'), async (req, res) => {
+r.post('/info', upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Upload a PDF file.' });
   const doc = await PDFDocument.load(req.file.buffer);
   const pages = doc.getPages();
@@ -107,6 +117,6 @@ r.post('/info', upload.single('file'), async (req, res) => {
       return { page: i + 1, width: Math.round(width), height: Math.round(height) };
     }),
   });
-});
+}));
 
 module.exports = r;

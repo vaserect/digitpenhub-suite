@@ -4,6 +4,7 @@ const db = require('../db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const asyncHandler = require('../utils/asyncHandler');
 
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -26,16 +27,16 @@ r.use(requireAuth);
 
 // ── Folders ───────────────────────────────────────────────────────────────────
 
-r.get('/folders', async (req, res) => {
+r.get('/folders', asyncHandler(async (req, res) => {
   const { parentId } = req.query;
   const { rows } = await db.query(
     `SELECT * FROM storage_folders WHERE org_id = $1 AND parent_id IS NOT DISTINCT FROM $2 ORDER BY name`,
     [req.user.orgId, parentId || null]
   );
   res.json({ folders: rows });
-});
+}));
 
-r.post('/folders', async (req, res) => {
+r.post('/folders', asyncHandler(async (req, res) => {
   const { name, parentId } = req.body || {};
   if (!name?.trim()) return res.status(400).json({ error: 'name is required.' });
   const { rows } = await db.query(
@@ -43,9 +44,9 @@ r.post('/folders', async (req, res) => {
     [req.user.orgId, name.trim(), parentId || null]
   );
   res.status(201).json({ folder: rows[0] });
-});
+}));
 
-r.delete('/folders/:id', async (req, res) => {
+r.delete('/folders/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
     `SELECT * FROM storage_files WHERE folder_id = $1`, [req.params.id]
   );
@@ -55,20 +56,20 @@ r.delete('/folders/:id', async (req, res) => {
   }
   await db.query(`DELETE FROM storage_folders WHERE id = $1 AND org_id = $2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
-});
+}));
 
 // ── Files ─────────────────────────────────────────────────────────────────────
 
-r.get('/files', async (req, res) => {
+r.get('/files', asyncHandler(async (req, res) => {
   const { folderId } = req.query;
   const { rows } = await db.query(
     `SELECT * FROM storage_files WHERE org_id = $1 AND folder_id IS NOT DISTINCT FROM $2 ORDER BY created_at DESC`,
     [req.user.orgId, folderId || null]
   );
   res.json({ files: rows });
-});
+}));
 
-r.get('/stats', async (req, res) => {
+r.get('/stats', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
     `SELECT COUNT(*) AS file_count, COALESCE(SUM(size_bytes),0) AS total_bytes FROM storage_files WHERE org_id = $1`,
     [req.user.orgId]
@@ -77,9 +78,9 @@ r.get('/stats', async (req, res) => {
     `SELECT COUNT(*) AS folder_count FROM storage_folders WHERE org_id = $1`, [req.user.orgId]
   );
   res.json({ fileCount: parseInt(rows[0].file_count), folderCount: parseInt(fc[0].folder_count), totalBytes: parseInt(rows[0].total_bytes) });
-});
+}));
 
-r.post('/upload', upload.array('files', 50), async (req, res) => {
+r.post('/upload', upload.array('files', 50), asyncHandler(async (req, res) => {
   const { folderId } = req.body || {};
   const saved = [];
   for (const file of req.files) {
@@ -91,9 +92,9 @@ r.post('/upload', upload.array('files', 50), async (req, res) => {
     saved.push(rows[0]);
   }
   res.status(201).json({ files: saved });
-});
+}));
 
-r.get('/download/:id', async (req, res) => {
+r.get('/download/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
     `SELECT * FROM storage_files WHERE id = $1 AND org_id = $2`, [req.params.id, req.user.orgId]
   );
@@ -101,9 +102,9 @@ r.get('/download/:id', async (req, res) => {
   const full = path.join(UPLOADS_DIR, req.user.orgId, rows[0].disk_path);
   if (!fs.existsSync(full)) return res.status(404).json({ error: 'File not found on disk.' });
   res.download(full, rows[0].original_name);
-});
+}));
 
-r.delete('/files/:id', async (req, res) => {
+r.delete('/files/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
     `DELETE FROM storage_files WHERE id = $1 AND org_id = $2 RETURNING *`, [req.params.id, req.user.orgId]
   );
@@ -112,9 +113,9 @@ r.delete('/files/:id', async (req, res) => {
     if (fs.existsSync(full)) fs.unlinkSync(full);
   }
   res.json({ ok: true });
-});
+}));
 
-r.patch('/files/:id/move', async (req, res) => {
+r.patch('/files/:id/move', asyncHandler(async (req, res) => {
   const { folderId } = req.body || {};
   const { rows } = await db.query(
     `UPDATE storage_files SET folder_id = $1 WHERE id = $2 AND org_id = $3 RETURNING *`,
@@ -122,6 +123,6 @@ r.patch('/files/:id/move', async (req, res) => {
   );
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ file: rows[0] });
-});
+}));
 
 module.exports = r;

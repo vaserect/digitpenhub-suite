@@ -502,6 +502,7 @@ export default function AppShell() {
   const [waTemplateDeleting, setWaTemplateDeleting] = useState(false);
   const [waBroadcastConfirmDelete, setWaBroadcastConfirmDelete] = useState(null);
   const [waBroadcastDeleting, setWaBroadcastDeleting] = useState(false);
+  const [waBroadcastSendingId, setWaBroadcastSendingId] = useState(null);
 
   // Milestone 22: Affiliate System
   const [affLoaded, setAffLoaded] = useState(false);
@@ -1000,6 +1001,17 @@ export default function AppShell() {
   const [cbViewFlow, setCbViewFlow]       = useState(null);
   const [cbDraft, setCbDraft]             = useState({ name:'', description:'', welcomeMessage:'Hello! How can I help you today?', triggerKeywords:[], nodes:[] });
   const [cbNewNode, setCbNewNode]         = useState({ trigger:'', response:'' });
+  const [cbGenerating, setCbGenerating]   = useState(false);
+  async function handleGenerateCbResponse() {
+    if (!cbNewNode.trigger?.trim()) { showToast('Enter a trigger phrase first.'); return; }
+    setCbGenerating(true);
+    try {
+      const data = await apiFetch('/api/v1/chatbot-builder/generate', { method: 'POST', body: JSON.stringify({ intent: cbNewNode.trigger }) });
+      if (data.error) { showToast(data.error); return; }
+      setCbNewNode((n) => ({ ...n, response: data.generated }));
+      if (!data.usedAI) showToast(data.warning || 'ANTHROPIC_API_KEY not configured — inserted a plain placeholder instead of an AI draft.');
+    } finally { setCbGenerating(false); }
+  }
   const [cbConfirmDelete, setCbConfirmDelete] = useState(null);
   const [cbDeleting, setCbDeleting]       = useState(false);
   // Meeting Notes
@@ -1012,6 +1024,18 @@ export default function AppShell() {
   const [mnDraft, setMnDraft]             = useState({ title:'', meetingDate:new Date().toISOString().slice(0,10), attendees:[], agenda:'', notes:'', actionItems:[] });
   const [mnAttendeeInput, setMnAttendeeInput] = useState('');
   const [mnActionInput, setMnActionInput] = useState({ text:'', assignee:'', due:'' });
+  const [mnSummarizing, setMnSummarizing] = useState(false);
+  const [mnSummary, setMnSummary] = useState(null);
+  async function handleSummarizeMn() {
+    if (!mnViewNote) return;
+    setMnSummarizing(true); setMnSummary(null);
+    try {
+      const data = await apiFetch(`/api/v1/meeting-notes/${mnViewNote.id}/summarize`, { method: 'POST' });
+      if (data.error) { showToast(data.error); return; }
+      setMnSummary(data.generated);
+      if (!data.usedAI) showToast(data.warning || 'ANTHROPIC_API_KEY not configured — showing a plain placeholder instead of an AI summary.');
+    } finally { setMnSummarizing(false); }
+  }
   const [mnConfirmDelete, setMnConfirmDelete] = useState(null);
   const [mnDeleting, setMnDeleting]       = useState(false);
   // AI Knowledge Base (separate state — avoids collision with regular Knowledge Base)
@@ -1027,6 +1051,17 @@ export default function AppShell() {
   const [aiKbSearch, setAiKbSearch]           = useState('');
   const [aiKbCatFilter, setAiKbCatFilter]     = useState('');
   const [aiKbDraft, setAiKbDraft]             = useState({ category:'General', title:'', content:'', tags:'' });
+  const [aiKbGenerating, setAiKbGenerating]   = useState(false);
+  async function handleGenerateKbArticle() {
+    if (!aiKbDraft.title?.trim()) { showToast('Enter a title first.'); return; }
+    setAiKbGenerating(true);
+    try {
+      const data = await apiFetch('/api/v1/ai-kb/generate', { method: 'POST', body: JSON.stringify({ topic: aiKbDraft.title, category: aiKbDraft.category }) });
+      if (data.error) { showToast(data.error); return; }
+      setAiKbDraft((d) => ({ ...d, content: data.generated }));
+      showToast(data.usedAI ? 'Draft generated with AI.' : (data.warning || 'ANTHROPIC_API_KEY not configured — inserted a plain placeholder instead of an AI draft.'));
+    } finally { setAiKbGenerating(false); }
+  }
   // AI Customer Support
   const [csConfirmDelete, setCsConfirmDelete] = useState(null);
   const [csDeleting, setCsDeleting] = useState(false);
@@ -1038,6 +1073,17 @@ export default function AppShell() {
   const [editingCs, setEditingCs]         = useState(null);
   const [csCatFilter, setCsCatFilter]     = useState('');
   const [csDraft, setCsDraft]             = useState({ category:'General', question:'', answer:'' });
+  const [csGenerating, setCsGenerating]   = useState(false);
+  async function handleGenerateCsAnswer() {
+    if (!csDraft.question?.trim()) { showToast('Enter a question first.'); return; }
+    setCsGenerating(true);
+    try {
+      const data = await apiFetch('/api/v1/ai-support/generate', { method: 'POST', body: JSON.stringify({ question: csDraft.question }) });
+      if (data.error) { showToast(data.error); return; }
+      setCsDraft((d) => ({ ...d, answer: data.generated }));
+      showToast(data.usedAI ? 'Answer drafted with AI.' : (data.warning || 'ANTHROPIC_API_KEY not configured — inserted a plain placeholder instead of an AI draft.'));
+    } finally { setCsGenerating(false); }
+  }
   // AI Translator
   const [trLoaded, setTrLoaded]           = useState(false);
   const [trStats, setTrStats]             = useState(null);
@@ -2518,6 +2564,19 @@ export default function AppShell() {
     } finally { setWaBroadcastDeleting(false); setWaBroadcastConfirmDelete(null); }
   }
 
+  async function handleSendWaBroadcast(id) {
+    setWaBroadcastSendingId(id);
+    try {
+      const data = await apiFetch(`/api/v1/whatsapp/broadcasts/${id}/send`, { method: 'POST' });
+      if (data.error) { showToast(data.error); return; }
+      showToast(data.simulated ? 'Broadcast simulated — no WhatsApp Business API connected, no messages were actually sent.' : 'Broadcast sent!');
+      const res = await apiFetch('/api/v1/whatsapp/broadcasts');
+      setWaBroadcasts(res.broadcasts || []);
+      const s = await apiFetch('/api/v1/whatsapp/stats');
+      setWaStats(s);
+    } finally { setWaBroadcastSendingId(null); }
+  }
+
   // ── Affiliate System ──────────────────────────────────────────────────────
 
   async function loadAffiliates() {
@@ -3053,7 +3112,7 @@ export default function AppShell() {
       const contactIds = smsContacts.filter((c) => c.status === 'active').map((c) => c.id);
       const data = await apiFetch(`/api/v1/sms/campaigns/${smsSendConfirm.id}/send`, { method: 'POST', body: JSON.stringify({ contactIds }) });
       if (data.error) { showToast(data.error); return; }
-      showToast('Campaign sent!');
+      showToast(data.simulated ? 'Campaign simulated — no SMS provider connected, no messages were actually sent.' : 'Campaign sent!');
       const [s, c] = await Promise.all([apiFetch('/api/v1/sms/stats'), apiFetch('/api/v1/sms/campaigns')]);
       setSmsStats(s); setSmsCampaigns(c.campaigns || []);
     } finally { setSmsSendingId(null); setSmsSendConfirm(null); }
@@ -11619,9 +11678,21 @@ export default function AppShell() {
                               <td style={{ fontWeight: 600 }}>{b.name}</td>
                               <td>{b.template_name||'—'}</td>
                               <td>{b.recipient_count}</td>
-                              <td><span className="ctag">{b.status}</span></td>
+                              <td>
+                                <span className="ctag" style={{ background: b.status==='sent'?'var(--success-bg)':undefined, color: b.status==='sent'?'var(--success)':undefined }}>{b.status}</span>
+                                {b.status === 'sent' && b.simulated && (
+                                  <span className="ctag" title="No WhatsApp Business API is connected — this broadcast was recorded but no messages were actually sent." style={{ marginLeft: 6, background: 'rgba(217,119,6,0.15)', color: 'var(--warning,#d97706)' }}>Simulated</span>
+                                )}
+                              </td>
                               <td style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{new Date(b.created_at).toLocaleDateString()}</td>
-                              <td><button className="btn-ghost" style={{ fontSize: '0.75rem', color: 'var(--danger)' }} onClick={() => handleDeleteWaBroadcast(b.id)}>Delete</button></td>
+                              <td style={{ display: 'flex', gap: '0.5rem' }}>
+                                {b.status === 'draft' && (
+                                  <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '3px 10px' }} disabled={waBroadcastSendingId===b.id} onClick={() => handleSendWaBroadcast(b.id)}>
+                                    {waBroadcastSendingId===b.id ? 'Sending…' : 'Send Now'}
+                                  </button>
+                                )}
+                                <button className="btn-ghost" style={{ fontSize: '0.75rem', color: 'var(--danger)' }} onClick={() => handleDeleteWaBroadcast(b.id)}>Delete</button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -12982,7 +13053,12 @@ export default function AppShell() {
                             <tr key={c.id}>
                               <td style={{ fontWeight:600 }}>{c.name}</td>
                               <td style={{ maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--muted)', fontSize:'0.8rem' }}>{c.message}</td>
-                              <td><span className="ctag" style={{ background: c.status==='sent'?'var(--success-bg)':undefined, color: c.status==='sent'?'var(--success)':undefined }}>{c.status}</span></td>
+                              <td>
+                                <span className="ctag" style={{ background: c.status==='sent'?'var(--success-bg)':undefined, color: c.status==='sent'?'var(--success)':undefined }}>{c.status}</span>
+                                {c.status === 'sent' && c.simulated && (
+                                  <span className="ctag" title="No SMS provider is connected — this campaign was recorded but no messages were actually sent." style={{ marginLeft: 6, background: 'rgba(217,119,6,0.15)', color: 'var(--warning,#d97706)' }}>Simulated</span>
+                                )}
+                              </td>
                               <td style={{ color:'var(--muted)' }}>{c.sent_count} / {c.recipients_count}</td>
                               <td style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{new Date(c.created_at).toLocaleDateString()}</td>
                               <td>
@@ -16296,9 +16372,10 @@ export default function AppShell() {
                 <input className="form-input" placeholder="Trigger keywords (comma-sep)" value={(cbDraft.triggerKeywords||[]).join(', ')} onChange={(e) => setCbDraft((d)=>({...d,triggerKeywords:e.target.value.split(',').map((t)=>t.trim()).filter(Boolean)}))} style={{ gridColumn:'1/-1' }} />
               </div>
               <h4 style={{ marginBottom:'0.5rem' }}>Response Nodes</h4>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr auto', gap:'0.5rem', marginBottom:'0.5rem' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr auto auto', gap:'0.5rem', marginBottom:'0.5rem' }}>
                 <input className="form-input" placeholder="User says (trigger)" value={cbNewNode.trigger} onChange={(e) => setCbNewNode((n)=>({...n,trigger:e.target.value}))} onKeyDown={(e) => e.key==='Enter' && (e.preventDefault(), addChatbotNode())} />
                 <input className="form-input" placeholder="Bot responds" value={cbNewNode.response} onChange={(e) => setCbNewNode((n)=>({...n,response:e.target.value}))} onKeyDown={(e) => e.key==='Enter' && (e.preventDefault(), addChatbotNode())} />
+                <button type="button" className="btn-ghost" disabled={cbGenerating} onClick={handleGenerateCbResponse}>{cbGenerating ? '…' : '✨ AI'}</button>
                 <button type="button" className="btn-primary" onClick={addChatbotNode}>Add</button>
               </div>
               {cbDraft.nodes.length > 0 && (
@@ -16383,15 +16460,22 @@ export default function AppShell() {
       {view === 'module' && activeModuleSlug === 'ai-meeting-notes' && (
         <div className="module-wrap">
           <div className="module-head">
-            <button className="back-link" onClick={() => mnViewNote ? setMnViewNote(null) : setView('home')}>← {mnViewNote ? 'Back to Notes' : 'Back'}</button>
+            <button className="back-link" onClick={() => mnViewNote ? (setMnViewNote(null), setMnSummary(null)) : setView('home')}>← {mnViewNote ? 'Back to Notes' : 'Back'}</button>
             <h2>{mnViewNote ? mnViewNote.title : 'AI Meeting Notes'}</h2>
             {!mnViewNote && <button className="btn-primary" onClick={() => { setEditingMn(null); setMnDraft({ title:'', meetingDate:new Date().toISOString().slice(0,10), attendees:[], agenda:'', notes:'', actionItems:[] }); setMnAttendeeInput(''); setMnActionInput({ text:'', assignee:'', due:'' }); setMnForm(true); }}>+ New Meeting</button>}
             {mnViewNote && <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" disabled={mnSummarizing} onClick={handleSummarizeMn}>{mnSummarizing ? 'Summarizing…' : '✨ Summarize with AI'}</button>
               <button className="btn-ghost" onClick={() => navigator.clipboard.writeText(`${mnViewNote.title}\n${new Date(mnViewNote.meeting_date).toLocaleDateString()}\n\nAttendees: ${(mnViewNote.attendees||[]).join(', ')}\n\nAgenda:\n${mnViewNote.agenda||''}\n\nNotes:\n${mnViewNote.notes||''}\n\nAction Items:\n${(mnViewNote.action_items||[]).map((a)=>`- ${a.text} (${a.assignee||'Unassigned'}) ${a.due||''}`).join('\n')}`)}>Copy</button>
               <button className="btn-ghost" onClick={() => { setEditingMn(mnViewNote); setMnDraft({ title:mnViewNote.title, meetingDate:mnViewNote.meeting_date?.slice(0,10)||'', attendees:mnViewNote.attendees||[], agenda:mnViewNote.agenda||'', notes:mnViewNote.notes||'', actionItems:mnViewNote.action_items||[] }); setMnForm(true); }}>Edit</button>
               <button className="btn-ghost" style={{ color:'var(--danger)' }} onClick={() => handleDeleteMn(mnViewNote.id)}>Delete</button>
             </div>}
           </div>
+          {mnViewNote && mnSummary && (
+            <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', marginBottom:'1rem' }}>
+              <div style={{ fontWeight:700, marginBottom:'0.4rem' }}>AI Summary</div>
+              <pre style={{ whiteSpace:'pre-wrap', fontFamily:'inherit', fontSize:'0.875rem', color:'var(--text)' }}>{mnSummary}</pre>
+            </div>
+          )}
           {mnStats && !mnViewNote && (
             <div className="stats-row">
               <div className="stat-card"><div className="stat-value">{mnStats.total}</div><div className="stat-label">Total Meetings</div></div>
@@ -16520,6 +16604,7 @@ export default function AppShell() {
               </div>
               <div style={{ display:'flex', gap:'0.5rem' }}>
                 <button className="btn-primary" type="submit">{editingKb ? 'Update' : 'Publish'} Article</button>
+                <button className="btn-ghost" type="button" disabled={aiKbGenerating} onClick={handleGenerateKbArticle}>{aiKbGenerating ? 'Generating…' : '✨ Generate with AI'}</button>
                 <button className="btn-ghost" type="button" onClick={() => { setAiKbForm(false); setEditingKb(null); }}>Cancel</button>
               </div>
             </form>
@@ -16613,6 +16698,7 @@ export default function AppShell() {
               </div>
               <div style={{ display:'flex', gap:'0.5rem' }}>
                 <button className="btn-primary" type="submit">{editingCs ? 'Update' : 'Add'} FAQ</button>
+                <button className="btn-ghost" type="button" disabled={csGenerating} onClick={handleGenerateCsAnswer}>{csGenerating ? 'Generating…' : '✨ Generate with AI'}</button>
                 <button className="btn-ghost" type="button" onClick={() => { setCsForm(false); setEditingCs(null); }}>Cancel</button>
               </div>
             </form>
@@ -17546,6 +17632,11 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                 </div>
                 <div style={{ width:64, height:64, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'1.3rem', border:`4px solid ${viewingAudit.score>=75?'var(--success)':viewingAudit.score>=55?'var(--warning)':'var(--danger)'}`, color:viewingAudit.score>=75?'var(--success)':viewingAudit.score>=55?'var(--warning)':'var(--danger)' }}>{viewingAudit.score}</div>
               </div>
+              {viewingAudit.results?.fetchError && (
+                <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid var(--danger)', borderRadius:8, padding:'0.85rem', marginBottom:'1.25rem', color:'var(--danger)', fontSize:'0.85rem' }}>
+                  {viewingAudit.results.fetchError}
+                </div>
+              )}
               {viewingAudit.results?.issues?.length > 0 && (
                 <div style={{ marginBottom:'1.25rem' }}>
                   <div style={{ fontWeight:600, fontSize:'0.9rem', marginBottom:'0.6rem' }}>Issues Found</div>
@@ -17557,14 +17648,25 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                   ))}
                 </div>
               )}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem' }}>
-                {viewingAudit.results?.performance && Object.entries({ 'LCP': viewingAudit.results.performance.lcp, 'FID': viewingAudit.results.performance.fid, 'CLS': viewingAudit.results.performance.cls, 'Page Size': viewingAudit.results.performance.pageSize, 'Requests': viewingAudit.results.performance.requests }).map(([k,v]) => (
-                  <div key={k} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
-                    <div style={{ fontSize:'0.72rem', color:'var(--muted)', marginBottom:'0.2rem' }}>{k}</div>
-                    <div style={{ fontWeight:700, fontSize:'0.95rem' }}>{v}</div>
-                  </div>
-                ))}
-              </div>
+              {!viewingAudit.results?.fetchError && (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem' }}>
+                  {Object.entries({
+                    'Title length': viewingAudit.results?.meta?.titleLength,
+                    'Description length': viewingAudit.results?.meta?.descriptionLength,
+                    'Canonical tag': viewingAudit.results?.meta?.canonicalPresent ? 'Present' : 'Missing',
+                    'H1 / H2 / H3': `${viewingAudit.results?.headings?.h1Count ?? 0} / ${viewingAudit.results?.headings?.h2Count ?? 0} / ${viewingAudit.results?.headings?.h3Count ?? 0}`,
+                    'Images (missing alt)': `${viewingAudit.results?.images?.total ?? 0} (${viewingAudit.results?.images?.missingAlt ?? 0})`,
+                    'Internal / external links': `${viewingAudit.results?.links?.internal ?? 0} / ${viewingAudit.results?.links?.external ?? 0}`,
+                    'HTTPS': viewingAudit.results?.technical?.ssl ? 'Yes' : 'No',
+                    'Structured data': viewingAudit.results?.technical?.structuredData ? 'Found' : 'Not found',
+                  }).map(([k,v]) => (
+                    <div key={k} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
+                      <div style={{ fontSize:'0.72rem', color:'var(--muted)', marginBottom:'0.2rem' }}>{k}</div>
+                      <div style={{ fontWeight:700, fontSize:'0.95rem' }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -17598,10 +17700,13 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                 <div style={{ textAlign:'center', padding:'3rem 1rem', color:'var(--muted)' }}>
                   <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>🔗</div>
                   <div style={{ fontWeight:600, marginBottom:'0.25rem' }}>No domains monitored yet</div>
-                  <div style={{ fontSize:'0.88rem' }}>Add your domain to start discovering and tracking backlinks. We'll seed initial data to get you started.</div>
+                  <div style={{ fontSize:'0.88rem' }}>Add your domain to start tracking it here.</div>
                 </div>
               ) : (
                 <div className="table-wrap">
+                  <div style={{ fontSize:'0.78rem', color:'var(--muted)', marginBottom:'0.6rem' }}>
+                    No backlink data provider is connected for this deployment, so new domains start at 0 backlinks — this tool records domains you're tracking rather than fabricating results.
+                  </div>
                   <table className="data-table">
                     <thead><tr><th>Domain</th><th>Backlinks</th><th>Last Checked</th><th></th></tr></thead>
                     <tbody>

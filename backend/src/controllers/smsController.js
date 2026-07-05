@@ -1,4 +1,5 @@
 const db = require('../db');
+const { smsProviderConfigured } = require('../utils/messagingProviders');
 
 async function getStats(req, res) {
   const [campRes, contactRes] = await Promise.all([
@@ -110,11 +111,17 @@ async function sendCampaign(req, res) {
   if (!camp.rows.length)           return res.status(404).json({ error: 'Not found.' });
   if (camp.rows[0].status === 'sent') return res.status(400).json({ error: 'Already sent.' });
   const count = contactIds?.length || 0;
+
+  // No SMS gateway is configured for this deployment — simulate the send
+  // (record it, don't claim delivery) rather than lying about a real send.
+  // See utils/messagingProviders.js for how to wire a real provider.
+  const simulated = !smsProviderConfigured();
+
   const { rows } = await db.query(
-    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$1 WHERE id=$2 AND org_id=$3 RETURNING *`,
-    [count, id, req.user.orgId]
+    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$1,simulated=$2 WHERE id=$3 AND org_id=$4 RETURNING *`,
+    [count, simulated, id, req.user.orgId]
   );
-  res.json({ campaign: rows[0] });
+  res.json({ campaign: rows[0], simulated });
 }
 
 async function deleteCampaign(req, res) {

@@ -1,4 +1,5 @@
 const db = require('../db');
+const { generateWithAI } = require('../utils/aiGenerate');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -59,4 +60,17 @@ async function deleteFlow(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listFlows, getFlow, createFlow, updateFlow, deleteFlow };
+async function generateReply(req, res) {
+  const { intent } = req.body || {};
+  if (!intent?.trim()) return res.status(400).json({ error: 'intent required.' });
+  const result = await generateWithAI({
+    orgId: req.user.orgId,
+    feature: 'chatbot-builder:generate-reply',
+    systemPrompt: 'You are a helpful customer-facing chatbot. Write a short, friendly reply (2-4 sentences, no markdown) matching the given user intent/trigger.',
+    userPrompt: `User intent / trigger: ${intent.trim()}`,
+    fallback: `Thanks for reaching out about "${intent.trim()}"! [Write a short reply here — ANTHROPIC_API_KEY isn't configured, so this is a plain placeholder rather than an AI draft.]`,
+  });
+  res.json(result);
+}
+
+module.exports = { getStats, listFlows, getFlow, createFlow, updateFlow, deleteFlow, generateReply };

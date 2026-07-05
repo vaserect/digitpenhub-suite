@@ -1,3 +1,10 @@
+// Must be required before express so it can patch Router.prototype — this
+// forwards any rejected promise from an async route handler to the error
+// middleware instead of it becoming an unhandled rejection. Nearly all ~90
+// route files here use bare `async (req, res) => {}` handlers with no
+// try/catch, so without this a single bad request (bad input, DB constraint,
+// null deref) hangs that request forever instead of returning an error.
+require('express-async-errors');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');

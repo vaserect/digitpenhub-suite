@@ -1,4 +1,5 @@
 const db = require('../db');
+const { whatsappProviderConfigured } = require('../utils/messagingProviders');
 
 async function getStats(req, res) {
   const [cRes, tRes, bRes] = await Promise.all([
@@ -122,6 +123,11 @@ async function createBroadcast(req, res) {
 async function updateBroadcast(req, res) {
   const { id } = req.params;
   const { name, templateId, recipientCount, notes, scheduledAt, status } = req.body || {};
+  // 'sent' may only be set via sendBroadcast, which records whether it was
+  // actually dispatched or simulated — letting a plain field update claim
+  // 'sent' would let the client fake a delivered broadcast with no send ever
+  // happening.
+  if (status === 'sent') return res.status(400).json({ error: 'Use the send action to mark a broadcast as sent.' });
   const updates=[]; const vals=[]; let i=1;
   if (name          !==undefined){updates.push(`name=$${i++}`);           vals.push(name.trim());}
   if (templateId    !==undefined){updates.push(`template_id=$${i++}`);    vals.push(templateId||null);}
@@ -141,9 +147,27 @@ async function deleteBroadcast(req, res) {
   res.json({ ok: true });
 }
 
+async function sendBroadcast(req, res) {
+  const { id } = req.params;
+  const existing = await db.query(`SELECT * FROM whatsapp_broadcasts WHERE id=$1 AND org_id=$2`, [id, req.user.orgId]);
+  if (!existing.rows.length) return res.status(404).json({ error: 'Broadcast not found.' });
+  if (existing.rows[0].status === 'sent') return res.status(400).json({ error: 'Already sent.' });
+
+  // No WhatsApp Business API credentials configured for this deployment —
+  // simulate the send rather than claiming a real dispatch. See
+  // utils/messagingProviders.js for how to wire a real provider.
+  const simulated = !whatsappProviderConfigured();
+
+  const { rows } = await db.query(
+    `UPDATE whatsapp_broadcasts SET status='sent', sent_at=NOW(), simulated=$1 WHERE id=$2 AND org_id=$3 RETURNING *`,
+    [simulated, id, req.user.orgId]
+  );
+  res.json({ broadcast: rows[0], simulated });
+}
+
 module.exports = {
   getStats,
   listContacts, createContact, updateContact, deleteContact,
   listTemplates, createTemplate, updateTemplate, deleteTemplate,
-  listBroadcasts, createBroadcast, updateBroadcast, deleteBroadcast,
+  listBroadcasts, createBroadcast, updateBroadcast, deleteBroadcast, sendBroadcast,
 };

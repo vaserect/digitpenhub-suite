@@ -1,4 +1,5 @@
 const db = require('../db');
+const { generateWithAI } = require('../utils/aiGenerate');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -68,8 +69,21 @@ async function deleteArticle(req, res) {
 }
 
 async function markHelpful(req, res) {
-  await db.query(`UPDATE ai_knowledge_articles SET helpful_count=helpful_count+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE ai_knowledge_articles SET helpful_count=helpful_count+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listArticles, getCategories, getArticle, createArticle, updateArticle, deleteArticle, markHelpful };
+async function generateArticle(req, res) {
+  const { topic, category } = req.body || {};
+  if (!topic?.trim()) return res.status(400).json({ error: 'topic required.' });
+  const result = await generateWithAI({
+    orgId: req.user.orgId,
+    feature: 'ai-kb:generate-article',
+    systemPrompt: 'You write clear, well-structured knowledge base help articles. Reply with the article body only (plain text with simple paragraph breaks, no markdown headers).',
+    userPrompt: `Write a knowledge base article${category ? ` in the "${category}" category` : ''} about: ${topic.trim()}`,
+    fallback: `[ANTHROPIC_API_KEY isn't configured, so no AI draft is available.]\n\n${topic.trim()}\n\n[Write the article content here.]`,
+  });
+  res.json(result);
+}
+
+module.exports = { getStats, listArticles, getCategories, getArticle, createArticle, updateArticle, deleteArticle, markHelpful, generateArticle };

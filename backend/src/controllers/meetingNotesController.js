@@ -1,4 +1,5 @@
 const db = require('../db');
+const { generateWithAI } = require('../utils/aiGenerate');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -60,4 +61,19 @@ async function deleteNote(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listNotes, getNote, createNote, updateNote, deleteNote };
+async function summarize(req, res) {
+  const { rows } = await db.query(`SELECT * FROM meeting_notes WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
+  if (!rows.length) return res.status(404).json({ error: 'Not found.' });
+  const note = rows[0];
+  if (!note.notes?.trim()) return res.status(400).json({ error: 'This meeting has no notes text to summarize yet.' });
+  const result = await generateWithAI({
+    orgId: req.user.orgId,
+    feature: 'meeting-notes:summarize',
+    systemPrompt: 'You summarize meeting notes. Reply with a short summary paragraph, then a "Action items:" section listing one action item per line prefixed with "- ". No other formatting.',
+    userPrompt: `Meeting: ${note.title}\nAttendees: ${(note.attendees||[]).join(', ')}\n\nNotes:\n${note.notes}`,
+    fallback: `[ANTHROPIC_API_KEY isn't configured, so no AI summary is available. Review the notes below and add action items manually.]`,
+  });
+  res.json(result);
+}
+
+module.exports = { getStats, listNotes, getNote, createNote, updateNote, deleteNote, summarize };

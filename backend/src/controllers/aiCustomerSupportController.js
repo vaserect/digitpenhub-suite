@@ -1,4 +1,5 @@
 const db = require('../db');
+const { generateWithAI } = require('../utils/aiGenerate');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -57,8 +58,21 @@ async function deleteFaq(req, res) {
 }
 
 async function markHelpful(req, res) {
-  await db.query(`UPDATE support_faqs SET helpful_count=helpful_count+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE support_faqs SET helpful_count=helpful_count+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listFaqs, getCategories, createFaq, updateFaq, deleteFaq, markHelpful };
+async function generateAnswer(req, res) {
+  const { question } = req.body || {};
+  if (!question?.trim()) return res.status(400).json({ error: 'question required.' });
+  const result = await generateWithAI({
+    orgId: req.user.orgId,
+    feature: 'ai-support:generate-answer',
+    systemPrompt: 'You write clear, friendly customer support FAQ answers. Reply with the answer only (2-5 sentences, plain text, no markdown).',
+    userPrompt: `Customer question: ${question.trim()}`,
+    fallback: `[ANTHROPIC_API_KEY isn't configured, so no AI draft is available. Write the answer to "${question.trim()}" here.]`,
+  });
+  res.json(result);
+}
+
+module.exports = { getStats, listFaqs, getCategories, createFaq, updateFaq, deleteFaq, markHelpful, generateAnswer };

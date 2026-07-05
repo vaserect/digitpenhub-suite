@@ -1,0 +1,74 @@
+-- Backfill missing org_id indexes. Every tenant-scoped query filters
+-- WHERE org_id = $1, but Postgres doesn't auto-index plain/FK columns —
+-- these 68 tables had none, so they sequential-scan as data grows.
+-- Generated from a live information_schema/pg_index diff, not by hand,
+-- so it's exhaustive rather than best-effort.
+
+CREATE INDEX IF NOT EXISTS idx_ai_call_log_org ON ai_call_log(org_id);
+CREATE INDEX IF NOT EXISTS idx_ai_documents_org ON ai_documents(org_id);
+CREATE INDEX IF NOT EXISTS idx_ai_knowledge_articles_org ON ai_knowledge_articles(org_id);
+CREATE INDEX IF NOT EXISTS idx_ai_translations_org ON ai_translations(org_id);
+CREATE INDEX IF NOT EXISTS idx_asset_items_org ON asset_items(org_id);
+CREATE INDEX IF NOT EXISTS idx_barcodes_org ON barcodes(org_id);
+CREATE INDEX IF NOT EXISTS idx_bio_links_org ON bio_links(org_id);
+CREATE INDEX IF NOT EXISTS idx_brand_kits_org ON brand_kits(org_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_org ON calendar_events(org_id);
+CREATE INDEX IF NOT EXISTS idx_cbt_quizzes_org ON cbt_quizzes(org_id);
+CREATE INDEX IF NOT EXISTS idx_chatbot_flows_org ON chatbot_flows(org_id);
+CREATE INDEX IF NOT EXISTS idx_color_palettes_org ON color_palettes(org_id);
+CREATE INDEX IF NOT EXISTS idx_coupons_org ON coupons(org_id);
+CREATE INDEX IF NOT EXISTS idx_customer_subscriptions_org ON customer_subscriptions(org_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_org ON deliveries(org_id);
+CREATE INDEX IF NOT EXISTS idx_departments_org ON departments(org_id);
+CREATE INDEX IF NOT EXISTS idx_digital_business_cards_org ON digital_business_cards(org_id);
+CREATE INDEX IF NOT EXISTS idx_digital_product_sales_org ON digital_product_sales(org_id);
+CREATE INDEX IF NOT EXISTS idx_digital_products_org ON digital_products(org_id);
+CREATE INDEX IF NOT EXISTS idx_document_folders_org ON document_folders(org_id);
+CREATE INDEX IF NOT EXISTS idx_documents_org ON documents(org_id);
+CREATE INDEX IF NOT EXISTS idx_expense_categories_org ON expense_categories(org_id);
+CREATE INDEX IF NOT EXISTS idx_form_responses_org ON form_responses(org_id);
+CREATE INDEX IF NOT EXISTS idx_forms_org ON forms(org_id);
+CREATE INDEX IF NOT EXISTS idx_funnels_org ON funnels(org_id);
+CREATE INDEX IF NOT EXISTS idx_helpdesk_replies_org ON helpdesk_replies(org_id);
+CREATE INDEX IF NOT EXISTS idx_helpdesk_tickets_org ON helpdesk_tickets(org_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_categories_org ON inventory_categories(org_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_products_org ON inventory_products(org_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_transactions_org ON inventory_transactions(org_id);
+CREATE INDEX IF NOT EXISTS idx_issued_certificates_org ON issued_certificates(org_id);
+CREATE INDEX IF NOT EXISTS idx_kb_articles_org ON kb_articles(org_id);
+CREATE INDEX IF NOT EXISTS idx_kb_categories_org ON kb_categories(org_id);
+CREATE INDEX IF NOT EXISTS idx_lms_courses_org ON lms_courses(org_id);
+CREATE INDEX IF NOT EXISTS idx_marketplace_products_org ON marketplace_products(org_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_notes_org ON meeting_notes(org_id);
+CREATE INDEX IF NOT EXISTS idx_notes_org ON notes(org_id);
+CREATE INDEX IF NOT EXISTS idx_orders_org ON orders(org_id);
+CREATE INDEX IF NOT EXISTS idx_password_entries_org ON password_entries(org_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_items_org ON payroll_items(org_id);
+CREATE INDEX IF NOT EXISTS idx_popups_org ON popups(org_id);
+CREATE INDEX IF NOT EXISTS idx_pos_sales_org ON pos_sales(org_id);
+CREATE INDEX IF NOT EXISTS idx_pos_sessions_org ON pos_sessions(org_id);
+CREATE INDEX IF NOT EXISTS idx_qr_codes_org ON qr_codes(org_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_responses_org ON quiz_responses(org_id);
+CREATE INDEX IF NOT EXISTS idx_quizzes_org ON quizzes(org_id);
+CREATE INDEX IF NOT EXISTS idx_quotations_org ON quotations(org_id);
+CREATE INDEX IF NOT EXISTS idx_saved_reports_org ON saved_reports(org_id);
+CREATE INDEX IF NOT EXISTS idx_school_assignments_org ON school_assignments(org_id);
+CREATE INDEX IF NOT EXISTS idx_school_classes_org ON school_classes(org_id);
+CREATE INDEX IF NOT EXISTS idx_school_students_org ON school_students(org_id);
+CREATE INDEX IF NOT EXISTS idx_school_subjects_org ON school_subjects(org_id);
+CREATE INDEX IF NOT EXISTS idx_school_teachers_org ON school_teachers(org_id);
+CREATE INDEX IF NOT EXISTS idx_seo_audits_org ON seo_audits(org_id);
+CREATE INDEX IF NOT EXISTS idx_seo_tracked_keywords_org ON seo_tracked_keywords(org_id);
+CREATE INDEX IF NOT EXISTS idx_short_links_org ON short_links(org_id);
+CREATE INDEX IF NOT EXISTS idx_sms_campaigns_org ON sms_campaigns(org_id);
+CREATE INDEX IF NOT EXISTS idx_sms_contacts_org ON sms_contacts(org_id);
+CREATE INDEX IF NOT EXISTS idx_storage_files_org ON storage_files(org_id);
+CREATE INDEX IF NOT EXISTS idx_storage_folders_org ON storage_folders(org_id);
+CREATE INDEX IF NOT EXISTS idx_subscription_plans_org ON subscription_plans(org_id);
+CREATE INDEX IF NOT EXISTS idx_support_faqs_org ON support_faqs(org_id);
+CREATE INDEX IF NOT EXISTS idx_task_item_comments_org ON task_item_comments(org_id);
+CREATE INDEX IF NOT EXISTS idx_task_items_org ON task_items(org_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_org ON time_entries(org_id);
+CREATE INDEX IF NOT EXISTS idx_time_projects_org ON time_projects(org_id);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(org_id);
+CREATE INDEX IF NOT EXISTS idx_workflows_org ON workflows(org_id);

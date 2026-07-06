@@ -1425,6 +1425,7 @@ export default function AppShell() {
   const [gdElements, setGdElements]     = useState([]);
   const [gdSelected, setGdSelected]     = useState(null);
   const [gdCanvasW, setGdCanvasW]       = useState(800);
+  const [gdTemplateConfirm, setGdTemplateConfirm] = useState(null);
   const [gdCanvasH, setGdCanvasH]       = useState(600);
   const [gdBg, setGdBg]                 = useState('#ffffff');
   const [gdAddType, setGdAddType]       = useState('text');
@@ -19636,6 +19637,40 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
 
       {/* ── Graphic Design Editor ───────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'graphic-design-editor' && (() => {
+        // Starter templates — each is just a canvas size/bg + an elements array
+        // in the same shape addElement() produces, so "load template" is a
+        // plain gdCommit(), no separate template data model needed.
+        const GD_TEMPLATES = [
+          { name: 'Instagram Post', canvasW: 1080, canvasH: 1080, bg: '#2563eb', elements: [
+            { type: 'shape', x: 60, y: 60, w: 960, h: 960, zIndex: 0, shape: 'rect', fill: '#1d4ed8', stroke: 'none' },
+            { type: 'text', x: 100, y: 420, w: 880, h: 140, zIndex: 1, text: 'Your headline here', fontSize: 72, color: '#ffffff', fontFamily: 'Arial', bold: true, italic: false },
+            { type: 'text', x: 100, y: 580, w: 880, h: 60, zIndex: 2, text: 'A short supporting line', fontSize: 32, color: '#dbeafe', fontFamily: 'Arial', bold: false, italic: false },
+          ] },
+          { name: 'Facebook Cover', canvasW: 1200, canvasH: 630, bg: '#0f172a', elements: [
+            { type: 'shape', x: 0, y: 0, w: 1200, h: 8, zIndex: 0, shape: 'rect', fill: '#22c55e', stroke: 'none' },
+            { type: 'text', x: 80, y: 240, w: 1000, h: 100, zIndex: 1, text: 'Your Business Name', fontSize: 64, color: '#ffffff', fontFamily: 'Georgia', bold: true, italic: false },
+            { type: 'text', x: 80, y: 350, w: 1000, h: 50, zIndex: 2, text: 'A tagline that explains what you do', fontSize: 28, color: '#94a3b8', fontFamily: 'Georgia', bold: false, italic: false },
+          ] },
+          { name: 'Poster', canvasW: 800, canvasH: 1200, bg: '#fef3c7', elements: [
+            { type: 'shape', x: 0, y: 0, w: 800, h: 260, zIndex: 0, shape: 'rect', fill: '#f59e0b', stroke: 'none' },
+            { type: 'text', x: 60, y: 90, w: 680, h: 100, zIndex: 1, text: 'EVENT NAME', fontSize: 56, color: '#ffffff', fontFamily: 'Impact', bold: true, italic: false },
+            { type: 'text', x: 60, y: 340, w: 680, h: 60, zIndex: 2, text: 'Date · Time · Location', fontSize: 30, color: '#78350f', fontFamily: 'Arial', bold: false, italic: false },
+            { type: 'text', x: 60, y: 1050, w: 680, h: 60, zIndex: 3, text: 'yourbusiness.com', fontSize: 24, color: '#78350f', fontFamily: 'Arial', bold: false, italic: false },
+          ] },
+          { name: 'Business Flyer', canvasW: 850, canvasH: 1100, bg: '#ffffff', elements: [
+            { type: 'shape', x: 0, y: 0, w: 850, h: 180, zIndex: 0, shape: 'rect', fill: '#0f172a', stroke: 'none' },
+            { type: 'text', x: 50, y: 55, w: 750, h: 80, zIndex: 1, text: 'Company Name', fontSize: 44, color: '#ffffff', fontFamily: 'Helvetica', bold: true, italic: false },
+            { type: 'text', x: 50, y: 240, w: 750, h: 60, zIndex: 2, text: 'What we offer', fontSize: 32, color: '#0f172a', fontFamily: 'Helvetica', bold: true, italic: false },
+            { type: 'text', x: 50, y: 320, w: 750, h: 200, zIndex: 3, text: 'Describe your product or service here. Replace this text with your own copy.', fontSize: 22, color: '#334155', fontFamily: 'Helvetica', bold: false, italic: false },
+          ] },
+        ];
+        function applyGdTemplate(tpl) {
+          const elements = tpl.elements.map((el, i) => ({ ...el, id: Date.now() + i }));
+          gdCommitHistory(gdElements, elements);
+          setGdElements(elements);
+          setGdCanvasW(tpl.canvasW); setGdCanvasH(tpl.canvasH); setGdBg(tpl.bg);
+          setGdSelected(null);
+        }
         let gdIdCounter = gdElements.length;
         function gdCommit(next) {
           gdCommitHistory(gdElements, next);
@@ -19722,10 +19757,16 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 220px', gap:'1rem' }}>
               {/* Toolbar */}
               <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
-                <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Add Element</div>
-                {[['text','T  Text'],['shape','■  Shape'],['image','🖼  Image']].map(([t,l]) => (
-                  <button key={t} className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => addElement(t)}>{l}</button>
+                <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Templates</div>
+                {GD_TEMPLATES.map((tpl) => (
+                  <button key={tpl.name} className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.8rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => { if (gdElements.length === 0) applyGdTemplate(tpl); else setGdTemplateConfirm(tpl); }}>{tpl.name}</button>
                 ))}
+                <div style={{ borderTop:'1px solid var(--border)', margin:'0.75rem 0', paddingTop:'0.75rem' }}>
+                  <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Add Element</div>
+                  {[['text','T  Text'],['shape','■  Shape'],['image','🖼  Image']].map(([t,l]) => (
+                    <button key={t} className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => addElement(t)}>{l}</button>
+                  ))}
+                </div>
                 <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
                   <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Canvas</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.3rem', marginBottom:'0.3rem' }}>
@@ -19827,6 +19868,15 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 )}
               </div>
             </div>
+            <ConfirmDialog
+              isOpen={!!gdTemplateConfirm}
+              onClose={() => setGdTemplateConfirm(null)}
+              onConfirm={() => { applyGdTemplate(gdTemplateConfirm); setGdTemplateConfirm(null); }}
+              title="Replace the current canvas?"
+              description="Loading this template will replace everything currently on the canvas. This can be undone with Ctrl/Cmd+Z."
+              confirmLabel="Replace"
+              danger
+            />
           </div>
         );
       })()}

@@ -9,6 +9,7 @@ r.post('/categories',         c.createCategory);
 r.delete('/categories/:id',   c.deleteCategory);
 r.get('/articles',            c.listArticles);
 r.get('/articles/export',     c.exportArticles);
+r.post('/articles/bulk-delete', c.bulkDeleteArticles);
 r.post('/articles',           c.createArticle);
 r.get('/articles/:id',        c.getArticle);
 r.put('/articles/:id',        c.updateArticle);

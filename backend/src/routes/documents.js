@@ -9,6 +9,7 @@ r.post('/folders',       c.createFolder);
 r.delete('/folders/:id', c.deleteFolder);
 r.get('/',               c.listDocuments);
 r.get('/export',         c.exportDocuments);
+r.post('/bulk-delete',   c.bulkDeleteDocuments);
 r.post('/',              c.createDocument);
 r.put('/:id',            c.updateDocument);
 r.delete('/:id',         c.deleteDocument);

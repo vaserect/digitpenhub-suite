@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats', c.getStats);
 r.get('/', c.listAffiliates);
 r.get('/export', c.exportAffiliates);
+r.post('/bulk-delete', c.bulkDeleteAffiliates);
 r.post('/', c.createAffiliate);
 r.put('/:id', c.updateAffiliate);
 r.delete('/:id', c.deleteAffiliate);

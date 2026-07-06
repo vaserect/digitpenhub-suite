@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteDocuments = bulkDeleteHandler('documents');
 
 async function getStats(req, res) {
   const [docRes, folRes] = await Promise.all([
@@ -76,4 +78,4 @@ async function exportDocuments(req, res) {
   sendCsv(res, 'documents.csv', rows, autoColumns(rows, ['org_id', 'file_data']));
 }
 
-module.exports = { getStats, listFolders, createFolder, deleteFolder, listDocuments, exportDocuments, createDocument, updateDocument, deleteDocument };
+module.exports = { getStats, listFolders, createFolder, deleteFolder, listDocuments, exportDocuments, createDocument, updateDocument, deleteDocument, bulkDeleteDocuments };

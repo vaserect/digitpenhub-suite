@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats',      c.getStats);
 r.get('/',           c.listCoupons);
 r.get('/export',     c.exportCoupons);
+r.post('/bulk-delete', c.bulkDeleteCoupons);
 r.post('/',          c.createCoupon);
 r.put('/:id',        c.updateCoupon);
 r.delete('/:id',     c.deleteCoupon);

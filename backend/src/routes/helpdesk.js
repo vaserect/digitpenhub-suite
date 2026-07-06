@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats',           c.getStats);
 r.get('/',                c.listTickets);
 r.get('/export',          c.exportTickets);
+r.post('/bulk-delete',    c.bulkDeleteTickets);
 r.post('/',               c.createTicket);
 r.get('/:id',             c.getTicket);
 r.put('/:id',             c.updateTicket);

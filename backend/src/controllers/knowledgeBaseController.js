@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteArticles = bulkDeleteHandler('kb_articles');
 
 async function getStats(req, res) {
   const [artRes, catRes] = await Promise.all([
@@ -97,4 +99,4 @@ async function exportArticles(req, res) {
   sendCsv(res, 'knowledge-base-articles.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listCategories, createCategory, deleteCategory, listArticles, exportArticles, getArticle, createArticle, updateArticle, deleteArticle };
+module.exports = { getStats, listCategories, createCategory, deleteCategory, listArticles, exportArticles, getArticle, createArticle, updateArticle, deleteArticle, bulkDeleteArticles };

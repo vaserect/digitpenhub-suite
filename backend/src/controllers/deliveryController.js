@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteDeliveries = bulkDeleteHandler('deliveries');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -66,4 +68,4 @@ async function exportDeliveries(req, res) {
   sendCsv(res, 'deliveries.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listDeliveries, exportDeliveries, createDelivery, updateDelivery, deleteDelivery };
+module.exports = { getStats, listDeliveries, exportDeliveries, createDelivery, updateDelivery, deleteDelivery, bulkDeleteDeliveries };

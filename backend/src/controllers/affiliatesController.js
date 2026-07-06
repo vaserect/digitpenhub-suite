@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteAffiliates = bulkDeleteHandler('affiliates');
 
 async function getStats(req, res) {
   const [affRes, convRes] = await Promise.all([
@@ -146,6 +148,6 @@ async function exportAffiliates(req, res) {
 
 module.exports = {
   getStats,
-  listAffiliates, exportAffiliates, createAffiliate, updateAffiliate, deleteAffiliate,
+  listAffiliates, exportAffiliates, createAffiliate, updateAffiliate, deleteAffiliate, bulkDeleteAffiliates,
   listConversions, createConversion, updateConversion, deleteConversion,
 };

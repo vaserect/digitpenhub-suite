@@ -5,6 +5,7 @@ const r = Router();
 r.use(requireAuth);
 r.get('/',        c.listEvents);
 r.get('/export',  c.exportEvents);
+r.post('/bulk-delete', c.bulkDeleteEvents);
 r.post('/',       c.createEvent);
 r.put('/:id',     c.updateEvent);
 r.delete('/:id',  c.deleteEvent);

@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats',   c.getStats);
 r.get('/',        c.listAssets);
 r.get('/export',  c.exportAssets);
+r.post('/bulk-delete', c.bulkDeleteAssets);
 r.post('/',       c.createAsset);
 r.put('/:id',     c.updateAsset);
 r.delete('/:id',  c.deleteAsset);

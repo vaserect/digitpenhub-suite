@@ -1,6 +1,8 @@
 const db = require('../db');
 const { smsProviderConfigured } = require('../utils/messagingProviders');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteSmsContacts = bulkDeleteHandler('sms_contacts');
 
 async function getStats(req, res) {
   const [campRes, contactRes] = await Promise.all([
@@ -135,4 +137,4 @@ async function exportContacts(req, res) {
   sendCsv(res, 'sms-contacts.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listContacts, exportContacts, createContact, updateContact, deleteContact, bulkCreateContacts, listCampaigns, createCampaign, sendCampaign, deleteCampaign };
+module.exports = { getStats, listContacts, exportContacts, createContact, updateContact, deleteContact, bulkCreateContacts, bulkDeleteSmsContacts, listCampaigns, createCampaign, sendCampaign, deleteCampaign };

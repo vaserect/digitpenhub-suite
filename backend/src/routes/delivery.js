@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats',   c.getStats);
 r.get('/',        c.listDeliveries);
 r.get('/export',  c.exportDeliveries);
+r.post('/bulk-delete', c.bulkDeleteDeliveries);
 r.post('/',       c.createDelivery);
 r.put('/:id',     c.updateDelivery);
 r.delete('/:id',  c.deleteDelivery);

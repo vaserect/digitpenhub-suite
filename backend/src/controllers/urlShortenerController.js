@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteLinks = bulkDeleteHandler('short_links');
 
 function genSlug(len=6) {
   const chars='abcdefghijklmnopqrstuvwxyz0123456789';
@@ -63,4 +65,4 @@ async function exportLinks(req, res) {
   sendCsv(res, 'short-links.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listLinks, exportLinks, createLink, updateLink, deleteLink };
+module.exports = { getStats, listLinks, exportLinks, createLink, updateLink, deleteLink, bulkDeleteLinks };

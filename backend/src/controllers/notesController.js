@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteNotes = bulkDeleteHandler('notes');
 
 async function listNotes(req, res) {
   const { search, tag } = req.query;
@@ -50,4 +52,4 @@ async function exportNotes(req, res) {
   sendCsv(res, 'notes.csv', rows, autoColumns(rows));
 }
 
-module.exports = { listNotes, exportNotes, createNote, updateNote, deleteNote };
+module.exports = { listNotes, exportNotes, createNote, updateNote, deleteNote, bulkDeleteNotes };

@@ -7,6 +7,7 @@ r.use(requireAuth);
 r.get('/stats', c.getStats);
 r.get('/contacts', c.listContacts);
 r.get('/contacts/export', c.exportContacts);
+r.post('/contacts/bulk-delete', c.bulkDeleteWhatsappContacts);
 r.post('/contacts', c.createContact);
 r.put('/contacts/:id', c.updateContact);
 r.delete('/contacts/:id', c.deleteContact);

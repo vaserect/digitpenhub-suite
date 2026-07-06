@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteReferrals = bulkDeleteHandler('referrals');
 
 async function getStats(req, res) {
   const [pgRes, refRes] = await Promise.all([
@@ -127,5 +129,5 @@ async function exportReferrals(req, res) {
 module.exports = {
   getStats,
   listPrograms, createProgram, updateProgram, deleteProgram,
-  listReferrals, exportReferrals, createReferral, updateReferral, deleteReferral,
+  listReferrals, exportReferrals, createReferral, updateReferral, deleteReferral, bulkDeleteReferrals,
 };

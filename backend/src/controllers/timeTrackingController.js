@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteTimeEntries = bulkDeleteHandler('time_entries');
 
 async function getStats(req, res) {
   const [projRes, todayRes, weekRes, runRes] = await Promise.all([
@@ -113,4 +115,4 @@ async function exportEntries(req, res) {
   sendCsv(res, 'time-entries.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listProjects, createProject, updateProject, deleteProject, listEntries, exportEntries, startTimer, stopTimer, createEntry, deleteEntry };
+module.exports = { getStats, listProjects, createProject, updateProject, deleteProject, listEntries, exportEntries, startTimer, stopTimer, createEntry, deleteEntry, bulkDeleteTimeEntries };

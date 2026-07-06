@@ -7,6 +7,7 @@ r.use(requireAuth);
 r.get('/stats',              c.getStats);
 r.get('/contacts',           c.listContacts);
 r.get('/contacts/export',    c.exportContacts);
+r.post('/contacts/bulk-delete', c.bulkDeleteSmsContacts);
 r.post('/contacts',          c.createContact);
 r.post('/contacts/bulk',     c.bulkCreateContacts);
 r.put('/contacts/:id',       c.updateContact);

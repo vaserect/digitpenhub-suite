@@ -6,6 +6,7 @@ r.use(requireAuth);
 r.get('/stats',            c.getStats);
 r.get('/',                 c.listTasks);
 r.get('/export',           c.exportTasks);
+r.post('/bulk-delete',     c.bulkDeleteTasks);
 r.post('/',                c.createTask);
 r.put('/:id',              c.updateTask);
 r.delete('/:id',           c.deleteTask);

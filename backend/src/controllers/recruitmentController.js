@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteApplicants = bulkDeleteHandler('applicants');
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
@@ -163,5 +165,5 @@ async function deleteApplicant(req, res) {
 module.exports = {
   getStats,
   listJobs, createJob, updateJob, deleteJob,
-  listApplicants, exportApplicants, createApplicant, updateApplicant, deleteApplicant,
+  listApplicants, exportApplicants, createApplicant, updateApplicant, deleteApplicant, bulkDeleteApplicants,
 };

@@ -1,6 +1,8 @@
 const db = require('../db');
 const { whatsappProviderConfigured } = require('../utils/messagingProviders');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteWhatsappContacts = bulkDeleteHandler('whatsapp_contacts');
 
 async function getStats(req, res) {
   const [cRes, tRes, bRes] = await Promise.all([
@@ -173,7 +175,7 @@ async function exportContacts(req, res) {
 
 module.exports = {
   getStats,
-  listContacts, exportContacts, createContact, updateContact, deleteContact,
+  listContacts, exportContacts, createContact, updateContact, deleteContact, bulkDeleteWhatsappContacts,
   listTemplates, createTemplate, updateTemplate, deleteTemplate,
   listBroadcasts, createBroadcast, updateBroadcast, deleteBroadcast, sendBroadcast,
 };

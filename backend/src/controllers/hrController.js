@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteEmployees = bulkDeleteHandler('employees');
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -349,7 +351,7 @@ async function getHrStats(req, res) {
 
 module.exports = {
   listDepartments, createDepartment, updateDepartment, deleteDepartment,
-  listEmployees, exportEmployees, createEmployee, updateEmployee, deleteEmployee,
+  listEmployees, exportEmployees, createEmployee, updateEmployee, deleteEmployee, bulkDeleteEmployees,
   listLeaveRequests, createLeaveRequest, reviewLeaveRequest, deleteLeaveRequest,
   listPayrollRuns, getPayrollRun, createPayrollRun, updatePayrollEntry, processPayrollRun, deletePayrollRun,
   getHrStats,

@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteCoupons = bulkDeleteHandler('coupons');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -75,4 +77,4 @@ async function validateCoupon(req, res) {
   res.json({ valid: true, coupon: c, discountAmount: discount });
 }
 
-module.exports = { getStats, listCoupons, exportCoupons, createCoupon, updateCoupon, deleteCoupon, validateCoupon };
+module.exports = { getStats, listCoupons, exportCoupons, createCoupon, updateCoupon, deleteCoupon, validateCoupon, bulkDeleteCoupons };

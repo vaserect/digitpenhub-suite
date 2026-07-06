@@ -1,5 +1,7 @@
 const db = require('../db');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteEvents = bulkDeleteHandler('calendar_events');
 
 async function listEvents(req, res) {
   const { start, end } = req.query;
@@ -51,4 +53,4 @@ async function exportEvents(req, res) {
   sendCsv(res, 'calendar-events.csv', rows, autoColumns(rows));
 }
 
-module.exports = { listEvents, exportEvents, createEvent, updateEvent, deleteEvent };
+module.exports = { listEvents, exportEvents, createEvent, updateEvent, deleteEvent, bulkDeleteEvents };

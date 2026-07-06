@@ -2,6 +2,8 @@ const db = require('../db');
 const { calculateStatutoryDeductions } = require('../utils/payrollCalculator');
 const { renderPayslipPdf } = require('../utils/payslipPdf');
 const { sendCsv, autoColumns } = require('../utils/csv');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const bulkDeleteRuns = bulkDeleteHandler('payroll_runs');
 
 async function getBranding(orgId) {
   const { rows } = await db.query(`SELECT display_name, primary_color FROM org_branding WHERE org_id=$1`, [orgId]);
@@ -136,4 +138,4 @@ async function getPayslipPdf(req, res) {
   res.send(pdf);
 }
 
-module.exports = { getStats, listRuns, exportRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem, getPayslipPdf };
+module.exports = { getStats, listRuns, exportRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem, getPayslipPdf, bulkDeleteRuns };

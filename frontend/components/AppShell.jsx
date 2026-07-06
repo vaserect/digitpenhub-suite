@@ -878,6 +878,8 @@ export default function AppShell() {
   const [kbSearch, setKbSearch]             = useState('');
   const [kbConfirmDelete, setKbConfirmDelete] = useState(null);
   const [kbDeleting, setKbDeleting]         = useState(false);
+  const [kbCatConfirmDelete, setKbCatConfirmDelete] = useState(null);
+  const [kbCatDeleting, setKbCatDeleting]   = useState(false);
   const [kbSelected, setKbSelected]         = useState([]);
   const [kbBulkDeleting, setKbBulkDeleting] = useState(false);
 
@@ -1340,6 +1342,8 @@ export default function AppShell() {
   const [rankKeywords, setRankKeywords] = useState([]);
   const [rankConfirmDelete, setRankConfirmDelete] = useState(null);
   const [rankDeleting, setRankDeleting] = useState(false);
+  const [rankUpdateModal, setRankUpdateModal] = useState(null); // { id, keyword, value }
+  const [rankUpdating, setRankUpdating] = useState(false);
   const [rankForm, setRankForm]         = useState(false);
   const [rankDraft, setRankDraft]       = useState({ keyword: '', targetUrl: '' });
   const [rankSaving, setRankSaving]     = useState(false);
@@ -1543,6 +1547,8 @@ export default function AppShell() {
   const [asgList, setAsgList]           = useState([]);
   const [asgConfirmDelete, setAsgConfirmDelete] = useState(null);
   const [asgDeleting, setAsgDeleting] = useState(false);
+  const [asgGradeModal, setAsgGradeModal] = useState(null); // { submissionId, studentName, score, feedback }
+  const [asgGrading, setAsgGrading] = useState(false);
   const [asgTab, setAsgTab]             = useState('list');
   const [asgDraft, setAsgDraft]         = useState({ title:'', instructions:'', dueDate:'', classId:'', subjectId:'', maxScore:100 });
   const [asgEditing, setAsgEditing]     = useState(null);
@@ -3825,6 +3831,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/kb/stats'); setKbStats(s);
       showToast('Article deleted.');
     } finally { setKbDeleting(false); setKbConfirmDelete(null); }
+  }
+
+  async function confirmKbCatDelete() {
+    if (!kbCatConfirmDelete) return;
+    setKbCatDeleting(true);
+    try {
+      await apiFetch(`/api/v1/kb/categories/${kbCatConfirmDelete.id}`, { method: 'DELETE' });
+      const res = await apiFetch('/api/v1/kb/categories');
+      setKbCategories(res.categories || []);
+      showToast('Category deleted.');
+    } finally { setKbCatDeleting(false); setKbCatConfirmDelete(null); }
   }
 
   async function confirmKbBulkDelete() {
@@ -7105,6 +7122,17 @@ export default function AppShell() {
       setAsgList((l) => l.filter((x) => x.id !== asgConfirmDelete.id));
     } finally { setAsgDeleting(false); setAsgConfirmDelete(null); }
   }
+  async function confirmAsgGrade() {
+    if (!asgGradeModal) return;
+    const score = Number(asgGradeModal.score);
+    if (asgGradeModal.score === '' || isNaN(score)) { showToast('Enter a valid score.'); return; }
+    setAsgGrading(true);
+    try {
+      const d = await apiFetch(`/api/v1/school-assignments/submissions/${asgGradeModal.submissionId}/grade`, { method: 'PATCH', body: JSON.stringify({ score, feedback: asgGradeModal.feedback || '' }) });
+      if (d.submission) setAsgSubmissions((l) => l.map((x) => (x.id === asgGradeModal.submissionId ? d.submission : x)));
+      setAsgGradeModal(null);
+    } finally { setAsgGrading(false); }
+  }
   async function loadCbt() {
     const data = await apiFetch('/api/v1/cbt/quizzes');
     setCbtQuizzes(data.quizzes || []); setCbtLoaded(true);
@@ -7208,6 +7236,17 @@ export default function AppShell() {
       setRankKeywords((k) => k.filter((x) => x.id !== rankConfirmDelete.id));
       showToast(`Stopped tracking "${rankConfirmDelete.keyword}".`);
     } finally { setRankDeleting(false); setRankConfirmDelete(null); }
+  }
+  async function confirmRankUpdate() {
+    if (!rankUpdateModal) return;
+    const rank = parseInt(rankUpdateModal.value, 10);
+    if (isNaN(rank) || rank < 1) { showToast('Enter a valid rank (1 or higher).'); return; }
+    setRankUpdating(true);
+    try {
+      const data = await apiFetch(`/api/v1/seo/keywords/${rankUpdateModal.id}`, { method: 'PUT', body: JSON.stringify({ rank }) });
+      if (data.keyword) setRankKeywords((k) => k.map((x) => (x.id === rankUpdateModal.id ? data.keyword : x)));
+      setRankUpdateModal(null);
+    } finally { setRankUpdating(false); }
   }
   async function loadAudits() {
     const data = await apiFetch('/api/v1/seo/audits');
@@ -14716,7 +14755,7 @@ export default function AppShell() {
                               <td style={{ fontSize:'1.2rem' }}>{c.icon}</td>
                               <td style={{ fontWeight:600 }}>{c.name}</td>
                               <td style={{ color:'var(--muted)' }}>{c.article_count}</td>
-                              <td><button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={async () => { await apiFetch(`/api/v1/kb/categories/${c.id}`, { method:'DELETE' }); const res = await apiFetch('/api/v1/kb/categories'); setKbCategories(res.categories||[]); }}>Delete</button></td>
+                              <td><button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => setKbCatConfirmDelete({ id: c.id, name: c.name })}>Delete</button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -14747,6 +14786,16 @@ export default function AppShell() {
             confirmLabel="Delete"
             danger
             loading={kbDeleting}
+          />
+          <ConfirmDialog
+            isOpen={!!kbCatConfirmDelete}
+            onClose={() => setKbCatConfirmDelete(null)}
+            onConfirm={confirmKbCatDelete}
+            title={kbCatConfirmDelete ? `Delete "${kbCatConfirmDelete.name}"?` : 'Delete this category?'}
+            description="Articles in this category won't be deleted, but they'll lose their category assignment."
+            confirmLabel="Delete"
+            danger
+            loading={kbCatDeleting}
           />
         </div>
       )}
@@ -18696,12 +18745,7 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                         <td style={{ fontSize:'0.78rem', color:'var(--muted)' }}>{kw.last_checked ? new Date(kw.last_checked).toLocaleDateString() : 'Never'}</td>
                         <td>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
-                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} title="Update rank" onClick={async () => {
-                              const rank = parseInt(prompt(`New rank for "${kw.keyword}":`), 10);
-                              if (isNaN(rank) || rank < 1) return;
-                              const data = await apiFetch(`/api/v1/seo/keywords/${kw.id}`, { method:'PUT', body: JSON.stringify({ rank }) });
-                              if (data.keyword) setRankKeywords(k => k.map(x => x.id===kw.id ? data.keyword : x));
-                            }}>Update</button>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} title="Update rank" onClick={() => setRankUpdateModal({ id: kw.id, keyword: kw.keyword, value: String(kw.current_rank ?? '') })}>Update</button>
                             <button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => setRankConfirmDelete({ id: kw.id, keyword: kw.keyword })}>Remove</button>
                           </div>
                         </td>
@@ -18722,6 +18766,18 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
             danger
             loading={rankDeleting}
           />
+          <Modal isOpen={!!rankUpdateModal} title="Update rank" description={rankUpdateModal ? `New rank for "${rankUpdateModal.keyword}"` : ''} onClose={() => setRankUpdateModal(null)}>
+            <input
+              type="number" min={1} autoFocus className="form-input" style={{ marginBottom: '0.75rem' }}
+              value={rankUpdateModal?.value ?? ''}
+              onChange={(e) => setRankUpdateModal((m) => ({ ...m, value: e.target.value }))}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmRankUpdate(); }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="secondary" onClick={() => setRankUpdateModal(null)}>Cancel</Button>
+              <Button disabled={rankUpdating} loading={rankUpdating} onClick={confirmRankUpdate}>Save</Button>
+            </div>
+          </Modal>
         </div>
       )}
 
@@ -20987,13 +21043,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                           <td style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{sub.feedback||'—'}</td>
                           <td><span className="ctag" style={{ background:sub.status==='graded'?'rgba(34,197,94,0.12)':'rgba(234,179,8,0.12)', color:sub.status==='graded'?'var(--success)':'var(--warning)' }}>{sub.status}</span></td>
                           <td>{sub.status !== 'graded' && (
-                            <button className="btn-ghost" style={{ fontSize:'0.72rem' }} onClick={async () => {
-                              const score = prompt(`Score for ${sub.student_name} (max ${asgViewing.max_score}):`);
-                              if (score === null) return;
-                              const feedback = prompt('Feedback (optional):') || '';
-                              const d = await apiFetch(`/api/v1/school-assignments/submissions/${sub.id}/grade`, { method:'PATCH', body: JSON.stringify({ score:Number(score), feedback }) });
-                              if (d.submission) setAsgSubmissions(l=>l.map(x=>x.id===sub.id?d.submission:x));
-                            }}>Grade</button>
+                            <button className="btn-ghost" style={{ fontSize:'0.72rem' }} onClick={() => setAsgGradeModal({ submissionId: sub.id, studentName: sub.student_name, score: '', feedback: '' })}>Grade</button>
                           )}</td>
                         </tr>
                       ))}
@@ -21013,6 +21063,20 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             danger
             loading={asgDeleting}
           />
+          <Modal isOpen={!!asgGradeModal} title="Grade submission" description={asgGradeModal ? `${asgGradeModal.studentName} — max ${asgViewing?.max_score} pts` : ''} onClose={() => setAsgGradeModal(null)}>
+            <div className="field" style={{ marginBottom: '0.6rem' }}>
+              <label className="field-label">Score</label>
+              <input type="number" min={0} max={asgViewing?.max_score} autoFocus className="field-input" value={asgGradeModal?.score ?? ''} onChange={(e) => setAsgGradeModal((m) => ({ ...m, score: e.target.value }))} />
+            </div>
+            <div className="field" style={{ marginBottom: '0.75rem' }}>
+              <label className="field-label">Feedback (optional)</label>
+              <textarea className="field-input" rows={3} value={asgGradeModal?.feedback ?? ''} onChange={(e) => setAsgGradeModal((m) => ({ ...m, feedback: e.target.value }))} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="secondary" onClick={() => setAsgGradeModal(null)}>Cancel</Button>
+              <Button disabled={asgGrading} loading={asgGrading} onClick={confirmAsgGrade}>Save grade</Button>
+            </div>
+          </Modal>
         </div>
       )}
 

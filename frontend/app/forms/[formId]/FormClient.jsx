@@ -23,6 +23,7 @@ export default function FormClient() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [pageIndex, setPageIndex] = useState(0);
 
   useEffect(() => {
     fetch(`/api/v1/forms/${formId}/public`)
@@ -42,7 +43,33 @@ export default function FormClient() {
   }, [formId]);
 
   const fields = form?.fields || [];
-  const visibleFields = useMemo(() => fields.filter((f) => isFieldVisible(f, values)), [fields, values]);
+  // A 'pagebreak' pseudo-field (added in the builder) splits the flat fields
+  // array into steps — no separate multi-page data model, just a marker.
+  const pages = useMemo(() => {
+    const result = [[]];
+    fields.forEach((f) => {
+      if (f.type === 'pagebreak') result.push([]);
+      else result[result.length - 1].push(f);
+    });
+    return result;
+  }, [fields]);
+  const isMultiPage = pages.length > 1;
+  const currentPageFields = pages[Math.min(pageIndex, pages.length - 1)] || [];
+  const visiblePageFields = useMemo(() => currentPageFields.filter((f) => isFieldVisible(f, values)), [currentPageFields, values]);
+  const visibleFields = useMemo(() => fields.filter((f) => f.type !== 'pagebreak' && isFieldVisible(f, values)), [fields, values]);
+  const isLastPage = pageIndex >= pages.length - 1;
+
+  function goNextPage(e) {
+    e.preventDefault();
+    setError('');
+    for (const f of visiblePageFields) {
+      if (f.required && (values[f.id] === undefined || values[f.id] === '' || values[f.id] === false)) {
+        setError(`"${f.label}" is required.`);
+        return;
+      }
+    }
+    setPageIndex((p) => p + 1);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -110,8 +137,16 @@ export default function FormClient() {
 
         {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 14 }}>{error}</p>}
 
-        <form onSubmit={handleSubmit}>
-          {visibleFields.map((field) => (
+        {isMultiPage && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+            {pages.map((_, i) => (
+              <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= pageIndex ? '#2563eb' : '#e2e8f0' }} />
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={isLastPage ? handleSubmit : goNextPage}>
+          {visiblePageFields.map((field) => (
             <div key={field.id} style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
                 {field.label}{field.required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
@@ -172,13 +207,24 @@ export default function FormClient() {
             <p style={{ color: '#64748b', fontSize: 13 }}>This form has no fields configured yet.</p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{ marginTop: 8, width: '100%', background: 'linear-gradient(135deg, #2563eb, #38bdf8)', color: 'white', border: 'none', borderRadius: 10, padding: '13px 20px', fontSize: '0.95rem', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}
-          >
-            {submitting ? 'Submitting…' : 'Submit'}
-          </button>
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            {isMultiPage && pageIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => { setError(''); setPageIndex((p) => Math.max(0, p - 1)); }}
+                style={{ flex: 1, background: '#fff', color: '#0f172a', border: '1px solid #dfe7f1', borderRadius: 10, padding: '13px 20px', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Back
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{ flex: 2, background: 'linear-gradient(135deg, #2563eb, #38bdf8)', color: 'white', border: 'none', borderRadius: 10, padding: '13px 20px', fontSize: '0.95rem', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}
+            >
+              {submitting ? 'Submitting…' : isLastPage ? 'Submit' : 'Next'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

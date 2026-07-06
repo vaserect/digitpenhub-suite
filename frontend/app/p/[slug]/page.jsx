@@ -209,6 +209,27 @@ function DividerBlock() {
   );
 }
 
+function ColumnsBlock({ block }) {
+  const items = Array.isArray(block.items) ? block.items : [];
+  const count = block.columns === 3 ? 3 : 2;
+  return (
+    <section style={{ padding: '56px 24px', background: '#fff' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))`, gap: 32 }}>
+        {Array.from({ length: count }).map((_, i) => {
+          const col = items[i] || {};
+          return (
+            <div key={i}>
+              {col.imageUrl && <img src={col.imageUrl} alt={col.heading || ''} style={{ width: '100%', borderRadius: 12, marginBottom: 16, objectFit: 'cover', maxHeight: 200 }} />}
+              {col.heading && <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px', fontFamily: "'Sora', sans-serif", color: '#0f172a' }}>{col.heading}</h3>}
+              {col.body && <p style={{ fontSize: '0.95rem', lineHeight: 1.65, color: '#334155', whiteSpace: 'pre-wrap', margin: 0 }}>{col.body}</p>}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function Block({ block }) {
   switch (block.type) {
     case 'hero':         return <HeroBlock block={block} />;
@@ -218,6 +239,7 @@ function Block({ block }) {
     case 'testimonials': return <TestimonialsBlock block={block} />;
     case 'image':        return <ImageBlock block={block} />;
     case 'video':        return <VideoBlock block={block} />;
+    case 'columns':      return <ColumnsBlock block={block} />;
     case 'spacer':       return <SpacerBlock block={block} />;
     case 'divider':      return <DividerBlock />;
     case 'nav':          return <NavBlock block={block} />;

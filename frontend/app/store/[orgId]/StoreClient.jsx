@@ -31,6 +31,23 @@ export default function StoreClient() {
 
   const cartTotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.qty, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((s, c) => s + c.qty, 0), [cart]);
+  const freeThreshold = settings?.free_shipping_threshold != null ? Number(settings.free_shipping_threshold) : null;
+  const shippingEstimate = (freeThreshold != null && cartTotal >= freeThreshold) ? 0 : Number(settings?.shipping_flat_rate || 0);
+  const orderEstimate = cartTotal + shippingEstimate;
+
+  function captureAbandonedCart() {
+    if (!form.customerEmail.trim() || cart.length === 0) return;
+    fetch(`/api/v1/store-builder/public/${orgId}/cart-abandon`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerEmail: form.customerEmail,
+        customerName: form.customerName,
+        items: cart.map((c) => ({ name: c.name, qty: c.qty })),
+        subtotal: cartTotal,
+      }),
+    }).catch(() => {});
+  }
 
   function addToCart(product, variant) {
     const price = Number(product.price) + (variant ? Number(variant.price_delta || 0) : 0);
@@ -214,15 +231,23 @@ export default function StoreClient() {
             <div style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: 20 }}>Checkout</div>
             <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
               <input required placeholder="Full name *" value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))} style={inputStyle} />
-              <input type="email" placeholder="Email" value={form.customerEmail} onChange={(e) => setForm((f) => ({ ...f, customerEmail: e.target.value }))} style={inputStyle} />
+              <input type="email" placeholder="Email" value={form.customerEmail} onChange={(e) => setForm((f) => ({ ...f, customerEmail: e.target.value }))} onBlur={captureAbandonedCart} style={inputStyle} />
               <input placeholder="Phone" value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} style={inputStyle} />
               <textarea placeholder="Delivery address" rows={2} value={form.customerAddress} onChange={(e) => setForm((f) => ({ ...f, customerAddress: e.target.value }))} style={{ ...inputStyle, resize: 'vertical' }} />
               <input placeholder="Coupon code (optional)" value={form.couponCode} onChange={(e) => setForm((f) => ({ ...f, couponCode: e.target.value.toUpperCase() }))} style={inputStyle} />
             </div>
             {checkoutError && <div style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: 12 }}>{checkoutError}</div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>
+              <span>Subtotal</span>
+              <span>{currency} {cartTotal.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b', marginBottom: 8 }}>
+              <span>Shipping</span>
+              <span>{shippingEstimate === 0 ? 'Free' : `${currency} ${shippingEstimate.toLocaleString()}`}</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: 16 }}>
               <span>Total</span>
-              <span>{currency} {cartTotal.toLocaleString()}</span>
+              <span>{currency} {orderEstimate.toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" onClick={() => setCheckoutOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>

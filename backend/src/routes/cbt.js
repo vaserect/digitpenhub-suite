@@ -77,8 +77,13 @@ r.get('/quizzes/:id/attempts', async (req, res) => {
   res.json({ attempts: rows });
 });
 
+// Proctoring threshold: an exam-taker who left the tab/window this many times
+// or more gets flagged for the teacher to review — not auto-failed, since
+// blur events can also be innocuous (notification popups, alt-tab by mistake).
+const TAB_SWITCH_FLAG_THRESHOLD = 3;
+
 r.post('/quizzes/:id/submit', async (req, res) => {
-  const { studentName, studentId, answers } = req.body || {};
+  const { studentName, studentId, answers, tabSwitchCount } = req.body || {};
   if (!studentName) return res.status(400).json({ error: 'studentName required.' });
   const { rows: quiz } = await db.query(`SELECT * FROM cbt_quizzes WHERE id=$1`, [req.params.id]);
   if (!quiz.length) return res.status(404).json({ error: 'Quiz not found.' });
@@ -90,10 +95,12 @@ r.post('/quizzes/:id/submit', async (req, res) => {
   });
   const pct = totalMarks > 0 ? Math.round((score/totalMarks)*100) : 0;
   const passed = pct >= (quiz[0].pass_score || 50);
+  const switches = Math.max(0, Number(tabSwitchCount) || 0);
+  const flagged = switches >= TAB_SWITCH_FLAG_THRESHOLD;
   const { rows } = await db.query(
-    `INSERT INTO cbt_attempts (quiz_id,student_name,student_id,score,total_marks,passed,answers,finished_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,NOW()) RETURNING *`,
-    [req.params.id, studentName, studentId||null, score, totalMarks, passed, JSON.stringify(answers||{})]);
+    `INSERT INTO cbt_attempts (quiz_id,student_name,student_id,score,total_marks,passed,answers,tab_switch_count,flagged,finished_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`,
+    [req.params.id, studentName, studentId||null, score, totalMarks, passed, JSON.stringify(answers||{}), switches, flagged]);
   res.status(201).json({ attempt: rows[0], score, totalMarks, pct, passed });
 });
 

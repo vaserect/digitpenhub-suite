@@ -1545,6 +1545,7 @@ export default function AppShell() {
   const [cbtConfirming, setCbtConfirming] = useState(false);
   const [cbtTimeLeft, setCbtTimeLeft]   = useState(0);
   const [cbtOrder, setCbtOrder]         = useState(null); // { questionIds: [...], optionOrders: { [questionId]: ['B','A','D','C'] } }
+  const [cbtTabSwitchCount, setCbtTabSwitchCount] = useState(0);
   // Student Portal
   const [spTab, setSpTab]               = useState('courses');
   // Teacher Portal
@@ -1557,8 +1558,10 @@ export default function AppShell() {
   const [storeSettings, setStoreSettings] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [storeTab, setStoreTab]         = useState('settings');
-  const [storeDraft, setStoreDraft]     = useState({ storeName:'', tagline:'', logoUrl:'', bannerUrl:'', theme:'modern', primaryColor:'#2563eb', currency:'NGN', contactEmail:'', contactPhone:'', address:'', social:{}, gaMeasurementId:'', metaPixelId:'', googleAdsConversionId:'' });
+  const [storeDraft, setStoreDraft]     = useState({ storeName:'', tagline:'', logoUrl:'', bannerUrl:'', theme:'modern', primaryColor:'#2563eb', currency:'NGN', contactEmail:'', contactPhone:'', address:'', social:{}, gaMeasurementId:'', metaPixelId:'', googleAdsConversionId:'', shippingFlatRate:0, freeShippingThreshold:'' });
   const [storeSaving, setStoreSaving]   = useState(false);
+  const [storeCarts, setStoreCarts]     = useState(null);
+  const [storeCartsSendingId, setStoreCartsSendingId] = useState(null);
 
   // Milestone 14: Appointment Booking
   const [apptTab, setApptTab] = useState('appointments');
@@ -1688,6 +1691,7 @@ export default function AppShell() {
           setCbtStudentName(parsed.studentName || '');
           setCbtAnswers(parsed.answers || {});
           setCbtTimeLeft(parsed.timeLeft);
+          setCbtTabSwitchCount(parsed.tabSwitchCount || 0);
         }
       }
     } catch { /* ignore corrupt localStorage */ }
@@ -1701,14 +1705,25 @@ export default function AppShell() {
     window.localStorage.setItem('dph-cbt-attempt', JSON.stringify({
       quiz: cbtTaking, questions: cbtQuestions, order: cbtOrder,
       studentName: cbtStudentName, answers: cbtAnswers, timeLeft: cbtTimeLeft,
+      tabSwitchCount: cbtTabSwitchCount,
     }));
-  }, [cbtTaking, cbtQuestions, cbtOrder, cbtStudentName, cbtAnswers, cbtTimeLeft]);
+  }, [cbtTaking, cbtQuestions, cbtOrder, cbtStudentName, cbtAnswers, cbtTimeLeft, cbtTabSwitchCount]);
 
   // Countdown runs off cbtTaking so it also resumes correctly after a restored attempt.
   useEffect(() => {
     if (!cbtTaking) return;
     const timer = setInterval(() => setCbtTimeLeft((t) => (t <= 1 ? 0 : t - 1)), 1000);
     return () => clearInterval(timer);
+  }, [cbtTaking]);
+
+  // Lightweight proctoring signal: count how many times the student left this
+  // tab/window mid-quiz (alt-tab, switched app, minimized). Not an auto-fail —
+  // just a count surfaced to the teacher on the attempts list to flag for review.
+  useEffect(() => {
+    if (!cbtTaking || typeof document === 'undefined') return;
+    const onLeave = () => { if (document.hidden) setCbtTabSwitchCount((n) => n + 1); };
+    document.addEventListener('visibilitychange', onLeave);
+    return () => document.removeEventListener('visibilitychange', onLeave);
   }, [cbtTaking]);
 
   useEffect(() => {
@@ -3361,6 +3376,13 @@ export default function AppShell() {
   }
 
   function fbRemoveField(id) { setFbDraft((d) => ({ ...d, fields: d.fields.filter((f) => f.id !== id) })); }
+
+  // A 'pagebreak' is a pseudo-field with no label/answer — it just splits the
+  // fields array into steps when the public form renders, reusing the same
+  // drag-reorder machinery as real fields instead of a separate paging model.
+  function fbAddPageBreak() {
+    setFbDraft((d) => ({ ...d, fields: [...d.fields, { id: `field_${Date.now()}`, type: 'pagebreak' }] }));
+  }
 
   function fbUpdateFieldShowIf(id, showIf) {
     setFbDraft((d) => ({ ...d, fields: d.fields.map((f) => (f.id === id ? { ...f, showIf } : f)) }));
@@ -5362,6 +5384,7 @@ export default function AppShell() {
     cta:          { type: 'cta',          heading: 'Ready to get started?', body: '', buttonText: 'Get started', buttonUrl: '', bgColor: '#f8fafc' },
     testimonials: { type: 'testimonials', heading: 'What our clients say', items: [{ quote: '', author: '', role: '' }] },
     image:        { type: 'image',        url: '',    alt: '',   caption: '' },
+    columns:      { type: 'columns',      columns: 2, items: [{ heading: '', body: '', imageUrl: '' }, { heading: '', body: '', imageUrl: '' }] },
     video:        { type: 'video',        url: '',    heading: '' },
     spacer:       { type: 'spacer',       height: 40 },
     divider:      { type: 'divider' },
@@ -7007,7 +7030,7 @@ export default function AppShell() {
   }
   async function loadStoreBuilder() {
     const [s, p] = await Promise.all([apiFetch('/api/v1/store-builder/settings'), apiFetch('/api/v1/store-builder/products')]);
-    setStoreSettings(s.settings); setStoreDraft({ storeName:s.settings?.store_name||'', tagline:s.settings?.tagline||'', logoUrl:s.settings?.logo_url||'', bannerUrl:s.settings?.banner_url||'', theme:s.settings?.theme||'modern', primaryColor:s.settings?.primary_color||'#2563eb', currency:s.settings?.currency||'NGN', contactEmail:s.settings?.contact_email||'', contactPhone:s.settings?.contact_phone||'', address:s.settings?.address||'', social:s.settings?.social||{}, gaMeasurementId:s.settings?.ga_measurement_id||'', metaPixelId:s.settings?.meta_pixel_id||'', googleAdsConversionId:s.settings?.google_ads_conversion_id||'' }); setStoreProducts(p.products||[]); setStoreLoaded(true);
+    setStoreSettings(s.settings); setStoreDraft({ storeName:s.settings?.store_name||'', tagline:s.settings?.tagline||'', logoUrl:s.settings?.logo_url||'', bannerUrl:s.settings?.banner_url||'', theme:s.settings?.theme||'modern', primaryColor:s.settings?.primary_color||'#2563eb', currency:s.settings?.currency||'NGN', contactEmail:s.settings?.contact_email||'', contactPhone:s.settings?.contact_phone||'', address:s.settings?.address||'', social:s.settings?.social||{}, gaMeasurementId:s.settings?.ga_measurement_id||'', metaPixelId:s.settings?.meta_pixel_id||'', googleAdsConversionId:s.settings?.google_ads_conversion_id||'', shippingFlatRate:s.settings?.shipping_flat_rate??0, freeShippingThreshold:s.settings?.free_shipping_threshold??'' }); setStoreProducts(p.products||[]); setStoreLoaded(true);
   }
 
   async function loadStorage(mode) {
@@ -9707,6 +9730,32 @@ export default function AppShell() {
                           <div className="field"><label className="field-label">Caption (optional)</label><input className="field-input" value={blockDraft.caption || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, caption: e.target.value }))} /></div>
                         </>)}
 
+                        {/* Columns */}
+                        {blockDraft.type === 'columns' && (<>
+                          <div className="field">
+                            <label className="field-label">Number of columns</label>
+                            <select className="field-input" value={blockDraft.columns || 2} onChange={(e) => {
+                              const n = Number(e.target.value);
+                              setBlockDraft((d) => {
+                                const items = [...(d.items || [])];
+                                while (items.length < n) items.push({ heading: '', body: '', imageUrl: '' });
+                                return { ...d, columns: n, items: items.slice(0, n) };
+                              });
+                            }}>
+                              <option value={2}>2 columns</option>
+                              <option value={3}>3 columns</option>
+                            </select>
+                          </div>
+                          {Array.from({ length: blockDraft.columns || 2 }).map((_, i) => (
+                            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                              <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--text-muted)' }}>Column {i + 1}</div>
+                              <div className="field"><label className="field-label">Heading</label><input className="field-input" value={blockDraft.items?.[i]?.heading || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], heading: e.target.value }; return { ...d, items }; })} /></div>
+                              <div className="field"><label className="field-label">Body</label><textarea className="field-input" rows={3} value={blockDraft.items?.[i]?.body || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], body: e.target.value }; return { ...d, items }; })} /></div>
+                              <div className="field"><label className="field-label">Image URL (optional)</label><input className="field-input" value={blockDraft.items?.[i]?.imageUrl || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], imageUrl: e.target.value }; return { ...d, items }; })} placeholder="https://…" /></div>
+                            </div>
+                          ))}
+                        </>)}
+
                         {/* Video */}
                         {blockDraft.type === 'video' && (<>
                           <div className="field"><label className="field-label">YouTube or Vimeo URL</label><input className="field-input" value={blockDraft.url || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://youtube.com/watch?v=…" /></div>
@@ -11951,6 +12000,30 @@ export default function AppShell() {
                       <div className="field"><label className="field-label">Alt text</label><input className="field-input" value={blockDraft.alt || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, alt: e.target.value }))} /></div>
                       <div className="field"><label className="field-label">Caption (optional)</label><input className="field-input" value={blockDraft.caption || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, caption: e.target.value }))} /></div>
                     </>)}
+                    {blockDraft.type === 'columns' && (<>
+                      <div className="field">
+                        <label className="field-label">Number of columns</label>
+                        <select className="field-input" value={blockDraft.columns || 2} onChange={(e) => {
+                          const n = Number(e.target.value);
+                          setBlockDraft((d) => {
+                            const items = [...(d.items || [])];
+                            while (items.length < n) items.push({ heading: '', body: '', imageUrl: '' });
+                            return { ...d, columns: n, items: items.slice(0, n) };
+                          });
+                        }}>
+                          <option value={2}>2 columns</option>
+                          <option value={3}>3 columns</option>
+                        </select>
+                      </div>
+                      {Array.from({ length: blockDraft.columns || 2 }).map((_, i) => (
+                        <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 6, color: 'var(--text-muted)' }}>Column {i + 1}</div>
+                          <div className="field"><label className="field-label">Heading</label><input className="field-input" value={blockDraft.items?.[i]?.heading || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], heading: e.target.value }; return { ...d, items }; })} /></div>
+                          <div className="field"><label className="field-label">Body</label><textarea className="field-input" rows={3} value={blockDraft.items?.[i]?.body || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], body: e.target.value }; return { ...d, items }; })} /></div>
+                          <div className="field"><label className="field-label">Image URL (optional)</label><input className="field-input" value={blockDraft.items?.[i]?.imageUrl || ''} onChange={(e) => setBlockDraft((d) => { const items = [...(d.items || [])]; items[i] = { ...items[i], imageUrl: e.target.value }; return { ...d, items }; })} placeholder="https://…" /></div>
+                        </div>
+                      ))}
+                    </>)}
                     {blockDraft.type === 'video' && (<>
                       <div className="field"><label className="field-label">YouTube or Vimeo URL</label><input className="field-input" value={blockDraft.url || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://youtube.com/watch?v=…" /></div>
                       <div className="field"><label className="field-label">Heading (optional)</label><input className="field-input" value={blockDraft.heading || ''} onChange={(e) => setBlockDraft((d) => ({ ...d, heading: e.target.value }))} /></div>
@@ -13505,8 +13578,26 @@ export default function AppShell() {
                 </div>
                 <div style={{ marginBottom:'0.75rem' }}>
                   <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.5rem' }}>Fields ({fbDraft.fields.length})</div>
-                  {fbDraft.fields.map((f) => {
+                  {(() => { let pageNum = 1; return fbDraft.fields.map((f) => {
                     const gateField = f.showIf ? fbDraft.fields.find((x) => String(x.id) === String(f.showIf.fieldId)) : null;
+                    if (f.type === 'pagebreak') {
+                      const thisPage = pageNum++;
+                      return (
+                        <div
+                          key={f.id}
+                          draggable
+                          onDragStart={(e) => { setFbDragFieldId(f.id); e.dataTransfer.effectAllowed = 'move'; }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => { e.preventDefault(); fbReorderField(fbDragFieldId, f.id); setFbDragFieldId(null); }}
+                          onDragEnd={() => setFbDragFieldId(null)}
+                          style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 0.5rem', margin:'0.4rem 0', borderTop:'2px dashed var(--primary)', opacity: fbDragFieldId === f.id ? 0.5 : 1, cursor:'grab' }}
+                        >
+                          <span title="Drag to reorder" style={{ cursor:'grab', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}>⠿</span>
+                          <span style={{ flex:1, fontSize:'0.78rem', color:'var(--primary)', fontWeight:600 }}>— Page {thisPage + 1} starts here —</span>
+                          <button type="button" className="btn-ghost" style={{ color:'var(--danger)', padding:'1px 5px', fontSize:'0.75rem' }} onClick={() => fbRemoveField(f.id)}>×</button>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={f.id}>
                         <div
@@ -13530,7 +13621,7 @@ export default function AppShell() {
                             <span>Only show this field if</span>
                             <select className="form-input" value={fbEditShowIfDraft.showIfFieldId} onChange={(e) => setFbEditShowIfDraft((d) => ({ ...d, showIfFieldId: e.target.value }))} style={{ maxWidth:180 }}>
                               <option value="">(always show)</option>
-                              {fbDraft.fields.filter((x) => x.id !== f.id).map((x) => <option key={x.id} value={String(x.id)}>{x.label}</option>)}
+                              {fbDraft.fields.filter((x) => x.id !== f.id && x.type !== 'pagebreak').map((x) => <option key={x.id} value={String(x.id)}>{x.label}</option>)}
                             </select>
                             {fbEditShowIfDraft.showIfFieldId && (
                               <>
@@ -13543,8 +13634,9 @@ export default function AppShell() {
                         )}
                       </div>
                     );
-                  })}
+                  }); })()}
                   <div style={{ display:'flex', gap:'0.5rem', marginTop:'0.5rem', flexWrap:'wrap', alignItems: 'center' }}>
+                    <button type="button" className="btn-ghost" onClick={fbAddPageBreak} title="Split the form into multiple steps at this point">+ Add Page Break</button>
                     <input className="form-input" placeholder="Field label *" value={fbNewField.label} onChange={(e) => setFbNewField((d)=>({...d,label:e.target.value}))} style={{ flex:2, minWidth:120 }} />
                     <select className="form-input" value={fbNewField.type} onChange={(e) => setFbNewField((d)=>({...d,type:e.target.value}))} style={{ flex:1 }}>
                       <option value="text">Text</option><option value="email">Email</option><option value="phone">Phone</option><option value="number">Number</option>
@@ -13563,7 +13655,7 @@ export default function AppShell() {
                       <span>Conditional logic — only show this new field if</span>
                       <select className="form-input" value={fbNewField.showIfFieldId} onChange={(e) => setFbNewField((d)=>({...d,showIfFieldId:e.target.value}))} style={{ maxWidth:180 }}>
                         <option value="">(always show)</option>
-                        {fbDraft.fields.map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
+                        {fbDraft.fields.filter((f) => f.type !== 'pagebreak').map((f) => <option key={f.id} value={String(f.id)}>{f.label}</option>)}
                       </select>
                       {fbNewField.showIfFieldId && (
                         <>
@@ -20793,7 +20885,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <div style={{ fontSize:'2rem', fontWeight:700, color:cbtResult.passed?'var(--success)':'var(--danger)', marginBottom:'0.25rem' }}>{cbtResult.pct}%</div>
               <div style={{ color:'var(--muted)', marginBottom:'1rem' }}>{cbtResult.score}/{cbtResult.totalMarks} marks · Pass mark: {cbtViewingQuiz?.pass_score}%</div>
               <div style={{ display:'flex', gap:'0.75rem', justifyContent:'center' }}>
-                <button className="btn-primary" onClick={() => { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); }}>Close</button>
+                <button className="btn-primary" onClick={() => { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); setCbtTabSwitchCount(0); }}>Close</button>
               </div>
             </div>
           )}
@@ -20806,6 +20898,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 <div style={{ display:'flex', gap:'1rem', alignItems:'center' }}>
                   <span style={{ fontFamily:'monospace', fontSize:'1rem', color:cbtTimeLeft<60?'var(--danger)':'inherit', fontWeight:700 }}>{String(Math.floor(cbtTimeLeft/60)).padStart(2,'0')}:{String(cbtTimeLeft%60).padStart(2,'0')}</span>
                   <span style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{Object.keys(cbtAnswers).length}/{cbtQuestions.length} answered</span>
+                  {cbtTabSwitchCount > 0 && <span style={{ fontSize:'0.75rem', color:'var(--danger)' }} title="Leaving this tab is logged and shown to your teacher">⚠ Left tab {cbtTabSwitchCount}×</span>}
                 </div>
               </div>
               {(cbtOrder ? cbtOrder.questionIds.map((id) => cbtQuestions.find((q) => q.id === id)).filter(Boolean) : cbtQuestions).map((q, i) => (
@@ -20824,7 +20917,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <div style={{ display:'flex', justifyContent:'flex-end', paddingBottom:'1rem' }}>
                 <button className="btn-primary" onClick={async () => {
                   if (Object.keys(cbtAnswers).length < cbtQuestions.length && !confirm(`You have unanswered questions. Submit anyway?`)) return;
-                  const d = await apiFetch(`/api/v1/cbt/quizzes/${cbtTaking.id}/submit`, { method:'POST', body: JSON.stringify({ studentName:cbtStudentName||'Student', answers:cbtAnswers }) });
+                  const d = await apiFetch(`/api/v1/cbt/quizzes/${cbtTaking.id}/submit`, { method:'POST', body: JSON.stringify({ studentName:cbtStudentName||'Student', answers:cbtAnswers, tabSwitchCount:cbtTabSwitchCount }) });
                   if (d.pct !== undefined) { setCbtResult(d); setCbtAttempts(l=>[d.attempt,...l]); }
                 }}>Submit Quiz</button>
               </div>
@@ -20851,6 +20944,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     setCbtOrder(order);
                     setCbtTaking(cbtViewingQuiz); setCbtAnswers({});
                     setCbtTimeLeft(cbtViewingQuiz.duration_minutes * 60);
+                    setCbtTabSwitchCount(0);
                   }}>Start Quiz →</button>
                   {cbtQuestions.length===0 && <div style={{ fontSize:'0.78rem', color:'var(--danger)', marginTop:'0.5rem' }}>Add questions before taking the quiz.</div>}
                 </div>
@@ -20901,7 +20995,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 cbtAttempts.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No attempts yet.</div> : (
                   <div className="table-wrap">
                     <table className="data-table">
-                      <thead><tr><th>Student</th><th>Score</th><th>%</th><th>Passed</th><th>Date</th></tr></thead>
+                      <thead><tr><th>Student</th><th>Score</th><th>%</th><th>Passed</th><th>Proctoring</th><th>Date</th></tr></thead>
                       <tbody>
                         {cbtAttempts.map(a => (
                           <tr key={a.id}>
@@ -20909,6 +21003,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                             <td>{a.score}/{a.total_marks}</td>
                             <td style={{ fontWeight:700, color:a.passed?'var(--success)':'var(--danger)' }}>{a.total_marks>0?Math.round((a.score/a.total_marks)*100):0}%</td>
                             <td><span style={{ color:a.passed?'var(--success)':'var(--danger)', fontWeight:600 }}>{a.passed?'Yes':'No'}</span></td>
+                            <td>{a.flagged ? <span style={{ color:'var(--danger)', fontWeight:600, fontSize:'0.8rem' }} title="Left the tab 3+ times during the exam">⚠ Flagged ({a.tab_switch_count||0}×)</span> : <span style={{ color:'var(--muted)', fontSize:'0.8rem' }}>{a.tab_switch_count ? `${a.tab_switch_count}× tab-out` : 'Clean'}</span>}</td>
                             <td style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{a.finished_at?new Date(a.finished_at).toLocaleString():'—'}</td>
                           </tr>
                         ))}
@@ -21324,9 +21419,9 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
           {!storeLoaded ? <SkeletonRows rows={4} /> : (
             <div>
               <TabBar
-                tabs={['settings','theme','products','preview'].map(t => ({ key: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                tabs={['settings','theme','products','carts','preview'].map(t => ({ key: t, label: t === 'carts' ? 'Abandoned Carts' : t.charAt(0).toUpperCase() + t.slice(1) }))}
                 activeKey={storeTab}
-                onChange={setStoreTab}
+                onChange={(k) => { setStoreTab(k); if (k === 'carts' && storeCarts === null) apiFetch('/api/v1/store-builder/abandoned-carts').then(d => setStoreCarts(d.carts||[])); }}
               /><div style={{ marginBottom: '1.25rem' }} />
 
               {storeTab === 'settings' && (
@@ -21344,6 +21439,12 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Contact Email</label><input className="form-input" type="email" value={storeDraft.contactEmail} onChange={(e) => setStoreDraft(d=>({...d,contactEmail:e.target.value}))} /></div>
                     <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Contact Phone</label><input className="form-input" value={storeDraft.contactPhone} onChange={(e) => setStoreDraft(d=>({...d,contactPhone:e.target.value}))} /></div>
                     <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Address</label><input className="form-input" value={storeDraft.address} onChange={(e) => setStoreDraft(d=>({...d,address:e.target.value}))} /></div>
+                  </div>
+
+                  <div style={{ fontWeight:700, fontSize:'0.9rem', margin:'1.25rem 0 0.5rem' }}>Shipping</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'0.75rem' }}>
+                    <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Flat Shipping Rate</label><input className="form-input" type="number" min="0" step="0.01" value={storeDraft.shippingFlatRate} onChange={(e) => setStoreDraft(d=>({...d,shippingFlatRate:e.target.value}))} placeholder="0" /></div>
+                    <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Free Shipping Above</label><input className="form-input" type="number" min="0" step="0.01" value={storeDraft.freeShippingThreshold} onChange={(e) => setStoreDraft(d=>({...d,freeShippingThreshold:e.target.value}))} placeholder="No threshold" /></div>
                   </div>
 
                   <div style={{ fontWeight:700, fontSize:'0.9rem', margin:'1.25rem 0 0.5rem' }}>Tracking &amp; Ads</div>
@@ -21424,6 +21525,40 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     </div>
                   )}
                 </>
+              )}
+
+              {storeTab === 'carts' && (
+                storeCarts === null ? <SkeletonRows rows={3} /> : storeCarts.length === 0 ? (
+                  <EmptyState icon="🛒" title="No abandoned carts yet" description="When a shopper enters their email but doesn't finish checkout, they'll show up here so you can follow up." />
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:'0.6rem', maxWidth:720 }}>
+                    {storeCarts.map(c => (
+                      <div key={c.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'0.85rem 1rem', display:'flex', alignItems:'center', gap:'1rem' }}>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{c.customer_name || c.customer_email}</div>
+                          <div style={{ fontSize:'0.78rem', color:'var(--muted)' }}>{c.customer_email} · {(c.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</div>
+                          <div style={{ fontSize:'0.78rem', color:'var(--muted)' }}>{storeDraft.currency} {Number(c.subtotal||0).toLocaleString()} · {new Date(c.updated_at).toLocaleString()}</div>
+                        </div>
+                        {c.recovered ? (
+                          <span style={{ fontSize:'0.78rem', color:'var(--success, #16a34a)', fontWeight:600 }}>✓ Recovered</span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            disabled={storeCartsSendingId === c.id}
+                            loading={storeCartsSendingId === c.id}
+                            onClick={async () => {
+                              setStoreCartsSendingId(c.id);
+                              const d = await apiFetch(`/api/v1/store-builder/abandoned-carts/${c.id}/send-recovery`, { method:'POST' });
+                              setStoreCartsSendingId(null);
+                              if (d.ok) { showToast('Recovery email sent!'); setStoreCarts(prev => prev.map(x => x.id === c.id ? { ...x, recovery_sent_at: new Date().toISOString() } : x)); }
+                              else showToast(d.error || 'Failed to send recovery email.', 'error');
+                            }}
+                          >{c.recovery_sent_at ? 'Resend recovery email' : 'Send recovery email'}</Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
 
               {storeTab === 'preview' && (

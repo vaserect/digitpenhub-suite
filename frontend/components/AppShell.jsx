@@ -553,7 +553,9 @@ export default function AppShell() {
   const [recruitLoaded, setRecruitLoaded] = useState(false);
   const [recruitStats, setRecruitStats] = useState(null);
   const [jobList, setJobList] = useState([]);
+  const [jobPage, setJobPage] = useState(1);
   const [applicantList, setApplicantList] = useState([]);
+  const [applicantPage, setApplicantPage] = useState(1);
   const [recruitJobFilter, setRecruitJobFilter] = useState('');
   const [recruitStageFilter, setRecruitStageFilter] = useState('');
   const [showJobForm, setShowJobForm] = useState(false);
@@ -601,6 +603,7 @@ export default function AppShell() {
   // Milestone 18: Client Portal
   const [portalLoaded, setPortalLoaded] = useState(false);
   const [portalClients, setPortalClients] = useState([]);
+  const [portalClientPage, setPortalClientPage] = useState(1);
   const [portalGenerating, setPortalGenerating] = useState(null);
   const [portalRevokeConfirm, setPortalRevokeConfirm] = useState(null);
   const [portalRevoking, setPortalRevoking] = useState(false);
@@ -643,8 +646,11 @@ export default function AppShell() {
   const [waStats, setWaStats] = useState(null);
   const [waTab, setWaTab] = useState('contacts');
   const [waContacts, setWaContacts] = useState([]);
+  const [waContactPage, setWaContactPage] = useState(1);
   const [waTemplates, setWaTemplates] = useState([]);
+  const [waTemplatePage, setWaTemplatePage] = useState(1);
   const [waBroadcasts, setWaBroadcasts] = useState([]);
+  const [waBroadcastPage, setWaBroadcastPage] = useState(1);
   const [waContactDraft, setWaContactDraft] = useState({ name: '', phone: '', notes: '' });
   const [waContactOpen, setWaContactOpen] = useState(false);
   const [waTemplateDraft, setWaTemplateDraft] = useState({ name: '', category: 'marketing', body: '', status: 'draft' });
@@ -666,6 +672,7 @@ export default function AppShell() {
   const [affStats, setAffStats] = useState(null);
   const [affTab, setAffTab] = useState('affiliates');
   const [affiliates, setAffiliates] = useState([]);
+  const [affPage, setAffPage] = useState(1);
   const [affConversions, setAffConversions] = useState([]);
   const [affDraft, setAffDraft] = useState({ name: '', email: '', phone: '', promoCode: '', commissionType: 'percentage', commissionValue: '10', notes: '' });
   const [affOpen, setAffOpen] = useState(false);
@@ -682,6 +689,7 @@ export default function AppShell() {
   const [refTab, setRefTab] = useState('programs');
   const [refPrograms, setRefPrograms] = useState([]);
   const [referrals, setReferrals] = useState([]);
+  const [refPage, setRefPage] = useState(1);
   const [refPgmDraft, setRefPgmDraft] = useState({ name: '', description: '', rewardType: 'cash', rewardValue: '', terms: '' });
   const [refPgmOpen, setRefPgmOpen] = useState(false);
   const [refDraft, setRefDraft] = useState({ programId: '', referrerName: '', referrerEmail: '', referrerCode: '', refereeName: '', refereeEmail: '', refereePhone: '', notes: '' });
@@ -1638,6 +1646,7 @@ export default function AppShell() {
   const [hrPayrollConfirmDelete, setHrPayrollConfirmDelete] = useState(null);
   const [hrPayrollDeleting, setHrPayrollDeleting] = useState(false);
   const [hrEmpSearch, setHrEmpSearch] = useState('');
+  const [hrEmpPage, setHrEmpPage] = useState(1);
 
   // Milestone 12: Website Builder
   const [pages, setPages] = useState([]);
@@ -1961,6 +1970,51 @@ export default function AppShell() {
     if (!q) return employees;
     return employees.filter((e) => `${e.full_name || ''} ${e.email || ''}`.toLowerCase().includes(q));
   }, [employees, hrEmpSearch]);
+  const HR_EMP_PAGE_SIZE = 10;
+  const hrEmpPageCount = Math.max(1, Math.ceil(filteredEmployees.length / HR_EMP_PAGE_SIZE));
+  const hrEmpPageRows = filteredEmployees.slice((hrEmpPage - 1) * HR_EMP_PAGE_SIZE, hrEmpPage * HR_EMP_PAGE_SIZE);
+  useEffect(() => { setHrEmpPage(1); }, [hrEmpSearch]);
+  useEffect(() => { if (hrEmpPage > hrEmpPageCount) setHrEmpPage(hrEmpPageCount); }, [hrEmpPageCount]);
+
+  // Pagination for tables that previously rendered every row with no limit
+  // (Recruitment jobs/applicants, WhatsApp contacts/templates/broadcasts,
+  // Affiliates, Referrals, Client Portal) — same slice-based convention as
+  // CRM/Invoices/Ledger above, just without a search box to filter first.
+  const JOB_PAGE_SIZE = 10;
+  const jobPageCount = Math.max(1, Math.ceil(jobList.length / JOB_PAGE_SIZE));
+  const jobPageRows = jobList.slice((jobPage - 1) * JOB_PAGE_SIZE, jobPage * JOB_PAGE_SIZE);
+  useEffect(() => { if (jobPage > jobPageCount) setJobPage(jobPageCount); }, [jobPageCount]);
+
+  const APPLICANT_PAGE_SIZE = 10;
+  const applicantPageCount = Math.max(1, Math.ceil(applicantList.length / APPLICANT_PAGE_SIZE));
+  const applicantPageRows = applicantList.slice((applicantPage - 1) * APPLICANT_PAGE_SIZE, applicantPage * APPLICANT_PAGE_SIZE);
+  useEffect(() => { if (applicantPage > applicantPageCount) setApplicantPage(applicantPageCount); }, [applicantPageCount]);
+
+  const WA_PAGE_SIZE = 10;
+  const waContactPageCount = Math.max(1, Math.ceil(waContacts.length / WA_PAGE_SIZE));
+  const waContactPageRows = waContacts.slice((waContactPage - 1) * WA_PAGE_SIZE, waContactPage * WA_PAGE_SIZE);
+  useEffect(() => { if (waContactPage > waContactPageCount) setWaContactPage(waContactPageCount); }, [waContactPageCount]);
+  const waTemplatePageCount = Math.max(1, Math.ceil(waTemplates.length / WA_PAGE_SIZE));
+  const waTemplatePageRows = waTemplates.slice((waTemplatePage - 1) * WA_PAGE_SIZE, waTemplatePage * WA_PAGE_SIZE);
+  useEffect(() => { if (waTemplatePage > waTemplatePageCount) setWaTemplatePage(waTemplatePageCount); }, [waTemplatePageCount]);
+  const waBroadcastPageCount = Math.max(1, Math.ceil(waBroadcasts.length / WA_PAGE_SIZE));
+  const waBroadcastPageRows = waBroadcasts.slice((waBroadcastPage - 1) * WA_PAGE_SIZE, waBroadcastPage * WA_PAGE_SIZE);
+  useEffect(() => { if (waBroadcastPage > waBroadcastPageCount) setWaBroadcastPage(waBroadcastPageCount); }, [waBroadcastPageCount]);
+
+  const AFF_PAGE_SIZE = 10;
+  const affPageCount = Math.max(1, Math.ceil(affiliates.length / AFF_PAGE_SIZE));
+  const affPageRows = affiliates.slice((affPage - 1) * AFF_PAGE_SIZE, affPage * AFF_PAGE_SIZE);
+  useEffect(() => { if (affPage > affPageCount) setAffPage(affPageCount); }, [affPageCount]);
+
+  const REF_PAGE_SIZE = 10;
+  const refPageCount = Math.max(1, Math.ceil(referrals.length / REF_PAGE_SIZE));
+  const refPageRows = referrals.slice((refPage - 1) * REF_PAGE_SIZE, refPage * REF_PAGE_SIZE);
+  useEffect(() => { if (refPage > refPageCount) setRefPage(refPageCount); }, [refPageCount]);
+
+  const PORTAL_CLIENT_PAGE_SIZE = 10;
+  const portalClientPageCount = Math.max(1, Math.ceil(portalClients.length / PORTAL_CLIENT_PAGE_SIZE));
+  const portalClientPageRows = portalClients.slice((portalClientPage - 1) * PORTAL_CLIENT_PAGE_SIZE, portalClientPage * PORTAL_CLIENT_PAGE_SIZE);
+  useEffect(() => { if (portalClientPage > portalClientPageCount) setPortalClientPage(portalClientPageCount); }, [portalClientPageCount]);
 
   const filteredInvProducts = useMemo(() => {
     const q = invProductSearch.trim().toLowerCase();
@@ -10318,10 +10372,10 @@ export default function AppShell() {
                         <div className="table-wrap">
                           <table className="data-table">
                             <thead>
-                              <tr><th style={{ width:32 }}><input type="checkbox" checked={hrEmpSelected.length>0 && hrEmpSelected.length===filteredEmployees.length} onChange={(e) => setHrEmpSelected(e.target.checked ? filteredEmployees.map((e)=>e.id) : [])} /></th><th>Name</th><th>Title</th><th>Department</th><th>Type</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
+                              <tr><th style={{ width:32 }}><input type="checkbox" checked={hrEmpPageRows.length>0 && hrEmpPageRows.every((e)=>hrEmpSelected.includes(e.id))} onChange={(e) => { const ids = hrEmpPageRows.map((x)=>x.id); setHrEmpSelected((prev) => e.target.checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))); }} /></th><th>Name</th><th>Title</th><th>Department</th><th>Type</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
                             </thead>
                             <tbody>
-                              {filteredEmployees.map((emp) => (
+                              {hrEmpPageRows.map((emp) => (
                                 <tr key={emp.id}>
                                   <td><input type="checkbox" checked={hrEmpSelected.includes(emp.id)} onChange={(e) => setHrEmpSelected((sel) => e.target.checked ? [...sel, emp.id] : sel.filter((id)=>id!==emp.id))} /></td>
                                   <td><strong>{emp.full_name}</strong><br /><small style={{ color: 'var(--text-muted)' }}>{emp.email || '—'}</small></td>
@@ -10342,6 +10396,7 @@ export default function AppShell() {
                               ))}
                             </tbody>
                           </table>
+                          <Pagination page={hrEmpPage} pageCount={hrEmpPageCount} total={filteredEmployees.length} pageSize={HR_EMP_PAGE_SIZE} onPageChange={setHrEmpPage} />
                         </div>
                       )}
                       <BulkActionBar
@@ -11157,7 +11212,7 @@ export default function AppShell() {
 
                 {/* Client table */}
                 {portalClients.length === 0 ? (
-                  <p className="empty-state">No invoice clients yet. Add clients through the Invoices module first.</p>
+                  <EmptyState icon="👥" title="No invoice clients yet" description="Add clients through the Invoices module first." />
                 ) : (
                   <div className="table-wrap">
                     <table className="data-table">
@@ -11173,7 +11228,7 @@ export default function AppShell() {
                         </tr>
                       </thead>
                       <tbody>
-                        {portalClients.map((client) => (
+                        {portalClientPageRows.map((client) => (
                           <tr key={client.id}>
                             <td>
                               <strong>{client.name}</strong>
@@ -11216,6 +11271,7 @@ export default function AppShell() {
                         ))}
                       </tbody>
                     </table>
+                    <Pagination page={portalClientPage} pageCount={portalClientPageCount} total={portalClients.length} pageSize={PORTAL_CLIENT_PAGE_SIZE} onPageChange={setPortalClientPage} />
                   </div>
                 )}
               </div>
@@ -11750,7 +11806,7 @@ export default function AppShell() {
                     )}
 
                     {jobList.length === 0 ? (
-                      <p className="empty-state">No job postings yet. Create your first one above.</p>
+                      <EmptyState title="No job postings yet" description="Create your first one above." />
                     ) : (
                       <div className="table-wrap">
                         <table className="data-table">
@@ -11758,7 +11814,7 @@ export default function AppShell() {
                             <tr><th>Title</th><th>Department</th><th>Location</th><th>Type</th><th>Status</th><th>Applicants</th><th>Actions</th></tr>
                           </thead>
                           <tbody>
-                            {jobList.map((job) => (
+                            {jobPageRows.map((job) => (
                               <tr key={job.id}>
                                 <td><strong>{job.title}</strong></td>
                                 <td>{job.department || <span style={{ color: 'var(--muted)' }}>—</span>}</td>
@@ -11781,6 +11837,7 @@ export default function AppShell() {
                             ))}
                           </tbody>
                         </table>
+                        <Pagination page={jobPage} pageCount={jobPageCount} total={jobList.length} pageSize={JOB_PAGE_SIZE} onPageChange={setJobPage} />
                       </div>
                     )}
                   </div>
@@ -11836,15 +11893,15 @@ export default function AppShell() {
                     )}
 
                     {applicantList.length === 0 ? (
-                      <p className="empty-state">No applicants found.</p>
+                      <EmptyState title="No applicants found" description="Applicants you add or receive will show up here." />
                     ) : (
                       <div className="table-wrap">
                         <table className="data-table">
                           <thead>
-                            <tr><th style={{ width:32 }}><input type="checkbox" checked={applicantSelected.length>0 && applicantSelected.length===applicantList.length} onChange={(e) => setApplicantSelected(e.target.checked ? applicantList.map((a)=>a.id) : [])} /></th><th>Name</th><th>Job</th><th>Stage</th><th>Source</th><th>Applied</th><th>Actions</th></tr>
+                            <tr><th style={{ width:32 }}><input type="checkbox" checked={applicantPageRows.length>0 && applicantPageRows.every((a)=>applicantSelected.includes(a.id))} onChange={(e) => { const ids = applicantPageRows.map((x)=>x.id); setApplicantSelected((prev) => e.target.checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))); }} /></th><th>Name</th><th>Job</th><th>Stage</th><th>Source</th><th>Applied</th><th>Actions</th></tr>
                           </thead>
                           <tbody>
-                            {applicantList.map((ap) => (
+                            {applicantPageRows.map((ap) => (
                               <tr key={ap.id}>
                                 <td><input type="checkbox" checked={applicantSelected.includes(ap.id)} onChange={(e) => setApplicantSelected((sel) => e.target.checked ? [...sel, ap.id] : sel.filter((id)=>id!==ap.id))} /></td>
                                 <td>
@@ -11868,6 +11925,7 @@ export default function AppShell() {
                             ))}
                           </tbody>
                         </table>
+                        <Pagination page={applicantPage} pageCount={applicantPageCount} total={applicantList.length} pageSize={APPLICANT_PAGE_SIZE} onPageChange={setApplicantPage} />
                       </div>
                     )}
                     <BulkActionBar
@@ -12546,12 +12604,12 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {waContacts.length === 0 ? <div className="empty-state"><p>No contacts yet.</p></div> : (
+                  {waContacts.length === 0 ? <EmptyState icon="💬" title="No contacts yet" description="Add your first WhatsApp contact above." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={waContactSelected.length>0 && waContactSelected.length===waContacts.length} onChange={(e) => setWaContactSelected(e.target.checked ? waContacts.map((c)=>c.id) : [])} /></th><th>Name</th><th>Phone</th><th>Status</th><th>Tags</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={waContactPageRows.length>0 && waContactPageRows.every((c)=>waContactSelected.includes(c.id))} onChange={(e) => { const ids = waContactPageRows.map((x)=>x.id); setWaContactSelected((prev) => e.target.checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))); }} /></th><th>Name</th><th>Phone</th><th>Status</th><th>Tags</th><th></th></tr></thead>
                         <tbody>
-                          {waContacts.map((c) => (
+                          {waContactPageRows.map((c) => (
                             <tr key={c.id}>
                               <td><input type="checkbox" checked={waContactSelected.includes(c.id)} onChange={(e) => setWaContactSelected((sel) => e.target.checked ? [...sel, c.id] : sel.filter((id)=>id!==c.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{c.name}</td>
@@ -12563,6 +12621,7 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={waContactPage} pageCount={waContactPageCount} total={waContacts.length} pageSize={WA_PAGE_SIZE} onPageChange={setWaContactPage} />
                       <BulkActionBar
                         selectedCount={waContactSelected.length}
                         onClearSelection={() => setWaContactSelected([])}
@@ -12592,12 +12651,12 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {waTemplates.length === 0 ? <div className="empty-state"><p>No templates yet.</p></div> : (
+                  {waTemplates.length === 0 ? <EmptyState icon="📄" title="No templates yet" description="Create a message template above to reuse across broadcasts." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Preview</th><th></th></tr></thead>
                         <tbody>
-                          {waTemplates.map((t) => (
+                          {waTemplatePageRows.map((t) => (
                             <tr key={t.id}>
                               <td style={{ fontWeight: 600 }}>{t.name}</td>
                               <td><span className="ctag">{t.category}</span></td>
@@ -12608,6 +12667,7 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={waTemplatePage} pageCount={waTemplatePageCount} total={waTemplates.length} pageSize={WA_PAGE_SIZE} onPageChange={setWaTemplatePage} />
                     </div>
                   )}
                 </>
@@ -12635,12 +12695,12 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {waBroadcasts.length === 0 ? <div className="empty-state"><p>No broadcasts yet.</p></div> : (
+                  {waBroadcasts.length === 0 ? <EmptyState icon="📢" title="No broadcasts yet" description="Create a broadcast above once you have a template ready." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Name</th><th>Template</th><th>Recipients</th><th>Status</th><th>Created</th><th></th></tr></thead>
                         <tbody>
-                          {waBroadcasts.map((b) => (
+                          {waBroadcastPageRows.map((b) => (
                             <tr key={b.id}>
                               <td style={{ fontWeight: 600 }}>{b.name}</td>
                               <td>{b.template_name||'—'}</td>
@@ -12664,6 +12724,7 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={waBroadcastPage} pageCount={waBroadcastPageCount} total={waBroadcasts.length} pageSize={WA_PAGE_SIZE} onPageChange={setWaBroadcastPage} />
                     </div>
                   )}
                 </>
@@ -12747,12 +12808,12 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {affiliates.length === 0 ? <div className="empty-state"><p>No affiliates yet.</p></div> : (
+                  {affiliates.length === 0 ? <EmptyState icon="🤝" title="No affiliates yet" description="Add your first affiliate above to start tracking referral sales." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={affSelected.length>0 && affSelected.length===affiliates.length} onChange={(e) => setAffSelected(e.target.checked ? affiliates.map((a)=>a.id) : [])} /></th><th>Name</th><th>Code</th><th>Commission</th><th>Sales</th><th>Earned</th><th>Pending</th><th>Status</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={affPageRows.length>0 && affPageRows.every((a)=>affSelected.includes(a.id))} onChange={(e) => { const ids = affPageRows.map((x)=>x.id); setAffSelected((prev) => e.target.checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))); }} /></th><th>Name</th><th>Code</th><th>Commission</th><th>Sales</th><th>Earned</th><th>Pending</th><th>Status</th><th></th></tr></thead>
                         <tbody>
-                          {affiliates.map((a) => (
+                          {affPageRows.map((a) => (
                             <tr key={a.id}>
                               <td><input type="checkbox" checked={affSelected.includes(a.id)} onChange={(e) => setAffSelected((sel) => e.target.checked ? [...sel, a.id] : sel.filter((id)=>id!==a.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{a.name}</td>
@@ -12767,6 +12828,7 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={affPage} pageCount={affPageCount} total={affiliates.length} pageSize={AFF_PAGE_SIZE} onPageChange={setAffPage} />
                       <BulkActionBar
                         selectedCount={affSelected.length}
                         onClearSelection={() => setAffSelected([])}
@@ -12924,12 +12986,12 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {referrals.length === 0 ? <div className="empty-state"><p>No referrals logged yet.</p></div> : (
+                  {referrals.length === 0 ? <EmptyState icon="🔗" title="No referrals logged yet" description="Log your first referral above to start tracking conversions." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={refSelected.length>0 && refSelected.length===referrals.length} onChange={(e) => setRefSelected(e.target.checked ? referrals.map((r)=>r.id) : [])} /></th><th>Referrer</th><th>Code</th><th>Referee</th><th>Program</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={refPageRows.length>0 && refPageRows.every((r)=>refSelected.includes(r.id))} onChange={(e) => { const ids = refPageRows.map((x)=>x.id); setRefSelected((prev) => e.target.checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))); }} /></th><th>Referrer</th><th>Code</th><th>Referee</th><th>Program</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                         <tbody>
-                          {referrals.map((r) => (
+                          {refPageRows.map((r) => (
                             <tr key={r.id}>
                               <td><input type="checkbox" checked={refSelected.includes(r.id)} onChange={(e) => setRefSelected((sel) => e.target.checked ? [...sel, r.id] : sel.filter((id)=>id!==r.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{r.referrer_name}</td>
@@ -12951,6 +13013,7 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={refPage} pageCount={refPageCount} total={referrals.length} pageSize={REF_PAGE_SIZE} onPageChange={setRefPage} />
                       <BulkActionBar
                         selectedCount={refSelected.length}
                         onClearSelection={() => setRefSelected([])}

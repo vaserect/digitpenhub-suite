@@ -1514,6 +1514,8 @@ export default function AppShell() {
   const [lmsTab, setLmsTab]           = useState('courses');
   const [lmsSelected, setLmsSelected] = useState(null);
   const [lmsLessons, setLmsLessons]   = useState([]);
+  const [lmsLessonModal, setLmsLessonModal] = useState(null); // { title, content }
+  const [lmsLessonSaving, setLmsLessonSaving] = useState(false);
   const [lmsEnrollments, setLmsEnrollments] = useState([]);
   const [lmsDraft, setLmsDraft]       = useState({ title:'', description:'', category:'General', level:'Beginner', instructor:'', duration:'', status:'draft' });
   const [lmsEditing, setLmsEditing]   = useState(null);
@@ -1581,6 +1583,8 @@ export default function AppShell() {
   const [cbtTimeLeft, setCbtTimeLeft]   = useState(0);
   const [cbtOrder, setCbtOrder]         = useState(null); // { questionIds: [...], optionOrders: { [questionId]: ['B','A','D','C'] } }
   const [cbtTabSwitchCount, setCbtTabSwitchCount] = useState(0);
+  const [cbtExitConfirmOpen, setCbtExitConfirmOpen] = useState(false);
+  const [cbtSubmitConfirmOpen, setCbtSubmitConfirmOpen] = useState(false);
   // Student Portal
   const [spTab, setSpTab]               = useState('courses');
   // Teacher Portal
@@ -7079,6 +7083,15 @@ export default function AppShell() {
       }
     } finally { setLmsConfirming(false); setLmsConfirmAction(null); }
   }
+  async function confirmAddLmsLesson() {
+    if (!lmsLessonModal || !lmsLessonModal.title.trim() || !lmsSelected) return;
+    setLmsLessonSaving(true);
+    try {
+      const d = await apiFetch(`/api/v1/lms/courses/${lmsSelected.id}/lessons`, { method: 'POST', body: JSON.stringify({ title: lmsLessonModal.title, content: lmsLessonModal.content || '', contentType: 'text', durationMins: 0 }) });
+      if (d.lesson) setLmsLessons((l) => [...l, d.lesson]);
+      setLmsLessonModal(null);
+    } finally { setLmsLessonSaving(false); }
+  }
   async function loadSchool() {
     const [stats, cls, stu, tch, sub] = await Promise.all([
       apiFetch('/api/v1/school/stats'), apiFetch('/api/v1/school/classes'),
@@ -7190,6 +7203,11 @@ export default function AppShell() {
   async function loadCbt() {
     const data = await apiFetch('/api/v1/cbt/quizzes');
     setCbtQuizzes(data.quizzes || []); setCbtLoaded(true);
+  }
+  async function submitCbtQuiz() {
+    setCbtSubmitConfirmOpen(false);
+    const d = await apiFetch(`/api/v1/cbt/quizzes/${cbtTaking.id}/submit`, { method: 'POST', body: JSON.stringify({ studentName: cbtStudentName || 'Student', answers: cbtAnswers, tabSwitchCount: cbtTabSwitchCount }) });
+    if (d.pct !== undefined) { setCbtResult(d); setCbtAttempts((l) => [d.attempt, ...l]); }
   }
   async function confirmCbtAction() {
     if (!cbtConfirmAction) return;
@@ -20617,12 +20635,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               {lmsTab === 'lessons' && (
                 <div>
                   <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.75rem' }}>
-                    <button className="btn-primary" style={{ fontSize:'0.82rem' }} onClick={async () => {
-                      const title = prompt('Lesson title:'); if (!title?.trim()) return;
-                      const content = prompt('Lesson content (optional):') || '';
-                      const d = await apiFetch(`/api/v1/lms/courses/${lmsSelected.id}/lessons`, { method:'POST', body: JSON.stringify({ title, content, contentType:'text', durationMins:0 }) });
-                      if (d.lesson) setLmsLessons(l=>[...l, d.lesson]);
-                    }}>+ Add Lesson</button>
+                    <button className="btn-primary" style={{ fontSize:'0.82rem' }} onClick={() => setLmsLessonModal({ title: '', content: '' })}>+ Add Lesson</button>
                   </div>
                   {lmsLessons.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No lessons yet. Add the first lesson above.</div> : (
                     <div>
@@ -20691,6 +20704,20 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             danger
             loading={lmsConfirming}
           />
+          <Modal isOpen={!!lmsLessonModal} title="Add lesson" onClose={() => setLmsLessonModal(null)}>
+            <div className="field" style={{ marginBottom: '0.6rem' }}>
+              <label className="field-label">Lesson title</label>
+              <input className="field-input" autoFocus value={lmsLessonModal?.title ?? ''} onChange={(e) => setLmsLessonModal((m) => ({ ...m, title: e.target.value }))} />
+            </div>
+            <div className="field" style={{ marginBottom: '0.75rem' }}>
+              <label className="field-label">Content (optional)</label>
+              <textarea className="field-input" rows={4} value={lmsLessonModal?.content ?? ''} onChange={(e) => setLmsLessonModal((m) => ({ ...m, content: e.target.value }))} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Button variant="secondary" onClick={() => setLmsLessonModal(null)}>Cancel</Button>
+              <Button disabled={!lmsLessonModal?.title.trim() || lmsLessonSaving} loading={lmsLessonSaving} onClick={confirmAddLmsLesson}>Add lesson</Button>
+            </div>
+          </Modal>
         </div>
       )}
 
@@ -21149,7 +21176,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
           <div className="module-head">
             <button className="back-link" onClick={() => {
               if (cbtResult) { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); }
-              else if (cbtTaking) { if(confirm('Exit quiz?')) { setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); } }
+              else if (cbtTaking) { setCbtExitConfirmOpen(true); }
               else if (cbtViewingQuiz) { setCbtViewingQuiz(null); setCbtQuestions([]); setCbtAttempts([]); setCbtTab('list'); }
               else setView('home');
             }}>← {cbtResult||cbtTaking ? 'Back to Quiz' : cbtViewingQuiz ? 'Back to Quizzes' : 'Back'}</button>
@@ -21196,9 +21223,8 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               ))}
               <div style={{ display:'flex', justifyContent:'flex-end', paddingBottom:'1rem' }}>
                 <button className="btn-primary" onClick={async () => {
-                  if (Object.keys(cbtAnswers).length < cbtQuestions.length && !confirm(`You have unanswered questions. Submit anyway?`)) return;
-                  const d = await apiFetch(`/api/v1/cbt/quizzes/${cbtTaking.id}/submit`, { method:'POST', body: JSON.stringify({ studentName:cbtStudentName||'Student', answers:cbtAnswers, tabSwitchCount:cbtTabSwitchCount }) });
-                  if (d.pct !== undefined) { setCbtResult(d); setCbtAttempts(l=>[d.attempt,...l]); }
+                  if (Object.keys(cbtAnswers).length < cbtQuestions.length) { setCbtSubmitConfirmOpen(true); return; }
+                  await submitCbtQuiz();
                 }}>Submit Quiz</button>
               </div>
             </div>
@@ -21366,6 +21392,23 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             confirmLabel="Delete"
             danger
             loading={cbtConfirming}
+          />
+          <ConfirmDialog
+            isOpen={cbtExitConfirmOpen}
+            onClose={() => setCbtExitConfirmOpen(false)}
+            onConfirm={() => { setCbtExitConfirmOpen(false); setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); }}
+            title="Exit quiz?"
+            description="Your progress on this attempt will be lost."
+            confirmLabel="Exit"
+            danger
+          />
+          <ConfirmDialog
+            isOpen={cbtSubmitConfirmOpen}
+            onClose={() => setCbtSubmitConfirmOpen(false)}
+            onConfirm={submitCbtQuiz}
+            title="You have unanswered questions"
+            description="Submit anyway?"
+            confirmLabel="Submit"
           />
         </div>
       )}

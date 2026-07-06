@@ -1401,6 +1401,13 @@ export default function AppShell() {
   const [logoIcon, setLogoIcon]         = useState('◆');
   const [logoLayout, setLogoLayout]     = useState('icon-left');
   const [logoSize, setLogoSize]         = useState(48);
+  // "Pro Canvas (beta)" — same opt-in Fabric.js engine as the other Creative tools.
+  const [logoEngineMode, setLogoEngineMode] = useState('classic'); // 'classic' | 'pro'
+  const [logoFabricApi, setLogoFabricApi] = useState(null);
+  const [logoFabricInitialJSON, setLogoFabricInitialJSON] = useState(null);
+  const [logoFabricKey, setLogoFabricKey] = useState(0);
+  const [logoImageUrlModalOpen, setLogoImageUrlModalOpen] = useState(false);
+  const [logoImageUrlDraft, setLogoImageUrlDraft] = useState('');
   // Flyer Builder
   const [flyerTitle, setFlyerTitle]     = useState('Big Event');
   const [flyerSubtitle, setFlyerSubtitle] = useState('Join us for something amazing');
@@ -19303,25 +19310,89 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Logo Maker</h2>
             </div>
+            <div style={{ display:'flex', gap:'0.4rem', marginBottom:'0.75rem' }}>
+              <button className={logoEngineMode==='classic'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setLogoEngineMode('classic')}>Classic</button>
+              <button className={logoEngineMode==='pro'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setLogoEngineMode('pro')} title="A real canvas engine (Fabric.js) — freely move/layer objects. Beta: separate from your Classic designs.">🧪 Pro Canvas (beta)</button>
+            </div>
             <CreativeSaveBar
               designName={creativeDesignName}
               setDesignName={setCreativeDesignName}
               saving={creativeSaving}
-              onSave={() => saveCreativeDesign('logo-maker', { logoText, logoTagline, logoFont, logoColor, logoBg, logoIcon, logoLayout, logoSize })}
+              onSave={() => logoEngineMode === 'pro'
+                ? saveCreativeDesign('logo-maker', { engine: 'fabric', fabricJSON: logoFabricApi?.getJSON(), bg: logoBg })
+                : saveCreativeDesign('logo-maker', { logoText, logoTagline, logoFont, logoColor, logoBg, logoIcon, logoLayout, logoSize })}
               onOpenGallery={() => openCreativeGallery('logo-maker', (data) => {
-                setLogoText(data.logoText ?? 'My Brand'); setLogoTagline(data.logoTagline ?? ''); setLogoFont(data.logoFont ?? 'Georgia');
-                setLogoColor(data.logoColor ?? '#2563eb'); setLogoBg(data.logoBg ?? '#ffffff'); setLogoIcon(data.logoIcon ?? '◆');
-                setLogoLayout(data.logoLayout ?? 'icon-left'); setLogoSize(data.logoSize ?? 48);
+                if (data.engine === 'fabric') {
+                  if (logoEngineMode !== 'pro') setLogoEngineMode('pro');
+                  setLogoBg(data.bg ?? '#ffffff');
+                  setLogoFabricInitialJSON(data.fabricJSON ?? null);
+                  setLogoFabricKey((k) => k + 1);
+                } else {
+                  if (logoEngineMode !== 'classic') setLogoEngineMode('classic');
+                  setLogoText(data.logoText ?? 'My Brand'); setLogoTagline(data.logoTagline ?? ''); setLogoFont(data.logoFont ?? 'Georgia');
+                  setLogoColor(data.logoColor ?? '#2563eb'); setLogoBg(data.logoBg ?? '#ffffff'); setLogoIcon(data.logoIcon ?? '◆');
+                  setLogoLayout(data.logoLayout ?? 'icon-left'); setLogoSize(data.logoSize ?? 48);
+                }
               })}
-              onNew={() => newCreativeDesign('logo-maker')}
+              onNew={() => {
+                newCreativeDesign('logo-maker');
+                if (logoEngineMode === 'pro') { setLogoFabricInitialJSON(null); setLogoFabricKey((k) => k + 1); }
+              }}
               onApplyBrandKit={async () => {
                 const kit = await loadBrandKitIfNeeded();
                 if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
                 setLogoColor(kit.primary_color || logoColor);
                 setLogoFont(kit.primary_font || logoFont);
+                if (logoEngineMode === 'pro') setLogoFabricKey((k) => k + 1);
                 showToast('Brand Kit applied!');
               }}
             />
+            {logoEngineMode === 'pro' && (
+              <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'1rem' }}>
+                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
+                  <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Add Element</div>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => logoFabricApi?.addText()}>T  Text</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => logoFabricApi?.addRect()}>■  Rectangle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => logoFabricApi?.addCircle()}>●  Circle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => { setLogoImageUrlDraft(''); setLogoImageUrlModalOpen(true); }}>🖼  Image</button>
+                  <div style={{ borderTop:'1px solid var(--border)', margin:'0.75rem 0', paddingTop:'0.75rem' }}>
+                    <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Selection</div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Fill colour</label>
+                    <input type="color" defaultValue="#2563eb" onChange={(e) => logoFabricApi?.setFill(e.target.value)} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', marginBottom:'0.5rem' }} />
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => logoFabricApi?.bringForward()}>Bring Forward</button>
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => logoFabricApi?.sendBackward()}>Send Backward</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => logoFabricApi?.deleteSelected()}>Delete Selected</button>
+                  </div>
+                  <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
+                    <label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Canvas background</label>
+                    <input type="color" value={logoBg} onChange={(e) => { setLogoBg(e.target.value); setLogoFabricKey((k) => k + 1); }} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', marginBottom:'0.5rem' }} />
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => {
+                      const png = logoFabricApi?.exportPNG(); if (!png) return;
+                      const a = document.createElement('a'); a.href = png; a.download = `${logoText||'logo'}.png`; a.click();
+                    }}>⬇ Export PNG</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => logoFabricApi?.clear()}>Clear Canvas</button>
+                  </div>
+                </div>
+                <div style={{ overflow:'auto', display:'flex', justifyContent:'center', background:'var(--bg)', borderRadius:8, padding:'1rem' }}>
+                  <FabricCanvasEditor
+                    key={`logo-${logoFabricKey}`}
+                    width={500}
+                    height={500}
+                    background={logoBg}
+                    initialJSON={logoFabricInitialJSON}
+                    onReady={setLogoFabricApi}
+                  />
+                </div>
+                <Modal isOpen={logoImageUrlModalOpen} title="Add image" onClose={() => setLogoImageUrlModalOpen(false)}>
+                  <input className="field-input" autoFocus placeholder="https://…" value={logoImageUrlDraft} onChange={(e) => setLogoImageUrlDraft(e.target.value)} style={{ marginBottom:'0.75rem' }} />
+                  <div style={{ display:'flex', gap:10 }}>
+                    <Button variant="secondary" onClick={() => setLogoImageUrlModalOpen(false)}>Cancel</Button>
+                    <Button disabled={!logoImageUrlDraft.trim()} onClick={() => { logoFabricApi?.addImage(logoImageUrlDraft.trim()); setLogoImageUrlModalOpen(false); }}>Add</Button>
+                  </div>
+                </Modal>
+              </div>
+            )}
+            {logoEngineMode === 'classic' && (
             <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:'1.5rem' }}>
               <div>
                 <div style={{ marginBottom:'0.75rem' }}>
@@ -19379,6 +19450,7 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                 }}>Export as SVG</button>
               </div>
             </div>
+            )}
           </div>
         );
       })()}

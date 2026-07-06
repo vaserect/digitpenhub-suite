@@ -35,6 +35,34 @@ import {
   getSurveyFormStarterTemplates,
 } from '../lib/starterTemplates';
 
+// Mirrors backend/src/utils/payrollCalculator.js so the add-employee form can
+// show a live estimate before the server confirms the final figures on save.
+const PAYE_ANNUAL_BANDS = [
+  { upTo: 300000, rate: 0.07 },
+  { upTo: 600000, rate: 0.11 },
+  { upTo: 1100000, rate: 0.15 },
+  { upTo: 1600000, rate: 0.19 },
+  { upTo: 3200000, rate: 0.21 },
+  { upTo: Infinity, rate: 0.24 },
+];
+function calculateEstimatedStatutory(grossMonthly, allowancesMonthly) {
+  const annualGross = (grossMonthly + allowancesMonthly) * 12;
+  const cra = Math.max(200000, annualGross * 0.01) + annualGross * 0.2;
+  let taxable = Math.max(0, annualGross - cra);
+  let tax = 0, lower = 0;
+  for (const band of PAYE_ANNUAL_BANDS) {
+    if (taxable <= 0) break;
+    const amountInBand = Math.min(taxable, band.upTo - lower);
+    tax += amountInBand * band.rate;
+    taxable -= amountInBand;
+    lower = band.upTo;
+  }
+  return {
+    tax: Math.round((tax / 12) * 100) / 100,
+    pension: Math.round(grossMonthly * 0.08 * 100) / 100,
+  };
+}
+
 function initials(name) {
   return name
     .split(/\s+/)
@@ -879,7 +907,7 @@ export default function AppShell() {
   const [payRunForm, setPayRunForm]         = useState(false);
   const [payRunDraft, setPayRunDraft]       = useState({ name:'', periodStart:'', periodEnd:'', notes:'' });
   const [payItemForm, setPayItemForm]       = useState(false);
-  const [payItemDraft, setPayItemDraft]     = useState({ employeeName:'', employeeEmail:'', department:'', grossSalary:'', allowances:'0', tax:'0', pension:'0', otherDeductions:'0', bankName:'', accountNumber:'' });
+  const [payItemDraft, setPayItemDraft]     = useState({ employeeName:'', employeeEmail:'', department:'', grossSalary:'', allowances:'0', otherDeductions:'0', bankName:'', accountNumber:'' });
   const [payRunConfirmDelete, setPayRunConfirmDelete] = useState(null);
   const [payRunDeleting, setPayRunDeleting] = useState(false);
 
@@ -3722,7 +3750,7 @@ export default function AppShell() {
     e.preventDefault();
     const data = await apiFetch(`/api/v1/payroll/${payViewRun.id}/items`, { method:'POST', body:JSON.stringify(payItemDraft) });
     if (data.error) { showToast(data.error); return; }
-    setPayItemForm(false); setPayItemDraft({ employeeName:'', employeeEmail:'', department:'', grossSalary:'', allowances:'0', tax:'0', pension:'0', otherDeductions:'0', bankName:'', accountNumber:'' });
+    setPayItemForm(false); setPayItemDraft({ employeeName:'', employeeEmail:'', department:'', grossSalary:'', allowances:'0', otherDeductions:'0', bankName:'', accountNumber:'' });
     const d = await apiFetch(`/api/v1/payroll/${payViewRun.id}`); setPayViewRun(d.run); setPayRunItems(d.items||[]);
   }
 
@@ -3730,6 +3758,10 @@ export default function AppShell() {
     await apiFetch(`/api/v1/payroll/${payViewRun.id}/items/${itemId}`, { method:'DELETE' });
     setPayRunItems((p) => p.filter((x) => x.id !== itemId));
     const d = await apiFetch(`/api/v1/payroll/${payViewRun.id}`); setPayViewRun(d.run);
+  }
+
+  function handleDownloadPayslip(itemId) {
+    window.open(`/api/v1/payroll/${payViewRun.id}/items/${itemId}/payslip`, '_blank');
   }
 
   async function handleUpdatePayRunStatus(id, status) {
@@ -14451,15 +14483,25 @@ export default function AppShell() {
                     <input className="form-input" placeholder="Department" value={payItemDraft.department} onChange={(e) => setPayItemDraft((d)=>({...d,department:e.target.value}))} />
                     <input className="form-input" type="number" placeholder="Gross salary (₦) *" value={payItemDraft.grossSalary} onChange={(e) => setPayItemDraft((d)=>({...d,grossSalary:e.target.value}))} required />
                     <input className="form-input" type="number" placeholder="Allowances (₦)" value={payItemDraft.allowances} onChange={(e) => setPayItemDraft((d)=>({...d,allowances:e.target.value}))} />
-                    <input className="form-input" type="number" placeholder="Tax (₦)" value={payItemDraft.tax} onChange={(e) => setPayItemDraft((d)=>({...d,tax:e.target.value}))} />
-                    <input className="form-input" type="number" placeholder="Pension (₦)" value={payItemDraft.pension} onChange={(e) => setPayItemDraft((d)=>({...d,pension:e.target.value}))} />
                     <input className="form-input" type="number" placeholder="Other Deductions (₦)" value={payItemDraft.otherDeductions} onChange={(e) => setPayItemDraft((d)=>({...d,otherDeductions:e.target.value}))} />
                     <input className="form-input" placeholder="Bank name" value={payItemDraft.bankName} onChange={(e) => setPayItemDraft((d)=>({...d,bankName:e.target.value}))} />
                     <input className="form-input" placeholder="Account number" value={payItemDraft.accountNumber} onChange={(e) => setPayItemDraft((d)=>({...d,accountNumber:e.target.value}))} />
-                    <div style={{ gridColumn:'3/5', padding:'0.5rem', background:'var(--surface)', borderRadius:6, fontSize:'0.8rem', display:'flex', alignItems:'center', fontWeight:700 }}>
-                      Net Pay: ₦{((Number(payItemDraft.grossSalary)||0)+(Number(payItemDraft.allowances)||0)-(Number(payItemDraft.tax)||0)-(Number(payItemDraft.pension)||0)-(Number(payItemDraft.otherDeductions)||0)).toLocaleString()}
-                    </div>
+                    {(() => {
+                      const gross = Number(payItemDraft.grossSalary)||0;
+                      const allw = Number(payItemDraft.allowances)||0;
+                      const other = Number(payItemDraft.otherDeductions)||0;
+                      const { tax, pension } = calculateEstimatedStatutory(gross, allw);
+                      const netPay = gross + allw - tax - pension - other;
+                      return (
+                        <div style={{ gridColumn:'1/-1', padding:'0.5rem 0.75rem', background:'var(--surface)', borderRadius:6, fontSize:'0.8rem', display:'flex', gap:'1.25rem', alignItems:'center', flexWrap:'wrap' }}>
+                          <span style={{ color:'var(--muted)' }}>PAYE tax (est.): <strong style={{ color:'var(--text)' }}>₦{tax.toLocaleString()}</strong></span>
+                          <span style={{ color:'var(--muted)' }}>Pension 8% (est.): <strong style={{ color:'var(--text)' }}>₦{pension.toLocaleString()}</strong></span>
+                          <span style={{ fontWeight:700 }}>Net Pay: ₦{netPay.toLocaleString()}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
+                  <p className="muted" style={{ fontSize:'0.75rem', marginBottom:'0.5rem' }}>Tax and pension are calculated automatically per Nigerian PAYE bands and the 8% employee pension contribution — the amounts above are an estimate; final figures are confirmed on save.</p>
                   <div style={{ display:'flex', gap:'0.5rem' }}>
                     <button className="btn-primary" type="submit">Add Employee</button>
                     <button className="btn-ghost" type="button" onClick={() => setPayItemForm(false)}>Cancel</button>
@@ -14480,7 +14522,10 @@ export default function AppShell() {
                           <td style={{ color:'var(--danger)' }}>-₦{(Number(item.tax)+Number(item.pension)+Number(item.other_deductions)).toLocaleString()}</td>
                           <td style={{ fontWeight:700, color:'var(--success)' }}>₦{Number(item.net_pay).toLocaleString()}</td>
                           <td style={{ fontSize:'0.75rem' }}>{item.bank_name ? `${item.bank_name} ···${(item.account_number||'').slice(-4)}` : '—'}</td>
-                          <td><button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => handleRemovePayItem(item.id)}>Remove</button></td>
+                          <td style={{ display:'flex', gap:'0.5rem' }}>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => handleDownloadPayslip(item.id)}>Payslip</button>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => handleRemovePayItem(item.id)}>Remove</button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

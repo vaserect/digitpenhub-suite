@@ -1,4 +1,11 @@
 const db = require('../db');
+const { calculateStatutoryDeductions } = require('../utils/payrollCalculator');
+const { renderPayslipPdf } = require('../utils/payslipPdf');
+
+async function getBranding(orgId) {
+  const { rows } = await db.query(`SELECT display_name, primary_color FROM org_branding WHERE org_id=$1`, [orgId]);
+  return rows[0] || null;
+}
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -65,12 +72,14 @@ async function deleteRun(req, res) {
 
 async function addItem(req, res) {
   const { runId } = req.params;
-  const { employeeName, employeeEmail, department, grossSalary, allowances, tax, pension, otherDeductions, bankName, accountNumber } = req.body || {};
+  const { employeeName, employeeEmail, department, grossSalary, allowances, otherDeductions, bankName, accountNumber } = req.body || {};
   if (!employeeName?.trim()) return res.status(400).json({ error: 'employeeName required' });
   const gross  = Number(grossSalary)||0;
   const allw   = Number(allowances)||0;
-  const t      = Number(tax)||0;
-  const pen    = Number(pension)||0;
+  // Tax and pension are always computed server-side (Nigerian PAYE bands +
+  // 8% employee pension contribution) rather than taken as free-text input —
+  // see backend/src/utils/payrollCalculator.js.
+  const { tax: t, pension: pen } = calculateStatutoryDeductions(gross, allw);
   const other  = Number(otherDeductions)||0;
   const netPay = gross + allw - t - pen - other;
   const client = await db.connect();
@@ -103,4 +112,17 @@ async function removeItem(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem };
+async function getPayslipPdf(req, res) {
+  const { runId, itemId } = req.params;
+  const [runRes, itemRes] = await Promise.all([
+    db.query(`SELECT * FROM payroll_runs WHERE id=$1 AND org_id=$2`, [runId, req.user.orgId]),
+    db.query(`SELECT * FROM payroll_items WHERE id=$1 AND run_id=$2`, [itemId, runId]),
+  ]);
+  if (!runRes.rows.length || !itemRes.rows.length) return res.status(404).json({ error: 'Not found.' });
+  const branding = await getBranding(req.user.orgId);
+  const pdf = await renderPayslipPdf(runRes.rows[0], itemRes.rows[0], branding);
+  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="payslip-${itemRes.rows[0].employee_name.replace(/\s+/g,'-')}.pdf"` });
+  res.send(pdf);
+}
+
+module.exports = { getStats, listRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem, getPayslipPdf };

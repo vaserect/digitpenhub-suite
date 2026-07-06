@@ -10,5 +10,6 @@ r.get('/:id',              c.getRun);
 r.put('/:id',              c.updateRun);
 r.delete('/:id',           c.deleteRun);
 r.post('/:runId/items',    c.addItem);
+r.get('/:runId/items/:itemId/payslip', c.getPayslipPdf);
 r.delete('/:runId/items/:itemId', c.removeItem);
 module.exports = r;

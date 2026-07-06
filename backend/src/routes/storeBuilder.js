@@ -260,14 +260,13 @@ r.get('/abandoned-carts', async (req, res) => {
   res.json({ carts: rows });
 });
 
-r.post('/abandoned-carts/:id/send-recovery', async (req, res) => {
-  const { rows } = await db.query(
-    `SELECT * FROM store_abandoned_carts WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
-  if (!rows.length) return res.status(404).json({ error: 'not_found' });
-  const cart = rows[0];
-  const { rows: settingsRows } = await db.query(`SELECT * FROM store_settings WHERE org_id=$1`, [req.user.orgId]);
+// Shared by the manual "Send recovery email" button (below) and the
+// automated scheduler (backend/src/utils/abandonedCartRecoveryScheduler.js),
+// so the email content and recovery_sent_at bookkeeping only live in one place.
+async function sendCartRecoveryEmail(cart) {
+  const { rows: settingsRows } = await db.query(`SELECT * FROM store_settings WHERE org_id=$1`, [cart.org_id]);
   const storeName = settingsRows[0]?.store_name || 'our store';
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/store/${req.user.orgId}`;
+  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/store/${cart.org_id}`;
   const items = Array.isArray(cart.items) ? cart.items : [];
   const itemsHtml = items.map(i => `<li>${i.name} × ${i.qty}</li>`).join('');
   const result = await sendMail({
@@ -278,8 +277,36 @@ r.post('/abandoned-carts/:id/send-recovery', async (req, res) => {
       <ul>${itemsHtml}</ul>
       <p><a href="${storeUrl}">Come back and complete your order</a></p>`,
   });
+  if (result.ok) await db.query(`UPDATE store_abandoned_carts SET recovery_sent_at=NOW() WHERE id=$1`, [cart.id]);
+  return result;
+}
+
+// Automated recovery pass — called on an interval (see
+// abandonedCartRecoveryScheduler.js). Carts get one hour to convert on their
+// own before we nudge the shopper; already-recovered or already-emailed
+// carts are excluded so this never double-sends.
+async function sendDueCartRecoveries() {
+  const { rows } = await db.query(
+    `SELECT * FROM store_abandoned_carts
+     WHERE recovered = FALSE AND recovery_sent_at IS NULL
+       AND created_at <= now() - interval '1 hour'`
+  );
+  for (const cart of rows) {
+    try {
+      const result = await sendCartRecoveryEmail(cart);
+      if (!result.ok) console.error(`abandoned-cart recovery ${cart.id} send failed:`, result.error);
+    } catch (err) {
+      console.error(`abandoned-cart recovery ${cart.id} failed:`, err.message);
+    }
+  }
+}
+
+r.post('/abandoned-carts/:id/send-recovery', async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT * FROM store_abandoned_carts WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
+  if (!rows.length) return res.status(404).json({ error: 'not_found' });
+  const result = await sendCartRecoveryEmail(rows[0]);
   if (!result.ok) return res.status(502).json({ error: 'Failed to send recovery email.' });
-  await db.query(`UPDATE store_abandoned_carts SET recovery_sent_at=NOW() WHERE id=$1`, [cart.id]);
   res.json({ ok: true });
 });
 
@@ -304,4 +331,9 @@ r.get('/products', async (req, res) => {
   res.json({ products: withVariants });
 });
 
+// Express Router is just a function — attaching this lets the scheduler
+// (backend/src/utils/abandonedCartRecoveryScheduler.js) reuse the same send
+// logic without this file needing to export a plain object instead of the
+// router (which app.js mounts directly as middleware).
+r.sendDueCartRecoveries = sendDueCartRecoveries;
 module.exports = r;

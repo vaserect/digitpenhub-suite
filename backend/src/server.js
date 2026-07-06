@@ -2,6 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const { startAutomationScheduler } = require('./utils/automationScheduler');
 const { startAppointmentReminderScheduler } = require('./utils/appointmentReminderScheduler');
+const { startAbandonedCartRecoveryScheduler } = require('./utils/abandonedCartRecoveryScheduler');
 
 // Safety net: on Node 15+ an unhandled promise rejection (e.g. a rejected
 // async route handler that lacks a try/catch) terminates the process by
@@ -20,4 +21,5 @@ app.listen(port, '127.0.0.1', () => {
   console.log(`digitpenhub-suite-api listening on 127.0.0.1:${port}`);
   startAutomationScheduler();
   startAppointmentReminderScheduler();
+  startAbandonedCartRecoveryScheduler();
 });

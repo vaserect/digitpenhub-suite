@@ -11,6 +11,16 @@ function visitorHash(req) {
   return crypto.createHash('sha256').update(`${ip}::${ua}`).digest('hex');
 }
 
+// These IDs get interpolated into inline <script> tags on published public
+// pages, so reject anything that doesn't match the provider's real ID format
+// rather than trusting free-form input.
+function validateTrackingIds({ gaMeasurementId, metaPixelId, googleAdsConversionId }) {
+  if (gaMeasurementId && !/^G-[A-Z0-9]+$/i.test(gaMeasurementId)) return 'Invalid GA Measurement ID (expected format: G-XXXXXXX).';
+  if (metaPixelId && !/^[0-9]{5,20}$/.test(metaPixelId)) return 'Invalid Meta Pixel ID (expected a numeric ID).';
+  if (googleAdsConversionId && !/^(AW-)?[A-Za-z0-9-]+$/.test(googleAdsConversionId)) return 'Invalid Google Ads Conversion ID.';
+  return null;
+}
+
 // ── Protected (org-scoped) ───────────────────────────────────────────────────
 
 async function listPages(req, res) {
@@ -35,17 +45,21 @@ async function getPage(req, res) {
 }
 
 async function createPage(req, res) {
-  const { title, slug, metaDescription, pageType, customDomain } = req.body || {};
+  const { title, slug, metaDescription, pageType, customDomain, gaMeasurementId, metaPixelId, googleAdsConversionId } = req.body || {};
   if (!title || !title.trim()) return res.status(400).json({ error: 'title is required.' });
+
+  const trackingError = validateTrackingIds({ gaMeasurementId, metaPixelId, googleAdsConversionId });
+  if (trackingError) return res.status(400).json({ error: trackingError });
 
   const finalSlug = slug ? slugify(slug) : slugify(title);
   if (!finalSlug) return res.status(400).json({ error: 'Invalid slug.' });
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO pages (org_id, slug, title, meta_description, page_type, custom_domain)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [req.user.orgId, finalSlug, title.trim(), metaDescription || null, pageType || 'page', customDomain ? customDomain.trim().toLowerCase() : null]
+      `INSERT INTO pages (org_id, slug, title, meta_description, page_type, custom_domain, ga_measurement_id, meta_pixel_id, google_ads_conversion_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [req.user.orgId, finalSlug, title.trim(), metaDescription || null, pageType || 'page', customDomain ? customDomain.trim().toLowerCase() : null,
+       gaMeasurementId || null, metaPixelId || null, googleAdsConversionId || null]
     );
     res.status(201).json({ page: rows[0] });
   } catch (err) {
@@ -56,10 +70,13 @@ async function createPage(req, res) {
 
 async function updatePage(req, res) {
   const { id } = req.params;
-  const { title, slug, metaDescription, ogImage, canonicalUrl, blocks, status, customDomain } = req.body || {};
+  const { title, slug, metaDescription, ogImage, canonicalUrl, blocks, status, customDomain, gaMeasurementId, metaPixelId, googleAdsConversionId } = req.body || {};
 
   const existing = await db.query(`SELECT id FROM pages WHERE id = $1 AND org_id = $2`, [id, req.user.orgId]);
   if (!existing.rows.length) return res.status(404).json({ error: 'Page not found.' });
+
+  const trackingError = validateTrackingIds({ gaMeasurementId, metaPixelId, googleAdsConversionId });
+  if (trackingError) return res.status(400).json({ error: trackingError });
 
   const updates = [];
   const values = [];
@@ -72,6 +89,9 @@ async function updatePage(req, res) {
   if (canonicalUrl !== undefined)    { updates.push(`canonical_url = $${idx++}`);    values.push(canonicalUrl || null); }
   if (blocks !== undefined)          { updates.push(`blocks = $${idx++}`);           values.push(JSON.stringify(Array.isArray(blocks) ? blocks : [])); }
   if (customDomain !== undefined)    { updates.push(`custom_domain = $${idx++}`);   values.push(customDomain ? customDomain.trim().toLowerCase() : null); }
+  if (gaMeasurementId !== undefined)       { updates.push(`ga_measurement_id = $${idx++}`);        values.push(gaMeasurementId || null); }
+  if (metaPixelId !== undefined)           { updates.push(`meta_pixel_id = $${idx++}`);            values.push(metaPixelId || null); }
+  if (googleAdsConversionId !== undefined) { updates.push(`google_ads_conversion_id = $${idx++}`); values.push(googleAdsConversionId || null); }
   if (status !== undefined && ['draft','published'].includes(status)) {
     updates.push(`status = $${idx++}`);
     values.push(status);
@@ -113,14 +133,14 @@ async function getPublicPage(req, res) {
   let rows;
   if (host) {
     ({ rows } = await db.query(
-      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks
+      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks, ga_measurement_id, meta_pixel_id, google_ads_conversion_id
        FROM pages WHERE custom_domain = $1 AND status = 'published'`,
       [host]
     ));
   }
   if (!rows || !rows.length) {
     ({ rows } = await db.query(
-      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks
+      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks, ga_measurement_id, meta_pixel_id, google_ads_conversion_id
        FROM pages WHERE slug = $1 AND status = 'published'`,
       [slug]
     ));

@@ -1557,7 +1557,7 @@ export default function AppShell() {
   const [storeSettings, setStoreSettings] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [storeTab, setStoreTab]         = useState('settings');
-  const [storeDraft, setStoreDraft]     = useState({ storeName:'', tagline:'', logoUrl:'', bannerUrl:'', theme:'modern', primaryColor:'#2563eb', currency:'NGN', contactEmail:'', contactPhone:'', address:'', social:{} });
+  const [storeDraft, setStoreDraft]     = useState({ storeName:'', tagline:'', logoUrl:'', bannerUrl:'', theme:'modern', primaryColor:'#2563eb', currency:'NGN', contactEmail:'', contactPhone:'', address:'', social:{}, gaMeasurementId:'', metaPixelId:'', googleAdsConversionId:'' });
   const [storeSaving, setStoreSaving]   = useState(false);
 
   // Milestone 14: Appointment Booking
@@ -1613,7 +1613,7 @@ export default function AppShell() {
   const [pages, setPages] = useState([]);
   const [pagesLoaded, setPagesLoaded] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
-  const [pageDraft, setPageDraft] = useState({ title: '', slug: '', metaDescription: '', ogImage: '', canonicalUrl: '', customDomain: '', status: 'draft', blocks: [] });
+  const [pageDraft, setPageDraft] = useState({ title: '', slug: '', metaDescription: '', ogImage: '', canonicalUrl: '', customDomain: '', gaMeasurementId: '', metaPixelId: '', googleAdsConversionId: '', status: 'draft', blocks: [] });
   const [pageAnalytics, setPageAnalytics] = useState(null);
   const [dragBlockIdx, setDragBlockIdx] = useState(null);
   const [editingBlock, setEditingBlock] = useState(null);
@@ -2624,7 +2624,7 @@ export default function AppShell() {
   function openLpPageEditor(page) {
     setPageEditorSource('landing-page-builder');
     setEditingPage(page);
-    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
+    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', gaMeasurementId: page.ga_measurement_id || '', metaPixelId: page.meta_pixel_id || '', googleAdsConversionId: page.google_ads_conversion_id || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
     setEditingBlock(null);
     setBlockDraft({});
     setPageAnalytics(null);
@@ -2637,7 +2637,7 @@ export default function AppShell() {
     try {
       const data = await apiFetch(`/api/v1/pages/${editingPage.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, status: pageDraft.status, blocks: pageDraft.blocks }),
+        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, gaMeasurementId: pageDraft.gaMeasurementId, metaPixelId: pageDraft.metaPixelId, googleAdsConversionId: pageDraft.googleAdsConversionId, status: pageDraft.status, blocks: pageDraft.blocks }),
       });
       setEditingPage(data.page);
       setPageDraft((d) => ({ ...d, ...data.page, blocks: Array.isArray(data.page.blocks) ? data.page.blocks : d.blocks }));
@@ -5425,7 +5425,7 @@ export default function AppShell() {
 
   function openPageEditor(page) {
     setEditingPage(page);
-    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
+    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', gaMeasurementId: page.ga_measurement_id || '', metaPixelId: page.meta_pixel_id || '', googleAdsConversionId: page.google_ads_conversion_id || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
     setEditingBlock(null);
     setBlockDraft({});
     setPageAnalytics(null);
@@ -5702,7 +5702,7 @@ export default function AppShell() {
     try {
       const data = await apiFetch(`/api/v1/pages/${editingPage.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, status: pageDraft.status, blocks: pageDraft.blocks }),
+        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, gaMeasurementId: pageDraft.gaMeasurementId, metaPixelId: pageDraft.metaPixelId, googleAdsConversionId: pageDraft.googleAdsConversionId, status: pageDraft.status, blocks: pageDraft.blocks }),
       });
       setEditingPage(data.page);
       setPageDraft((d) => ({ ...d, ...data.page, blocks: Array.isArray(data.page.blocks) ? data.page.blocks : d.blocks }));
@@ -7007,7 +7007,7 @@ export default function AppShell() {
   }
   async function loadStoreBuilder() {
     const [s, p] = await Promise.all([apiFetch('/api/v1/store-builder/settings'), apiFetch('/api/v1/store-builder/products')]);
-    setStoreSettings(s.settings); setStoreDraft({ storeName:s.settings?.store_name||'', tagline:s.settings?.tagline||'', logoUrl:s.settings?.logo_url||'', bannerUrl:s.settings?.banner_url||'', theme:s.settings?.theme||'modern', primaryColor:s.settings?.primary_color||'#2563eb', currency:s.settings?.currency||'NGN', contactEmail:s.settings?.contact_email||'', contactPhone:s.settings?.contact_phone||'', address:s.settings?.address||'', social:s.settings?.social||{} }); setStoreProducts(p.products||[]); setStoreLoaded(true);
+    setStoreSettings(s.settings); setStoreDraft({ storeName:s.settings?.store_name||'', tagline:s.settings?.tagline||'', logoUrl:s.settings?.logo_url||'', bannerUrl:s.settings?.banner_url||'', theme:s.settings?.theme||'modern', primaryColor:s.settings?.primary_color||'#2563eb', currency:s.settings?.currency||'NGN', contactEmail:s.settings?.contact_email||'', contactPhone:s.settings?.contact_phone||'', address:s.settings?.address||'', social:s.settings?.social||{}, gaMeasurementId:s.settings?.ga_measurement_id||'', metaPixelId:s.settings?.meta_pixel_id||'', googleAdsConversionId:s.settings?.google_ads_conversion_id||'' }); setStoreProducts(p.products||[]); setStoreLoaded(true);
   }
 
   async function loadStorage(mode) {
@@ -9559,6 +9559,15 @@ export default function AppShell() {
                         <input className="field-input" value={pageDraft.customDomain} onChange={(e) => setPageDraft((d) => ({ ...d, customDomain: e.target.value.toLowerCase() }))} placeholder="www.example.com" />
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Point a CNAME record for this domain to your app's host to connect it to this page.</div>
                       </div>
+                      <div className="field" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                        <label className="field-label" style={{ display: 'block', marginTop: 8 }}>Tracking &amp; Ads</label>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Wire up conversion tracking for paid campaigns pointed at this page. Leave blank to skip.</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <input className="field-input" value={pageDraft.gaMeasurementId} onChange={(e) => setPageDraft((d) => ({ ...d, gaMeasurementId: e.target.value }))} placeholder="GA Measurement ID (G-XXXXXXXXXX)" />
+                          <input className="field-input" value={pageDraft.metaPixelId} onChange={(e) => setPageDraft((d) => ({ ...d, metaPixelId: e.target.value }))} placeholder="Meta Pixel ID" />
+                          <input className="field-input" value={pageDraft.googleAdsConversionId} onChange={(e) => setPageDraft((d) => ({ ...d, googleAdsConversionId: e.target.value }))} placeholder="Google Ads Conversion ID (AW-XXXXXXXXX)" />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -11816,6 +11825,15 @@ export default function AppShell() {
                     <label className="field-label">Custom domain (optional)</label>
                     <input className="field-input" value={pageDraft.customDomain} onChange={(e) => setPageDraft((d) => ({ ...d, customDomain: e.target.value.toLowerCase() }))} placeholder="www.example.com" />
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Point a CNAME record for this domain to your app's host to connect it to this page.</div>
+                  </div>
+                  <div className="field" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                    <label className="field-label" style={{ display: 'block', marginTop: 8 }}>Tracking &amp; Ads</label>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Wire up conversion tracking for paid campaigns pointed at this page. Leave blank to skip.</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <input className="field-input" value={pageDraft.gaMeasurementId} onChange={(e) => setPageDraft((d) => ({ ...d, gaMeasurementId: e.target.value }))} placeholder="GA Measurement ID (G-XXXXXXXXXX)" />
+                      <input className="field-input" value={pageDraft.metaPixelId} onChange={(e) => setPageDraft((d) => ({ ...d, metaPixelId: e.target.value }))} placeholder="Meta Pixel ID" />
+                      <input className="field-input" value={pageDraft.googleAdsConversionId} onChange={(e) => setPageDraft((d) => ({ ...d, googleAdsConversionId: e.target.value }))} placeholder="Google Ads Conversion ID (AW-XXXXXXXXX)" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -21327,6 +21345,15 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Contact Phone</label><input className="form-input" value={storeDraft.contactPhone} onChange={(e) => setStoreDraft(d=>({...d,contactPhone:e.target.value}))} /></div>
                     <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Address</label><input className="form-input" value={storeDraft.address} onChange={(e) => setStoreDraft(d=>({...d,address:e.target.value}))} /></div>
                   </div>
+
+                  <div style={{ fontWeight:700, fontSize:'0.9rem', margin:'1.25rem 0 0.5rem' }}>Tracking &amp; Ads</div>
+                  <div style={{ fontSize:'0.8rem', color:'var(--muted)', marginBottom:'0.75rem' }}>Wire up conversion tracking for paid campaigns pointed at your storefront. Leave blank to skip.</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'0.75rem' }}>
+                    <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>GA Measurement ID</label><input className="form-input" value={storeDraft.gaMeasurementId} onChange={(e) => setStoreDraft(d=>({...d,gaMeasurementId:e.target.value}))} placeholder="G-XXXXXXXXXX" /></div>
+                    <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Meta Pixel ID</label><input className="form-input" value={storeDraft.metaPixelId} onChange={(e) => setStoreDraft(d=>({...d,metaPixelId:e.target.value}))} placeholder="123456789012345" /></div>
+                    <div><label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Google Ads Conversion ID</label><input className="form-input" value={storeDraft.googleAdsConversionId} onChange={(e) => setStoreDraft(d=>({...d,googleAdsConversionId:e.target.value}))} placeholder="AW-XXXXXXXXX" /></div>
+                  </div>
+
                   <Button disabled={!storeDraft.storeName.trim() || storeSaving} loading={storeSaving} onClick={async () => {
                     setStoreSaving(true);
                     const d = await apiFetch('/api/v1/store-builder/settings', { method:'PUT', body: JSON.stringify(storeDraft) });

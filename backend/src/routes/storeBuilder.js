@@ -9,6 +9,15 @@ const r = Router();
 // unauthenticated shoppers. Mounted before the requireAuth gate below,
 // mirroring the pattern in backend/src/routes/pages.js. ──────────────────────
 
+// Public — no auth. Lists every published store so a single site-wide
+// sitemap.xml can include storefronts, mirroring pages.js's public-sitemap.
+r.get('/public-sitemap', async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT org_id, updated_at FROM store_settings WHERE is_published = TRUE ORDER BY updated_at DESC`
+  );
+  res.json({ stores: rows });
+});
+
 r.get('/public/:orgId', async (req, res) => {
   const { orgId } = req.params;
   const { rows: settingsRows } = await db.query(
@@ -190,15 +199,23 @@ r.get('/settings', async (req, res) => {
 });
 
 r.put('/settings', async (req, res) => {
-  const { storeName, tagline, logoUrl, bannerUrl, theme, primaryColor, currency, contactEmail, contactPhone, address, social } = req.body || {};
+  const { storeName, tagline, logoUrl, bannerUrl, theme, primaryColor, currency, contactEmail, contactPhone, address, social,
+    gaMeasurementId, metaPixelId, googleAdsConversionId } = req.body || {};
+  // These IDs get interpolated into inline <script> tags on the public storefront,
+  // so reject anything that doesn't match the provider's real ID format rather
+  // than trusting free-form input from the org's own dashboard.
+  if (gaMeasurementId && !/^G-[A-Z0-9]+$/i.test(gaMeasurementId)) return res.status(400).json({ error: 'Invalid GA Measurement ID (expected format: G-XXXXXXX).' });
+  if (metaPixelId && !/^[0-9]{5,20}$/.test(metaPixelId)) return res.status(400).json({ error: 'Invalid Meta Pixel ID (expected a numeric ID).' });
+  if (googleAdsConversionId && !/^(AW-)?[A-Za-z0-9-]+$/.test(googleAdsConversionId)) return res.status(400).json({ error: 'Invalid Google Ads Conversion ID.' });
   const { rows } = await db.query(
-    `INSERT INTO store_settings (org_id,store_name,tagline,logo_url,banner_url,theme,primary_color,currency,contact_email,contact_phone,address,social,updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
+    `INSERT INTO store_settings (org_id,store_name,tagline,logo_url,banner_url,theme,primary_color,currency,contact_email,contact_phone,address,social,ga_measurement_id,meta_pixel_id,google_ads_conversion_id,updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
      ON CONFLICT (org_id) DO UPDATE SET
        store_name=$2,tagline=$3,logo_url=$4,banner_url=$5,theme=$6,primary_color=$7,currency=$8,
-       contact_email=$9,contact_phone=$10,address=$11,social=$12,updated_at=NOW() RETURNING *`,
+       contact_email=$9,contact_phone=$10,address=$11,social=$12,ga_measurement_id=$13,meta_pixel_id=$14,google_ads_conversion_id=$15,updated_at=NOW() RETURNING *`,
     [req.user.orgId, storeName||'My Store', tagline||'', logoUrl||'', bannerUrl||'', theme||'modern',
-     primaryColor||'#2563eb', currency||'NGN', contactEmail||'', contactPhone||'', address||'', JSON.stringify(social||{})]);
+     primaryColor||'#2563eb', currency||'NGN', contactEmail||'', contactPhone||'', address||'', JSON.stringify(social||{}),
+     gaMeasurementId || null, metaPixelId || null, googleAdsConversionId || null]);
   res.json({ settings: rows[0] });
 });
 

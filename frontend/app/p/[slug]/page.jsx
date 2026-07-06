@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Script from 'next/script';
 import FormBlock from './FormBlock';
 
 const API = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4001';
@@ -241,6 +242,7 @@ export async function generateMetadata({ params }) {
     title: page.title,
     description,
     alternates: { canonical },
+    robots: { index: true, follow: true },
     openGraph: {
       title: page.title,
       description,
@@ -262,10 +264,46 @@ export default async function PublicPage({ params }) {
   if (!page) notFound();
 
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
+  const { ga_measurement_id: gaId, meta_pixel_id: metaPixelId, google_ads_conversion_id: googleAdsId } = page;
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", minHeight: '100vh', background: '#fff', color: '#0f172a' }}>
       <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+      {/* Paid-campaign tracking — only injected when the page owner has set an ID. */}
+      {gaId && (
+        <>
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+          <Script id="ga-init" strategy="afterInteractive">
+            {`window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${gaId}');`}
+          </Script>
+        </>
+      )}
+      {googleAdsId && (
+        <Script id="google-ads-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${googleAdsId}');`}
+        </Script>
+      )}
+      {metaPixelId && (
+        <Script id="meta-pixel-init" strategy="afterInteractive">
+          {`!function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${metaPixelId}');
+            fbq('track', 'PageView');`}
+        </Script>
+      )}
       {blocks.length === 0 ? (
         <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontFamily: 'system-ui, sans-serif' }}>
           <div style={{ textAlign: 'center' }}>

@@ -118,4 +118,14 @@ async function submitPublicResponse(req, res) {
   res.status(201).json({ ok: true, responseId: inserted[0].id });
 }
 
-module.exports = { getStats, listForms, getForm, createForm, updateForm, deleteForm, listResponses, deleteResponse, getPublicForm, submitPublicResponse };
+// Public — no auth. Lists every active form so a single site-wide
+// sitemap.xml can include public forms, mirroring pagesController's
+// listPublicSitemap.
+async function listPublicSitemap(req, res) {
+  const { rows } = await db.query(
+    `SELECT id, created_at AS updated_at FROM forms WHERE status = 'active' ORDER BY created_at DESC`
+  );
+  res.json({ forms: rows });
+}
+
+module.exports = { getStats, listForms, getForm, createForm, updateForm, deleteForm, listResponses, deleteResponse, getPublicForm, submitPublicResponse, listPublicSitemap };

@@ -14,6 +14,7 @@ const submitLimiter = rateLimit({
 });
 
 // Public — no auth (the visitor-facing fill/submit page)
+r.get('/public-sitemap',        c.listPublicSitemap);
 r.get('/:id/public',            c.getPublicForm);
 r.post('/:id/submit',           submitLimiter, c.submitPublicResponse);
 

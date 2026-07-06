@@ -853,6 +853,8 @@ export default function AppShell() {
   const [validateResult, setValidateResult] = useState(null);
   const [couponConfirmDelete, setCouponConfirmDelete] = useState(null);
   const [couponDeleting, setCouponDeleting] = useState(false);
+  const [couponSelected, setCouponSelected] = useState([]);
+  const [couponBulkDeleting, setCouponBulkDeleting] = useState(false);
 
   // ── URL Shortener ─────────────────────────────────────────────────────────
   const [urlLoaded, setUrlLoaded]           = useState(false);
@@ -874,6 +876,8 @@ export default function AppShell() {
   const [assetDraft, setAssetDraft]         = useState({ name:'', assetTag:'', category:'', description:'', serialNumber:'', purchaseDate:'', purchaseCost:'', currentValue:'', status:'available', assignedTo:'', location:'' });
   const [assetConfirmDelete, setAssetConfirmDelete] = useState(null);
   const [assetDeleting, setAssetDeleting]   = useState(false);
+  const [assetSelected, setAssetSelected]   = useState([]);
+  const [assetBulkDeleting, setAssetBulkDeleting] = useState(false);
 
   // ── Order Management ──────────────────────────────────────────────────────
   const [orderLoaded, setOrderLoaded]       = useState(false);
@@ -3551,6 +3555,17 @@ export default function AppShell() {
     } finally { setCouponDeleting(false); setCouponConfirmDelete(null); }
   }
 
+  async function confirmCouponBulkDelete() {
+    setCouponBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/coupons/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: couponSelected }) });
+      setCoupons((c) => c.filter((x) => !couponSelected.includes(x.id)));
+      setCouponSelected([]);
+      const s = await apiFetch('/api/v1/coupons/stats'); setCouponStats(s);
+      showToast('Coupons deleted.');
+    } finally { setCouponBulkDeleting(false); }
+  }
+
   async function handleValidateCoupon(e) {
     e.preventDefault();
     const data = await apiFetch('/api/v1/coupons/validate', { method: 'POST', body: JSON.stringify({ code: validateCode, orderTotal: 0 }) });
@@ -3623,6 +3638,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/assets/stats'); setAssetStats(s);
       showToast('Asset deleted.');
     } finally { setAssetDeleting(false); setAssetConfirmDelete(null); }
+  }
+
+  async function confirmAssetBulkDelete() {
+    setAssetBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/assets/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: assetSelected }) });
+      setAssets((a) => a.filter((x) => !assetSelected.includes(x.id)));
+      setAssetSelected([]);
+      const s = await apiFetch('/api/v1/assets/stats'); setAssetStats(s);
+      showToast('Assets deleted.');
+    } finally { setAssetBulkDeleting(false); }
   }
 
   // ── Order Management ──────────────────────────────────────────────────────
@@ -13983,10 +14009,13 @@ export default function AppShell() {
             return filtered.length === 0 ? <div className="empty-state"><p>No coupons yet.</p></div> : (
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>Code</th><th>Discount</th><th>Min Order</th><th>Uses</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr>
+                    <th style={{ width:32 }}><input type="checkbox" checked={couponSelected.length>0 && couponSelected.length===filtered.length} onChange={(e) => setCouponSelected(e.target.checked ? filtered.map((c)=>c.id) : [])} /></th>
+                    <th>Code</th><th>Discount</th><th>Min Order</th><th>Uses</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {filtered.map((c) => (
                       <tr key={c.id}>
+                        <td><input type="checkbox" checked={couponSelected.includes(c.id)} onChange={(e) => setCouponSelected((sel) => e.target.checked ? [...sel, c.id] : sel.filter((id)=>id!==c.id))} /></td>
                         <td style={{ fontFamily:'monospace', fontWeight:700, letterSpacing:1 }}>{c.code}</td>
                         <td style={{ fontWeight:600 }}>{c.type==='percent' ? `${c.value}%` : `₦${Number(c.value).toLocaleString()}`}</td>
                         <td style={{ color:'var(--muted)', fontSize:'0.8rem' }}>{c.min_order > 0 ? `₦${Number(c.min_order).toLocaleString()}` : '—'}</td>
@@ -14008,6 +14037,11 @@ export default function AppShell() {
               </div>
             );
           })()}
+          <BulkActionBar
+            selectedCount={couponSelected.length}
+            onClearSelection={() => setCouponSelected([])}
+            actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${couponSelected.length} coupon(s)?`, confirmDescription:"This can't be undone.", onClick:confirmCouponBulkDelete }]}
+          />
           <ConfirmDialog
             isOpen={!!couponConfirmDelete}
             onClose={() => setCouponConfirmDelete(null)}
@@ -14150,10 +14184,13 @@ export default function AppShell() {
             return filtered.length === 0 ? <div className="empty-state"><p>No assets found.</p></div> : (
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>Name</th><th>Tag</th><th>Category</th><th>Status</th><th>Assigned To</th><th>Purchase Cost</th><th>Actions</th></tr></thead>
+                  <thead><tr>
+                    <th style={{ width:32 }}><input type="checkbox" checked={assetSelected.length>0 && assetSelected.length===filtered.length} onChange={(e) => setAssetSelected(e.target.checked ? filtered.map((a)=>a.id) : [])} /></th>
+                    <th>Name</th><th>Tag</th><th>Category</th><th>Status</th><th>Assigned To</th><th>Purchase Cost</th><th>Actions</th></tr></thead>
                   <tbody>
                     {filtered.map((a) => (
                       <tr key={a.id}>
+                        <td><input type="checkbox" checked={assetSelected.includes(a.id)} onChange={(e) => setAssetSelected((sel) => e.target.checked ? [...sel, a.id] : sel.filter((id)=>id!==a.id))} /></td>
                         <td>
                           <div style={{ fontWeight:600 }}>{a.name}</div>
                           {a.serial_number && <div style={{ fontSize:'0.72rem', color:'var(--muted)', fontFamily:'monospace' }}>S/N: {a.serial_number}</div>}
@@ -14174,6 +14211,11 @@ export default function AppShell() {
               </div>
             );
           })()}
+          <BulkActionBar
+            selectedCount={assetSelected.length}
+            onClearSelection={() => setAssetSelected([])}
+            actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${assetSelected.length} asset(s)?`, confirmDescription:"This can't be undone.", onClick:confirmAssetBulkDelete }]}
+          />
           <ConfirmDialog
             isOpen={!!assetConfirmDelete}
             onClose={() => setAssetConfirmDelete(null)}

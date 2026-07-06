@@ -755,6 +755,10 @@ export default function AppShell() {
   const [fbFormDeleting, setFbFormDeleting] = useState(false);
   const [fbQuery, setFbQuery]               = useState('');
   const [fbTemplateOpen, setFbTemplateOpen] = useState(false);
+  const [fbEditShowIfId, setFbEditShowIfId] = useState(null);
+  const [fbEditShowIfDraft, setFbEditShowIfDraft] = useState({ showIfFieldId: '', showIfValue: '' });
+  const [fbDragFieldId, setFbDragFieldId]   = useState(null);
+  const [fbEmbedForm, setFbEmbedForm]       = useState(null);
 
   // ── Help Desk ─────────────────────────────────────────────────────────────
   const [hdLoaded, setHdLoaded]             = useState(false);
@@ -3261,6 +3265,34 @@ export default function AppShell() {
   }
 
   function fbRemoveField(id) { setFbDraft((d) => ({ ...d, fields: d.fields.filter((f) => f.id !== id) })); }
+
+  function fbUpdateFieldShowIf(id, showIf) {
+    setFbDraft((d) => ({ ...d, fields: d.fields.map((f) => (f.id === id ? { ...f, showIf } : f)) }));
+  }
+
+  function fbStartEditShowIf(f) {
+    setFbEditShowIfId(f.id);
+    setFbEditShowIfDraft({ showIfFieldId: f.showIf ? String(f.showIf.fieldId) : '', showIfValue: f.showIf ? f.showIf.value : '' });
+  }
+
+  function fbSaveEditShowIf() {
+    const showIf = fbEditShowIfDraft.showIfFieldId ? { fieldId: fbEditShowIfDraft.showIfFieldId, operator: 'equals', value: fbEditShowIfDraft.showIfValue } : null;
+    fbUpdateFieldShowIf(fbEditShowIfId, showIf);
+    setFbEditShowIfId(null);
+  }
+
+  function fbReorderField(dragId, dropId) {
+    if (dragId == null || dropId == null || dragId === dropId) return;
+    setFbDraft((d) => {
+      const fields = [...d.fields];
+      const from = fields.findIndex((f) => f.id === dragId);
+      const to = fields.findIndex((f) => f.id === dropId);
+      if (from === -1 || to === -1 || from === to) return d;
+      const [moved] = fields.splice(from, 1);
+      fields.splice(to, 0, moved);
+      return { ...d, fields };
+    });
+  }
 
   // ── Help Desk ─────────────────────────────────────────────────────────────
 
@@ -13255,12 +13287,39 @@ export default function AppShell() {
                   {fbDraft.fields.map((f) => {
                     const gateField = f.showIf ? fbDraft.fields.find((x) => String(x.id) === String(f.showIf.fieldId)) : null;
                     return (
-                      <div key={f.id} style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 0.5rem', background:'var(--surface)', borderRadius:6, marginBottom:'0.3rem', flexWrap:'wrap' }}>
-                        <span style={{ flex:1, fontSize:'0.85rem', minWidth:100 }}>{f.label}</span>
-                        <span className="ctag">{f.type}</span>
-                        {f.required && <span className="ctag" style={{ color:'var(--danger)' }}>required</span>}
-                        {gateField && <span className="ctag" style={{ color:'var(--primary)' }}>shown if &quot;{gateField.label}&quot; = &quot;{f.showIf.value}&quot;</span>}
-                        <button type="button" className="btn-ghost" style={{ color:'var(--danger)', padding:'1px 5px', fontSize:'0.75rem' }} onClick={() => fbRemoveField(f.id)}>×</button>
+                      <div key={f.id}>
+                        <div
+                          draggable
+                          onDragStart={(e) => { setFbDragFieldId(f.id); e.dataTransfer.effectAllowed = 'move'; }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => { e.preventDefault(); fbReorderField(fbDragFieldId, f.id); setFbDragFieldId(null); }}
+                          onDragEnd={() => setFbDragFieldId(null)}
+                          style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.4rem 0.5rem', background:'var(--surface)', borderRadius:6, marginBottom:'0.3rem', flexWrap:'wrap', opacity: fbDragFieldId === f.id ? 0.5 : 1, cursor:'grab' }}
+                        >
+                          <span title="Drag to reorder" style={{ cursor:'grab', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}>⠿</span>
+                          <span style={{ flex:1, fontSize:'0.85rem', minWidth:100 }}>{f.label}</span>
+                          <span className="ctag">{f.type}</span>
+                          {f.required && <span className="ctag" style={{ color:'var(--danger)' }}>required</span>}
+                          {gateField && <span className="ctag" style={{ color:'var(--primary)' }}>shown if &quot;{gateField.label}&quot; = &quot;{f.showIf.value}&quot;</span>}
+                          <button type="button" className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => (fbEditShowIfId === f.id ? setFbEditShowIfId(null) : fbStartEditShowIf(f))}>{fbEditShowIfId === f.id ? 'Close' : 'Edit logic'}</button>
+                          <button type="button" className="btn-ghost" style={{ color:'var(--danger)', padding:'1px 5px', fontSize:'0.75rem' }} onClick={() => fbRemoveField(f.id)}>×</button>
+                        </div>
+                        {fbEditShowIfId === f.id && (
+                          <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.5rem', marginLeft:'1.5rem', flexWrap:'wrap', alignItems:'center', fontSize:'0.8rem', color:'var(--muted)' }}>
+                            <span>Only show this field if</span>
+                            <select className="form-input" value={fbEditShowIfDraft.showIfFieldId} onChange={(e) => setFbEditShowIfDraft((d) => ({ ...d, showIfFieldId: e.target.value }))} style={{ maxWidth:180 }}>
+                              <option value="">(always show)</option>
+                              {fbDraft.fields.filter((x) => x.id !== f.id).map((x) => <option key={x.id} value={String(x.id)}>{x.label}</option>)}
+                            </select>
+                            {fbEditShowIfDraft.showIfFieldId && (
+                              <>
+                                <span>equals</span>
+                                <input className="form-input" placeholder="value" value={fbEditShowIfDraft.showIfValue} onChange={(e) => setFbEditShowIfDraft((d) => ({ ...d, showIfValue: e.target.value }))} style={{ maxWidth:140 }} />
+                              </>
+                            )}
+                            <button type="button" className="btn-ghost" onClick={fbSaveEditShowIf}>Save</button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -13335,6 +13394,7 @@ export default function AppShell() {
                             <Tooltip label="Copy the public link visitors use to fill this form">
                               <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/forms/${f.id}`); showToast('Public form link copied.'); }}>Copy link</button>
                             </Tooltip>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => setFbEmbedForm(f)}>Embed</button>
                             <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { setEditingFbForm(f); setFbDraft({ name:f.name, description:f.description||'', fields:Array.isArray(f.fields)?f.fields:[], status:f.status, submitMessage:f.submit_message }); setFbForm(true); }}>Edit</button>
                             <button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => handleDeleteFbForm(f.id)}>Delete</button>
                           </td>
@@ -13355,6 +13415,30 @@ export default function AppShell() {
               danger
               loading={fbFormDeleting}
             />
+            <Modal isOpen={!!fbEmbedForm} onClose={() => setFbEmbedForm(null)} title="Embed this form" description="Share the public link, or paste the iframe snippet into any website.">
+              {fbEmbedForm && (() => {
+                const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/forms/${fbEmbedForm.id}`;
+                const iframeSnippet = `<iframe src="${publicUrl}" width="100%" height="700" style="border:0;" title="${fbEmbedForm.name}"></iframe>`;
+                return (
+                  <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                    <div>
+                      <div style={{ fontSize:'0.8rem', fontWeight:600, marginBottom:'0.3rem' }}>Public link</div>
+                      <div style={{ display:'flex', gap:'0.5rem' }}>
+                        <input className="form-input" readOnly value={publicUrl} style={{ flex:1 }} onFocus={(e) => e.target.select()} />
+                        <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl); showToast('Public form link copied.'); }}>Copy</Button>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:'0.8rem', fontWeight:600, marginBottom:'0.3rem' }}>Embed snippet</div>
+                      <textarea className="form-input" readOnly value={iframeSnippet} rows={3} style={{ width:'100%', fontFamily:'monospace', fontSize:'0.75rem', resize:'vertical' }} onFocus={(e) => e.target.select()} />
+                      <div style={{ marginTop:'0.4rem' }}>
+                        <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(iframeSnippet); showToast('Embed snippet copied.'); }}>Copy snippet</Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </Modal>
             <StarterTemplateModal
               isOpen={fbTemplateOpen}
               onClose={() => setFbTemplateOpen(false)}

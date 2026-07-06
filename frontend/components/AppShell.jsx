@@ -10732,7 +10732,7 @@ export default function AppShell() {
               {apptTab === 'appointments' && (
                 <div>
                   {appointments.length === 0 ? (
-                    <p className="empty-state">No appointments yet. Share your booking URL to get started.</p>
+                    <EmptyState title="No appointments yet. Share your booking URL to get started." />
                   ) : (
                     <div className="table-wrap">
                       <table className="data-table">
@@ -10803,7 +10803,7 @@ export default function AppShell() {
                   )}
 
                   {apptServices.length === 0 ? (
-                    <p className="empty-state">No services yet. Add a service to enable booking.</p>
+                    <EmptyState title="No services yet. Add a service to enable booking." />
                   ) : (
                     <div className="table-wrap">
                       <table className="data-table">
@@ -12857,7 +12857,7 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {affConversions.length === 0 ? <div className="empty-state"><p>No conversions logged yet.</p></div> : (
+                  {affConversions.length === 0 ? <EmptyState title="No conversions logged yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Affiliate</th><th>Ref</th><th>Sale Amount</th><th>Commission</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
@@ -12942,7 +12942,7 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {refPrograms.length === 0 ? <div className="empty-state"><p>No referral programs yet.</p></div> : (
+                  {refPrograms.length === 0 ? <EmptyState title="No referral programs yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Name</th><th>Reward</th><th>Referrals</th><th>Conversions</th><th>Status</th><th></th></tr></thead>
@@ -14559,7 +14559,7 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {ttEntries.filter((e) => !e.is_running).length === 0 ? <div className="empty-state"><p>No time entries yet.</p></div> : (
+                  {ttEntries.filter((e) => !e.is_running).length === 0 ? <EmptyState title="No time entries yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={ttEntrySelected.length>0 && ttEntrySelected.length===ttEntries.filter((e) => !e.is_running).length} onChange={(ev) => setTtEntrySelected(ev.target.checked ? ttEntries.filter((e) => !e.is_running).map((e)=>e.id) : [])} /></th><th>Project</th><th>Description</th><th>Start</th><th>Duration</th><th>Billable</th><th></th></tr></thead>
@@ -14603,7 +14603,7 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {ttProjects.length === 0 ? <div className="empty-state"><p>No projects yet.</p></div> : (
+                  {ttProjects.length === 0 ? <EmptyState title="No projects yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Project</th><th>Client</th><th>Rate</th><th>Entries</th><th>Total Time</th><th></th></tr></thead>
@@ -14682,7 +14682,7 @@ export default function AppShell() {
           )}
           {!notesLoaded ? <p className="muted">Loading…</p> : (() => {
             const filtered = notesList.filter((n) => !notesSearch || n.title.toLowerCase().includes(notesSearch.toLowerCase()) || (n.content||'').toLowerCase().includes(notesSearch.toLowerCase()));
-            return filtered.length === 0 ? <div className="empty-state"><p>No notes yet.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No notes yet." /> : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'0.75rem' }}>
                 {filtered.map((n) => (
                   <div key={n.id} style={{ background: n.color||'#ffffff', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', position:'relative' }}>
@@ -14770,7 +14770,7 @@ export default function AppShell() {
                   )}
                   {(() => {
                     const filtered = kbArticles.filter((a) => !kbSearch || a.title.toLowerCase().includes(kbSearch.toLowerCase()));
-                    return filtered.length === 0 ? <div className="empty-state"><p>No articles yet.</p></div> : (
+                    return filtered.length === 0 ? <EmptyState title="No articles yet." /> : (
                       <div className="table-wrap">
                         <table className="data-table">
                           <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={kbSelected.length>0 && kbSelected.length===filtered.length} onChange={(e) => setKbSelected(e.target.checked ? filtered.map((a)=>a.id) : [])} /></th><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Updated</th><th>Actions</th></tr></thead>
@@ -14808,7 +14808,7 @@ export default function AppShell() {
                     <input className="form-input" placeholder="Category name *" value={kbNewCat} onChange={(e) => setKbNewCat(e.target.value)} required style={{ flex:1 }} />
                     <button className="btn-primary" type="submit">Add</button>
                   </form>
-                  {kbCategories.length === 0 ? <div className="empty-state"><p>No categories yet.</p></div> : (
+                  {kbCategories.length === 0 ? <EmptyState title="No categories yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Icon</th><th>Name</th><th>Articles</th><th></th></tr></thead>
@@ -14919,7 +14919,7 @@ export default function AppShell() {
           </div>
           {!couponLoaded ? <p className="muted">Loading…</p> : (() => {
             const filtered = coupons.filter((c) => !couponFilter || c.status === couponFilter);
-            return filtered.length === 0 ? <div className="empty-state"><p>No coupons yet.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No coupons yet." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr>
@@ -15102,7 +15102,7 @@ export default function AppShell() {
           {!assetLoaded ? <p className="muted">Loading…</p> : (() => {
             const filtered = assets.filter((a) => !assetFilter || a.status === assetFilter);
             const statusColor = { available:'var(--success)', assigned:'var(--accent)', maintenance:'var(--warning,#d97706)', retired:'var(--muted)' };
-            return filtered.length === 0 ? <div className="empty-state"><p>No assets found.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No assets found." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr>
@@ -15217,7 +15217,7 @@ export default function AppShell() {
           {!orderLoaded ? <p className="muted">Loading…</p> : (() => {
             const filtered = orders.filter((o) => !orderFilter || o.status === orderFilter);
             const statusColors = { pending:'var(--warning,#d97706)', confirmed:'var(--accent)', processing:'var(--accent)', shipped:'var(--accent)', delivered:'var(--success)', cancelled:'var(--danger)', refunded:'var(--muted)' };
-            return filtered.length === 0 ? <div className="empty-state"><p>No orders found.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No orders found." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={orderSelected.length>0 && orderSelected.length===filtered.length} onChange={(e) => setOrderSelected(e.target.checked ? filtered.map((o)=>o.id) : [])} /></th><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead>
@@ -15374,7 +15374,7 @@ export default function AppShell() {
               {!docLoaded ? <p className="muted">Loading…</p> : (() => {
                 const filtered = docFiles.filter((d) => !docSearch || d.name.toLowerCase().includes(docSearch.toLowerCase()));
                 const fileIcon = (t) => { if (!t) return '📄'; t=t.toLowerCase(); if (t.includes('pdf')) return '📕'; if (t.includes('xls')) return '📊'; if (t.includes('doc')) return '📝'; if (t.includes('ppt')) return '📊'; if (['jpg','jpeg','png','gif','webp','svg'].some((e)=>t.includes(e))) return '🖼️'; if (['mp4','mov','avi'].some((e)=>t.includes(e))) return '🎬'; if (['zip','rar','7z'].some((e)=>t.includes(e))) return '📦'; return '📄'; };
-                return filtered.length === 0 ? <div className="empty-state"><p>No documents in this folder.</p></div> : (
+                return filtered.length === 0 ? <EmptyState title="No documents in this folder." /> : (
                   <div className="table-wrap">
                     <table className="data-table">
                       <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={docFileSelected.length>0 && docFileSelected.length===filtered.length} onChange={(e) => setDocFileSelected(e.target.checked ? filtered.map((d)=>d.id) : [])} /></th><th>Name</th><th>Type</th><th>Tags</th><th>Updated</th><th></th></tr></thead>
@@ -15464,7 +15464,7 @@ export default function AppShell() {
             </form>
           )}
           {!payViewRun && !payLoaded ? <p className="muted">Loading…</p> : !payViewRun ? (
-            payRuns.length === 0 ? <div className="empty-state"><p>No payroll runs yet.</p></div> : (
+            payRuns.length === 0 ? <EmptyState title="No payroll runs yet." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={payRunSelected.length>0 && payRunSelected.length===payRuns.length} onChange={(e) => setPayRunSelected(e.target.checked ? payRuns.map((r)=>r.id) : [])} /></th><th>Name</th><th>Period</th><th>Employees</th><th>Gross</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead>
@@ -15535,7 +15535,7 @@ export default function AppShell() {
                   </div>
                 </form>
               )}
-              {payRunItems.length === 0 ? <div className="empty-state"><p>No employees added yet.</p></div> : (
+              {payRunItems.length === 0 ? <EmptyState title="No employees added yet." /> : (
                 <div className="table-wrap">
                   <table className="data-table">
                     <thead><tr><th>Employee</th><th>Department</th><th>Gross</th><th>Allowances</th><th>Tax</th><th>Net Pay</th><th>Bank</th><th></th></tr></thead>
@@ -15620,7 +15620,7 @@ export default function AppShell() {
                       </div>
                     </form>
                   )}
-                  {subPlans.length === 0 ? <div className="empty-state"><p>No plans yet.</p></div> : (
+                  {subPlans.length === 0 ? <EmptyState title="No plans yet." /> : (
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'0.75rem' }}>
                       {subPlans.map((p) => (
                         <div key={p.id} style={{ border:'1px solid var(--border)', borderRadius:8, padding:'1rem', background:'var(--bg)' }}>
@@ -15671,7 +15671,7 @@ export default function AppShell() {
                   {(() => {
                     const filtered = subList.filter((s) => !subFilter || s.status===subFilter);
                     const statusColor = { active:'var(--success)', trialing:'var(--accent)', past_due:'var(--danger)', cancelled:'var(--muted)', expired:'var(--muted)' };
-                    return filtered.length === 0 ? <div className="empty-state"><p>No subscribers yet.</p></div> : (
+                    return filtered.length === 0 ? <EmptyState title="No subscribers yet." /> : (
                       <div className="table-wrap">
                         <table className="data-table">
                           <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={subSelected.length>0 && subSelected.length===filtered.length} onChange={(e) => setSubSelected(e.target.checked ? filtered.map((s)=>s.id) : [])} /></th><th>Customer</th><th>Plan</th><th>Amount</th><th>Status</th><th>Renewal</th><th></th></tr></thead>
@@ -15767,7 +15767,7 @@ export default function AppShell() {
             const filtered = deliveries.filter((d) => (!delFilter || d.status===delFilter) && (!delSearch || d.customer_name.toLowerCase().includes(delSearch.toLowerCase()) || (d.tracking_code||'').toLowerCase().includes(delSearch.toLowerCase())));
             const statusColor = { pending:'var(--warning,#d97706)', picked_up:'var(--accent)', in_transit:'var(--accent)', out_for_delivery:'var(--accent)', delivered:'var(--success)', failed:'var(--danger)', returned:'var(--muted)' };
             const priorityBadge = { normal:'', express:'🚀', same_day:'⚡' };
-            return filtered.length === 0 ? <div className="empty-state"><p>No deliveries found.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No deliveries found." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={delSelected.length>0 && delSelected.length===filtered.length} onChange={(e) => setDelSelected(e.target.checked ? filtered.map((d)=>d.id) : [])} /></th><th>ID</th><th>Customer</th><th>Address</th><th>Courier</th><th>Status</th><th>ETA</th><th></th></tr></thead>
@@ -16017,7 +16017,7 @@ export default function AppShell() {
           )}
           {!dpLoaded ? <p className="muted">Loading…</p> : !dpViewProduct ? (() => {
             const filtered = dpProducts.filter((p) => !dpFilter || p.status===dpFilter);
-            return filtered.length === 0 ? <div className="empty-state"><p>No products yet.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No products yet." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Sales</th><th>Revenue</th><th>Status</th><th>Actions</th></tr></thead>
@@ -16064,7 +16064,7 @@ export default function AppShell() {
                   </div>
                 </form>
               )}
-              {dpSales.length === 0 ? <div className="empty-state"><p>No sales recorded yet.</p></div> : (
+              {dpSales.length === 0 ? <EmptyState title="No sales recorded yet." /> : (
                 <div className="table-wrap">
                   <table className="data-table">
                     <thead><tr><th>Buyer</th><th>Amount</th><th>Payment Ref</th><th>Date</th></tr></thead>
@@ -16233,7 +16233,7 @@ export default function AppShell() {
               {!crRunning && crData && (
                 <div>
                   {crData.data && crData.data.length === 0 ? (
-                    <div className="empty-state"><p>No data found for this report.</p></div>
+                    <EmptyState title="No data found for this report." />
                   ) : crData.data && (
                     <div className="table-wrap">
                       <table className="data-table">
@@ -16261,7 +16261,7 @@ export default function AppShell() {
                 </div>
               )}
               {!crRunning && !crData && (
-                <div className="empty-state"><p>Select a report type and click Run to see data.</p></div>
+                <EmptyState title="Select a report type and click Run to see data." />
               )}
             </div>
           </div>
@@ -16314,7 +16314,7 @@ export default function AppShell() {
               {sdTab === 'overview' && (
                 <div>
                   <h4 style={{ margin:'1rem 0 0.5rem' }}>Revenue — Last 12 Months</h4>
-                  {sdRevMonths.length === 0 ? <div className="empty-state"><p>No revenue data yet.</p></div> : (
+                  {sdRevMonths.length === 0 ? <EmptyState title="No revenue data yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Month</th><th>Revenue</th><th>Invoices Paid</th></tr></thead>
@@ -16335,7 +16335,7 @@ export default function AppShell() {
               {sdTab === 'products' && (
                 <div>
                   <h4 style={{ margin:'1rem 0 0.5rem' }}>Top Products by Revenue</h4>
-                  {sdTopProducts.length === 0 ? <div className="empty-state"><p>No product data yet.</p></div> : (
+                  {sdTopProducts.length === 0 ? <EmptyState title="No product data yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Product / Description</th><th>Units Sold</th><th>Revenue</th></tr></thead>
@@ -16356,7 +16356,7 @@ export default function AppShell() {
               {sdTab === 'recent' && (
                 <div>
                   <h4 style={{ margin:'1rem 0 0.5rem' }}>Recent Sales</h4>
-                  {sdRecentSales.length === 0 ? <div className="empty-state"><p>No sales yet.</p></div> : (
+                  {sdRecentSales.length === 0 ? <EmptyState title="No sales yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
@@ -16433,7 +16433,7 @@ export default function AppShell() {
               {mdTab === 'leads' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Leads — Last 30 Days</h4>
-                  {mdLeadDays.length === 0 ? <div className="empty-state"><p>No lead data yet.</p></div> : (
+                  {mdLeadDays.length === 0 ? <EmptyState title="No lead data yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Day</th><th>Leads</th></tr></thead>
@@ -16453,7 +16453,7 @@ export default function AppShell() {
               {mdTab === 'campaigns' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Top Email Campaigns</h4>
-                  {mdCampaigns.length === 0 ? <div className="empty-state"><p>No campaigns data yet.</p></div> : (
+                  {mdCampaigns.length === 0 ? <EmptyState title="No campaigns data yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Campaign</th><th>Status</th><th>Open Rate</th><th>Click Rate</th><th>Date</th></tr></thead>
@@ -16505,7 +16505,7 @@ export default function AppShell() {
               {waTab2 === 'overview' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Daily Activity (Last 30 Days)</h4>
-                  {waDailyAct.length === 0 ? <div className="empty-state"><p>No activity data yet.</p></div> : (
+                  {waDailyAct.length === 0 ? <EmptyState title="No activity data yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Day</th><th>Events</th><th>Unique Users</th></tr></thead>
@@ -16526,7 +16526,7 @@ export default function AppShell() {
               {waTab2 === 'modules' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Top Modules by Usage</h4>
-                  {waTopMods.length === 0 ? <div className="empty-state"><p>Open some modules to see data.</p></div> : (
+                  {waTopMods.length === 0 ? <EmptyState title="Open some modules to see data." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Module</th><th>Opens</th><th>Unique Users</th><th>Last Opened</th></tr></thead>
@@ -16548,7 +16548,7 @@ export default function AppShell() {
               {waTab2 === 'activity' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Recent Activity</h4>
-                  {waRecent.length === 0 ? <div className="empty-state"><p>No activity yet.</p></div> : (
+                  {waRecent.length === 0 ? <EmptyState title="No activity yet." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Event</th><th>User</th><th>Time</th></tr></thead>
@@ -16607,7 +16607,7 @@ export default function AppShell() {
               {prTab === 'team' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Team Activity (Last 30 Days)</h4>
-                  {prTeam.length === 0 ? <div className="empty-state"><p>No team data.</p></div> : (
+                  {prTeam.length === 0 ? <EmptyState title="No team data." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Name</th><th>Role</th><th>Actions (30d)</th><th>Last Active</th></tr></thead>
@@ -16629,7 +16629,7 @@ export default function AppShell() {
               {prTab === 'adoption' && (
                 <div style={{ marginTop:'1rem' }}>
                   <h4 style={{ marginBottom:'0.5rem' }}>Module Adoption (Last 30 Days)</h4>
-                  {prAdoption.length === 0 ? <div className="empty-state"><p>No data.</p></div> : (
+                  {prAdoption.length === 0 ? <EmptyState title="No data." /> : (
                     <div className="table-wrap">
                       <table className="data-table">
                         <thead><tr><th>Module</th><th>Opens (30d)</th><th>Unique Users</th></tr></thead>
@@ -16703,7 +16703,7 @@ export default function AppShell() {
             </form>
           )}
           {!dbcLoaded ? <p className="muted">Loading…</p> : !dbcViewCard ? (
-            dbcCards.length === 0 ? <div className="empty-state"><p>No business cards yet. Create your first one.</p></div> : (
+            dbcCards.length === 0 ? <EmptyState title="No business cards yet. Create your first one." /> : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:'0.75rem' }}>
                 {dbcCards.map((card) => (
                   <div key={card.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', cursor:'pointer' }} onClick={() => setDbcViewCard(card)}>
@@ -16800,7 +16800,7 @@ export default function AppShell() {
             </form>
           )}
           {!libLoaded ? <p className="muted">Loading…</p> : !libViewPage ? (
-            libPages.length === 0 ? <div className="empty-state"><p>No bio pages yet.</p></div> : (
+            libPages.length === 0 ? <EmptyState title="No bio pages yet." /> : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'0.75rem' }}>
                 {libPages.map((p) => (
                   <div key={p.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', cursor:'pointer' }} onClick={() => { setLibViewPage(p); loadBioLinks(p.id); }}>
@@ -16835,7 +16835,7 @@ export default function AppShell() {
                     </div>
                   </form>
                 )}
-                {libLinks.length === 0 ? <div className="empty-state"><p>No links yet. Add your first link.</p></div> : (
+                {libLinks.length === 0 ? <EmptyState title="No links yet. Add your first link." /> : (
                   <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
                     {libLinks.map((link) => (
                       <div key={link.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem 1rem', display:'flex', alignItems:'center', gap:'0.75rem' }}>
@@ -16952,7 +16952,7 @@ export default function AppShell() {
               )}
               {!certLoaded ? <p className="muted">Loading…</p> : (() => {
                 const filtered = certificates.filter((c) => !certSearch || c.recipient_name.toLowerCase().includes(certSearch.toLowerCase()) || c.title.toLowerCase().includes(certSearch.toLowerCase()));
-                return filtered.length === 0 ? <div className="empty-state"><p>No certificates yet.</p></div> : (
+                return filtered.length === 0 ? <EmptyState title="No certificates yet." /> : (
                   <div className="table-wrap">
                     <table className="data-table">
                       <thead><tr><th>ID</th><th>Title</th><th>Recipient</th><th>Issued By</th><th>Issue Date</th><th>Expiry</th><th>Actions</th></tr></thead>
@@ -17249,7 +17249,7 @@ export default function AppShell() {
               </div>
               {qbTab === 'list' && (
                 !qbLoaded ? <p className="muted">Loading…</p> :
-                quizzes.length === 0 ? <div className="empty-state"><p>No quizzes yet. Build your first one.</p></div> : (
+                quizzes.length === 0 ? <EmptyState title="No quizzes yet. Build your first one." /> : (
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:'0.75rem' }}>
                     {quizzes.map((q) => (
                       <div key={q.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'1rem' }}>
@@ -17346,7 +17346,7 @@ export default function AppShell() {
             </div>
           )}
           {qbViewQuiz && qbTab==='responses' && (
-            qbResponses.length === 0 ? <div className="empty-state"><p>No responses yet.</p></div> : (
+            qbResponses.length === 0 ? <EmptyState title="No responses yet." /> : (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead><tr><th>Respondent</th><th>Score</th><th>Submitted</th></tr></thead>
@@ -17676,7 +17676,7 @@ export default function AppShell() {
             </div>
           )}
           {!cbLoaded ? <p className="muted">Loading…</p> : !cbViewFlow ? (
-            chatbotFlows.length === 0 && !cbForm ? <div className="empty-state"><p>No chatbots yet.</p></div> : (
+            chatbotFlows.length === 0 && !cbForm ? <EmptyState title="No chatbots yet." /> : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:'0.75rem' }}>
                 {chatbotFlows.map((flow) => (
                   <div key={flow.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'1rem' }}>
@@ -17806,7 +17806,7 @@ export default function AppShell() {
             </div>
           )}
           {!mnLoaded ? <p className="muted">Loading…</p> : !mnViewNote ? (
-            meetingNotes.length === 0 && !mnForm ? <div className="empty-state"><p>No meeting notes yet.</p></div> : (
+            meetingNotes.length === 0 && !mnForm ? <EmptyState title="No meeting notes yet." /> : (
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:'0.75rem' }}>
                 {meetingNotes.map((n) => (
                   <div key={n.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'1rem', cursor:'pointer' }} onClick={async () => { const d = await apiFetch(`/api/v1/meeting-notes/${n.id}`); setMnViewNote(d.note); }}>
@@ -17904,7 +17904,7 @@ export default function AppShell() {
                     (!aiKbCatFilter || a.category === aiKbCatFilter) &&
                     (!aiKbSearch || a.title.toLowerCase().includes(aiKbSearch.toLowerCase()) || (a.excerpt||'').toLowerCase().includes(aiKbSearch.toLowerCase()))
                   );
-                  return filtered.length === 0 ? <div className="empty-state"><p>No articles yet. Click "+ New Article" to add one.</p></div> : (
+                  return filtered.length === 0 ? <EmptyState title="No articles yet. Click &quot;+ New Article&quot; to add one." /> : (
                     <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
                       {filtered.map((a) => (
                         <div key={a.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem 1rem', cursor:'pointer' }} onClick={async () => { const d = await apiFetch(`/api/v1/ai-kb/${a.id}`); setAiKbViewArticle(d.article); }}>
@@ -17990,7 +17990,7 @@ export default function AppShell() {
           </div>
           {!csLoaded ? <p className="muted">Loading…</p> : (() => {
             const filtered = csFaqs.filter((f) => !csCatFilter || f.category === csCatFilter);
-            return filtered.length === 0 ? <div className="empty-state"><p>No FAQs yet.</p></div> : (
+            return filtered.length === 0 ? <EmptyState title="No FAQs yet." /> : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
                 {filtered.map((faq) => (
                   <div key={faq.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'1rem' }}>

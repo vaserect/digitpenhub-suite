@@ -19407,6 +19407,59 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               </div>
             </div>
           ),
+          elegant: (
+            <div style={{ width:'100%', background:'#0f172a', borderRadius:10, overflow:'hidden', fontFamily:'Georgia,serif', padding:'2.5rem 2rem', textAlign:'center', border:`1px solid ${flyerColor}` }}>
+              <div style={{ width:40, height:2, background:flyerColor, margin:'0 auto 1.25rem' }} />
+              <div style={{ fontSize:'1.7rem', fontWeight:700, color:'#f8fafc', letterSpacing:'0.03em', marginBottom:'0.5rem' }}>{flyerTitle||'Event Title'}</div>
+              <div style={{ fontSize:'0.85rem', color:flyerColor, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:'1.5rem' }}>{flyerSubtitle||'Subtitle'}</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.35rem', fontSize:'0.85rem', color:'#cbd5e1' }}>
+                {flyerDate && <div>{flyerDate}</div>}
+                {flyerVenue && <div>{flyerVenue}</div>}
+                {flyerPhone && <div>{flyerPhone}</div>}
+              </div>
+              <div style={{ width:40, height:2, background:flyerColor, margin:'1.5rem auto 0' }} />
+            </div>
+          ),
+          festive: (
+            <div style={{ width:'100%', background:`linear-gradient(135deg, ${flyerColor}, ${flyerBg})`, borderRadius:10, overflow:'hidden', fontFamily:'Impact,Arial,sans-serif', padding:'2.5rem 1.5rem', textAlign:'center', color:'#fff' }}>
+              <div style={{ fontSize:'0.85rem', letterSpacing:'0.25em', textTransform:'uppercase', opacity:0.85, marginBottom:'0.5rem' }}>You're invited</div>
+              <div style={{ fontSize:'2.1rem', fontWeight:900, lineHeight:1.1, marginBottom:'0.75rem', textShadow:'0 2px 12px rgba(0,0,0,.25)' }}>{flyerTitle||'Big Event'}</div>
+              <div style={{ fontSize:'1rem', opacity:0.95, marginBottom:'1.25rem' }}>{flyerSubtitle||'Join us for something amazing'}</div>
+              <div style={{ display:'inline-flex', flexDirection:'column', gap:'0.3rem', background:'rgba(255,255,255,0.15)', borderRadius:12, padding:'0.9rem 1.4rem', fontSize:'0.88rem', fontWeight:600 }}>
+                {flyerDate && <div>📅 {flyerDate}</div>}
+                {flyerVenue && <div>📍 {flyerVenue}</div>}
+                {flyerPhone && <div>📞 {flyerPhone}</div>}
+              </div>
+            </div>
+          ),
+          corporate: (
+            <div style={{ width:'100%', background:'#fff', borderRadius:10, overflow:'hidden', fontFamily:'Arial,sans-serif', border:'1px solid #e2e8f0' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'1.25rem 1.5rem', borderBottom:`3px solid ${flyerColor}` }}>
+                <div style={{ width:36, height:36, borderRadius:8, background:flyerColor, flexShrink:0 }} />
+                <div style={{ fontSize:'1.3rem', fontWeight:800, color:'#0f172a' }}>{flyerTitle||'Event Title'}</div>
+              </div>
+              <div style={{ padding:'1.5rem' }}>
+                <div style={{ fontSize:'0.92rem', color:'#475569', marginBottom:'1rem' }}>{flyerSubtitle||'Your subtitle here'}</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.6rem', fontSize:'0.82rem', color:'#334155' }}>
+                  {flyerDate && <div><strong style={{ color:flyerColor }}>Date</strong><br />{flyerDate}</div>}
+                  {flyerVenue && <div><strong style={{ color:flyerColor }}>Location</strong><br />{flyerVenue}</div>}
+                  {flyerPhone && <div><strong style={{ color:flyerColor }}>Contact</strong><br />{flyerPhone}</div>}
+                </div>
+              </div>
+            </div>
+          ),
+          sale: (
+            <div style={{ width:'100%', background:flyerBg, borderRadius:10, overflow:'hidden', fontFamily:'Impact,Arial,sans-serif', position:'relative', textAlign:'center', padding:'2.75rem 1.5rem 2rem' }}>
+              <div style={{ position:'absolute', top:14, right:14, background:flyerColor, color:'#fff', borderRadius:'50%', width:64, height:64, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.75rem', fontWeight:900, transform:'rotate(12deg)', boxShadow:'0 4px 14px rgba(0,0,0,.2)' }}>SALE</div>
+              <div style={{ fontSize:'2rem', fontWeight:900, color:'#111', lineHeight:1.1, marginBottom:'0.5rem' }}>{flyerTitle||'Grand Sale'}</div>
+              <div style={{ fontSize:'0.95rem', color:'#444', marginBottom:'1.5rem' }}>{flyerSubtitle||'50% off everything'}</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.3rem', fontSize:'0.88rem', color:'#444' }}>
+                {flyerDate && <div>📅 {flyerDate}</div>}
+                {flyerVenue && <div>📍 {flyerVenue}</div>}
+                {flyerPhone && <div>📞 {flyerPhone}</div>}
+              </div>
+            </div>
+          ),
         };
         return (
           <div className="module-wrap">
@@ -19437,8 +19490,8 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <div>
                 <div style={{ marginBottom:'0.5rem' }}>
                   <label style={{ fontSize:'0.8rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Template</label>
-                  <div style={{ display:'flex', gap:'0.4rem' }}>
-                    {['modern','bold','minimal'].map(t => <button key={t} onClick={() => setFlyerTemplate(t)} className={flyerTemplate===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.78rem', flex:1 }}>{t}</button>)}
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'0.4rem' }}>
+                    {['modern','bold','minimal','elegant','festive','corporate','sale'].map(t => <button key={t} onClick={() => setFlyerTemplate(t)} className={flyerTemplate===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.78rem', textTransform:'capitalize' }}>{t}</button>)}
                   </div>
                 </div>
                 {[['Title *',flyerTitle,setFlyerTitle,'Grand Opening Sale'],['Subtitle',flyerSubtitle,setFlyerSubtitle,'50% off everything this weekend'],['Date',flyerDate,setFlyerDate,'Saturday, Jan 18, 2025'],['Venue',flyerVenue,setFlyerVenue,'123 Main Street, Lagos'],['Phone / RSVP',flyerPhone,setFlyerPhone,'+234 800 000 0000']].map(([l,v,fn,ph]) => (

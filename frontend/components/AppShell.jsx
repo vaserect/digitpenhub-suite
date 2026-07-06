@@ -1544,6 +1544,7 @@ export default function AppShell() {
   const [cbtConfirmAction, setCbtConfirmAction] = useState(null);
   const [cbtConfirming, setCbtConfirming] = useState(false);
   const [cbtTimeLeft, setCbtTimeLeft]   = useState(0);
+  const [cbtOrder, setCbtOrder]         = useState(null); // { questionIds: [...], optionOrders: { [questionId]: ['B','A','D','C'] } }
   // Student Portal
   const [spTab, setSpTab]               = useState('courses');
   // Teacher Portal
@@ -1674,7 +1675,41 @@ export default function AppShell() {
       const savedPins = typeof window !== 'undefined' ? window.localStorage.getItem('dph-pinned-modules') : null;
       if (savedPins) setPinnedSlugs(JSON.parse(savedPins));
     } catch { /* ignore corrupt localStorage */ }
+    // Restore an in-progress CBT attempt if the tab was closed/crashed mid-quiz.
+    try {
+      const savedAttempt = typeof window !== 'undefined' ? window.localStorage.getItem('dph-cbt-attempt') : null;
+      if (savedAttempt) {
+        const parsed = JSON.parse(savedAttempt);
+        if (parsed?.quiz && parsed.timeLeft > 0) {
+          setCbtViewingQuiz(parsed.quiz);
+          setCbtQuestions(parsed.questions || []);
+          setCbtOrder(parsed.order || null);
+          setCbtTaking(parsed.quiz);
+          setCbtStudentName(parsed.studentName || '');
+          setCbtAnswers(parsed.answers || {});
+          setCbtTimeLeft(parsed.timeLeft);
+        }
+      }
+    } catch { /* ignore corrupt localStorage */ }
   }, []);
+
+  // Autosave the in-progress CBT attempt every time an answer or the timer changes,
+  // so refresh/crash/tab-close doesn't lose progress mid-quiz.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!cbtTaking) { window.localStorage.removeItem('dph-cbt-attempt'); return; }
+    window.localStorage.setItem('dph-cbt-attempt', JSON.stringify({
+      quiz: cbtTaking, questions: cbtQuestions, order: cbtOrder,
+      studentName: cbtStudentName, answers: cbtAnswers, timeLeft: cbtTimeLeft,
+    }));
+  }, [cbtTaking, cbtQuestions, cbtOrder, cbtStudentName, cbtAnswers, cbtTimeLeft]);
+
+  // Countdown runs off cbtTaking so it also resumes correctly after a restored attempt.
+  useEffect(() => {
+    if (!cbtTaking) return;
+    const timer = setInterval(() => setCbtTimeLeft((t) => (t <= 1 ? 0 : t - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [cbtTaking]);
 
   useEffect(() => {
     // Any locked-module or plan-usage-limit response from any apiFetch call,
@@ -20724,7 +20759,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
           <div className="module-head">
             <button className="back-link" onClick={() => {
               if (cbtResult) { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); }
-              else if (cbtTaking) { if(confirm('Exit quiz?')) { setCbtTaking(null); setCbtAnswers({}); } }
+              else if (cbtTaking) { if(confirm('Exit quiz?')) { setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); } }
               else if (cbtViewingQuiz) { setCbtViewingQuiz(null); setCbtQuestions([]); setCbtAttempts([]); setCbtTab('list'); }
               else setView('home');
             }}>← {cbtResult||cbtTaking ? 'Back to Quiz' : cbtViewingQuiz ? 'Back to Quizzes' : 'Back'}</button>
@@ -20740,7 +20775,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <div style={{ fontSize:'2rem', fontWeight:700, color:cbtResult.passed?'var(--success)':'var(--danger)', marginBottom:'0.25rem' }}>{cbtResult.pct}%</div>
               <div style={{ color:'var(--muted)', marginBottom:'1rem' }}>{cbtResult.score}/{cbtResult.totalMarks} marks · Pass mark: {cbtViewingQuiz?.pass_score}%</div>
               <div style={{ display:'flex', gap:'0.75rem', justifyContent:'center' }}>
-                <button className="btn-primary" onClick={() => { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); }}>Close</button>
+                <button className="btn-primary" onClick={() => { setCbtResult(null); setCbtTaking(null); setCbtAnswers({}); setCbtOrder(null); }}>Close</button>
               </div>
             </div>
           )}
@@ -20755,11 +20790,11 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                   <span style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{Object.keys(cbtAnswers).length}/{cbtQuestions.length} answered</span>
                 </div>
               </div>
-              {cbtQuestions.map((q, i) => (
+              {(cbtOrder ? cbtOrder.questionIds.map((id) => cbtQuestions.find((q) => q.id === id)).filter(Boolean) : cbtQuestions).map((q, i) => (
                 <div key={q.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', marginBottom:'0.75rem' }}>
                   <div style={{ fontWeight:500, marginBottom:'0.75rem' }}><span style={{ color:'var(--muted)', marginRight:'0.5rem' }}>Q{i+1}.</span>{q.question} <span style={{ fontSize:'0.75rem', color:'var(--muted)' }}>({q.marks} mark{q.marks>1?'s':''})</span></div>
                   <div style={{ display:'flex', flexDirection:'column', gap:'0.4rem' }}>
-                    {[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(([,v])=>v).map(([letter, text]) => (
+                    {(cbtOrder?.optionOrders?.[q.id] || ['A','B','C','D']).map((letter) => [letter, q[`option_${letter.toLowerCase()}`]]).filter(([,v])=>v).map(([letter, text]) => (
                       <label key={letter} style={{ display:'flex', alignItems:'center', gap:'0.6rem', padding:'0.5rem 0.75rem', borderRadius:6, background:cbtAnswers[q.id]===letter?'rgba(37,99,235,0.08)':'transparent', border:`1px solid ${cbtAnswers[q.id]===letter?'var(--primary)':'var(--border)'}`, cursor:'pointer', fontSize:'0.88rem' }}>
                         <input type="radio" name={`q_${q.id}`} checked={cbtAnswers[q.id]===letter} onChange={() => setCbtAnswers(a=>({...a,[q.id]:letter}))} style={{ accentColor:'var(--primary)' }} />
                         <span style={{ fontWeight:600, minWidth:20 }}>{letter}.</span> {text}
@@ -20790,9 +20825,14 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                   <div style={{ fontSize:'0.82rem', color:'var(--muted)', marginBottom:'1rem' }}>{cbtQuestions.length} questions · {cbtViewingQuiz.duration_minutes} minutes · Pass: {cbtViewingQuiz.pass_score}%</div>
                   <input className="form-input" placeholder="Student name *" value={cbtStudentName} onChange={(e) => setCbtStudentName(e.target.value)} style={{ marginBottom:'0.75rem' }} />
                   <button className="btn-primary" disabled={!cbtStudentName.trim()||cbtQuestions.length===0} onClick={() => {
-                    setCbtTaking(cbtViewingQuiz); setCbtAnswers({}); const secs = cbtViewingQuiz.duration_minutes * 60;
-                    setCbtTimeLeft(secs);
-                    const timer = setInterval(() => setCbtTimeLeft(t => { if (t<=1) { clearInterval(timer); return 0; } return t-1; }), 1000);
+                    const shuffle = (arr) => { const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+                    const order = {
+                      questionIds: shuffle(cbtQuestions.map(q=>q.id)),
+                      optionOrders: Object.fromEntries(cbtQuestions.map(q => [q.id, shuffle(['A','B','C','D'].filter(l => q[`option_${l.toLowerCase()}`]))])),
+                    };
+                    setCbtOrder(order);
+                    setCbtTaking(cbtViewingQuiz); setCbtAnswers({});
+                    setCbtTimeLeft(cbtViewingQuiz.duration_minutes * 60);
                   }}>Start Quiz →</button>
                   {cbtQuestions.length===0 && <div style={{ fontSize:'0.78rem', color:'var(--danger)', marginTop:'0.5rem' }}>Add questions before taking the quiz.</div>}
                 </div>

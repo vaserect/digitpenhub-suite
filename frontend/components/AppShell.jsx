@@ -1411,6 +1411,14 @@ export default function AppShell() {
   const [flyerBg, setFlyerBg]           = useState('#f0f4ff');
   const [flyerTemplate, setFlyerTemplate] = useState('modern');
   const [flyerExporting, setFlyerExporting] = useState('');
+  // "Pro Canvas (beta)" — same opt-in Fabric.js engine as Graphic Design Editor,
+  // kept separate from the classic template-based flyer above.
+  const [flyerEngineMode, setFlyerEngineMode] = useState('classic'); // 'classic' | 'pro'
+  const [flyerFabricApi, setFlyerFabricApi] = useState(null);
+  const [flyerFabricInitialJSON, setFlyerFabricInitialJSON] = useState(null);
+  const [flyerFabricKey, setFlyerFabricKey] = useState(0);
+  const [flyerImageUrlModalOpen, setFlyerImageUrlModalOpen] = useState(false);
+  const [flyerImageUrlDraft, setFlyerImageUrlDraft] = useState('');
   // Resume Builder
   const [resumeName, setResumeName]     = useState('');
   const [resumeTitle, setResumeTitle]   = useState('');
@@ -19478,25 +19486,89 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Flyer Builder</h2>
             </div>
+            <div style={{ display:'flex', gap:'0.4rem', marginBottom:'0.75rem' }}>
+              <button className={flyerEngineMode==='classic'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setFlyerEngineMode('classic')}>Classic</button>
+              <button className={flyerEngineMode==='pro'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setFlyerEngineMode('pro')} title="A real canvas engine (Fabric.js) — freely move/layer objects. Beta: separate from your Classic designs.">🧪 Pro Canvas (beta)</button>
+            </div>
             <CreativeSaveBar
               designName={creativeDesignName}
               setDesignName={setCreativeDesignName}
               saving={creativeSaving}
-              onSave={() => saveCreativeDesign('flyer-builder', { flyerTitle, flyerSubtitle, flyerDate, flyerVenue, flyerPhone, flyerColor, flyerBg, flyerTemplate })}
+              onSave={() => flyerEngineMode === 'pro'
+                ? saveCreativeDesign('flyer-builder', { engine: 'fabric', fabricJSON: flyerFabricApi?.getJSON(), bg: flyerBg })
+                : saveCreativeDesign('flyer-builder', { flyerTitle, flyerSubtitle, flyerDate, flyerVenue, flyerPhone, flyerColor, flyerBg, flyerTemplate })}
               onOpenGallery={() => openCreativeGallery('flyer-builder', (data) => {
-                setFlyerTitle(data.flyerTitle ?? 'Big Event'); setFlyerSubtitle(data.flyerSubtitle ?? ''); setFlyerDate(data.flyerDate ?? '');
-                setFlyerVenue(data.flyerVenue ?? ''); setFlyerPhone(data.flyerPhone ?? ''); setFlyerColor(data.flyerColor ?? '#2563eb');
-                setFlyerBg(data.flyerBg ?? '#f0f4ff'); setFlyerTemplate(data.flyerTemplate ?? 'modern');
+                if (data.engine === 'fabric') {
+                  if (flyerEngineMode !== 'pro') setFlyerEngineMode('pro');
+                  setFlyerBg(data.bg ?? '#f0f4ff');
+                  setFlyerFabricInitialJSON(data.fabricJSON ?? null);
+                  setFlyerFabricKey((k) => k + 1);
+                } else {
+                  if (flyerEngineMode !== 'classic') setFlyerEngineMode('classic');
+                  setFlyerTitle(data.flyerTitle ?? 'Big Event'); setFlyerSubtitle(data.flyerSubtitle ?? ''); setFlyerDate(data.flyerDate ?? '');
+                  setFlyerVenue(data.flyerVenue ?? ''); setFlyerPhone(data.flyerPhone ?? ''); setFlyerColor(data.flyerColor ?? '#2563eb');
+                  setFlyerBg(data.flyerBg ?? '#f0f4ff'); setFlyerTemplate(data.flyerTemplate ?? 'modern');
+                }
               })}
-              onNew={() => newCreativeDesign('flyer-builder')}
+              onNew={() => {
+                newCreativeDesign('flyer-builder');
+                if (flyerEngineMode === 'pro') { setFlyerFabricInitialJSON(null); setFlyerFabricKey((k) => k + 1); }
+              }}
               onApplyBrandKit={async () => {
                 const kit = await loadBrandKitIfNeeded();
                 if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
                 setFlyerColor(kit.primary_color || flyerColor);
                 setFlyerBg(kit.background_color || flyerBg);
+                if (flyerEngineMode === 'pro') setFlyerFabricKey((k) => k + 1);
                 showToast('Brand Kit applied!');
               }}
             />
+            {flyerEngineMode === 'pro' && (
+              <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'1rem' }}>
+                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
+                  <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Add Element</div>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => flyerFabricApi?.addText()}>T  Text</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => flyerFabricApi?.addRect()}>■  Rectangle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => flyerFabricApi?.addCircle()}>●  Circle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => { setFlyerImageUrlDraft(''); setFlyerImageUrlModalOpen(true); }}>🖼  Image</button>
+                  <div style={{ borderTop:'1px solid var(--border)', margin:'0.75rem 0', paddingTop:'0.75rem' }}>
+                    <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Selection</div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Fill colour</label>
+                    <input type="color" defaultValue="#2563eb" onChange={(e) => flyerFabricApi?.setFill(e.target.value)} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', marginBottom:'0.5rem' }} />
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => flyerFabricApi?.bringForward()}>Bring Forward</button>
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => flyerFabricApi?.sendBackward()}>Send Backward</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => flyerFabricApi?.deleteSelected()}>Delete Selected</button>
+                  </div>
+                  <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
+                    <label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Canvas background</label>
+                    <input type="color" value={flyerBg} onChange={(e) => { setFlyerBg(e.target.value); setFlyerFabricKey((k) => k + 1); }} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', marginBottom:'0.5rem' }} />
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => {
+                      const png = flyerFabricApi?.exportPNG(); if (!png) return;
+                      const a = document.createElement('a'); a.href = png; a.download = `${creativeDesignName||'flyer'}.png`; a.click();
+                    }}>⬇ Export PNG</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => flyerFabricApi?.clear()}>Clear Canvas</button>
+                  </div>
+                </div>
+                <div style={{ overflow:'auto', display:'flex', justifyContent:'center', background:'var(--bg)', borderRadius:8, padding:'1rem' }}>
+                  <FabricCanvasEditor
+                    key={`flyer-${flyerFabricKey}`}
+                    width={600}
+                    height={800}
+                    background={flyerBg}
+                    initialJSON={flyerFabricInitialJSON}
+                    onReady={setFlyerFabricApi}
+                  />
+                </div>
+                <Modal isOpen={flyerImageUrlModalOpen} title="Add image" onClose={() => setFlyerImageUrlModalOpen(false)}>
+                  <input className="field-input" autoFocus placeholder="https://…" value={flyerImageUrlDraft} onChange={(e) => setFlyerImageUrlDraft(e.target.value)} style={{ marginBottom:'0.75rem' }} />
+                  <div style={{ display:'flex', gap:10 }}>
+                    <Button variant="secondary" onClick={() => setFlyerImageUrlModalOpen(false)}>Cancel</Button>
+                    <Button disabled={!flyerImageUrlDraft.trim()} onClick={() => { flyerFabricApi?.addImage(flyerImageUrlDraft.trim()); setFlyerImageUrlModalOpen(false); }}>Add</Button>
+                  </div>
+                </Modal>
+              </div>
+            )}
+            {flyerEngineMode === 'classic' && (
             <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:'1.5rem' }}>
               <div>
                 <div style={{ marginBottom:'0.5rem' }}>
@@ -19557,6 +19629,7 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
                 </div>
               </div>
             </div>
+            )}
           </div>
         );
       })()}

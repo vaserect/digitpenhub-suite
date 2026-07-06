@@ -24,6 +24,7 @@ import StatCard from './ui/StatCard';
 import BulkActionBar from './ui/BulkActionBar';
 import Input from './ui/Input';
 import Modal from './ui/Modal';
+import FabricCanvasEditor from './creative/FabricCanvasEditor';
 import ModulePage from './ui/ModulePage';
 import PageState from './ui/PageState';
 import StarterTemplateModal from './ui/StarterTemplateModal';
@@ -1426,6 +1427,15 @@ export default function AppShell() {
   const [gdSelected, setGdSelected]     = useState(null);
   const [gdCanvasW, setGdCanvasW]       = useState(800);
   const [gdTemplateConfirm, setGdTemplateConfirm] = useState(null);
+  // "Pro Canvas (beta)" — an opt-in Fabric.js-backed engine, kept fully
+  // separate from the classic gdElements/div-based editor above so it can
+  // ship for this one tool without touching (or risking) the working editor.
+  const [gdEngineMode, setGdEngineMode] = useState('classic'); // 'classic' | 'pro'
+  const [gdFabricApi, setGdFabricApi] = useState(null);
+  const [gdFabricInitialJSON, setGdFabricInitialJSON] = useState(null);
+  const [gdFabricKey, setGdFabricKey] = useState(0);
+  const [gdImageUrlModalOpen, setGdImageUrlModalOpen] = useState(false);
+  const [gdImageUrlDraft, setGdImageUrlDraft] = useState('');
   const [gdCanvasH, setGdCanvasH]       = useState(600);
   const [gdBg, setGdBg]                 = useState('#ffffff');
   const [gdAddType, setGdAddType]       = useState('text');
@@ -19734,26 +19744,89 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Graphic Design Editor</h2>
             </div>
+            <div style={{ display:'flex', gap:'0.4rem', marginBottom:'0.75rem' }}>
+              <button className={gdEngineMode==='classic'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setGdEngineMode('classic')}>Classic</button>
+              <button className={gdEngineMode==='pro'?'btn-primary':'btn-ghost'} style={{ fontSize:'0.8rem' }} onClick={() => setGdEngineMode('pro')} title="A real canvas engine (Fabric.js) — rotate, layer order, richer objects. Beta: separate from your Classic designs.">🧪 Pro Canvas (beta)</button>
+            </div>
             <CreativeSaveBar
               designName={creativeDesignName}
               setDesignName={setCreativeDesignName}
               saving={creativeSaving}
-              onSave={() => saveCreativeDesign('graphic-design-editor', { elements: gdElements, canvasW: gdCanvasW, canvasH: gdCanvasH, bg: gdBg })}
+              onSave={() => gdEngineMode === 'pro'
+                ? saveCreativeDesign('graphic-design-editor', { engine: 'fabric', fabricJSON: gdFabricApi?.getJSON(), canvasW: gdCanvasW, canvasH: gdCanvasH, bg: gdBg })
+                : saveCreativeDesign('graphic-design-editor', { elements: gdElements, canvasW: gdCanvasW, canvasH: gdCanvasH, bg: gdBg })}
               onOpenGallery={() => openCreativeGallery('graphic-design-editor', (data) => {
-                const next = Array.isArray(data.elements) ? data.elements : [];
-                gdCommitHistory(gdElements, next);
-                setGdElements(next);
-                setGdCanvasW(data.canvasW ?? 800); setGdCanvasH(data.canvasH ?? 600); setGdBg(data.bg ?? '#ffffff');
-                setGdSelected(null);
+                if (data.engine === 'fabric') {
+                  if (gdEngineMode !== 'pro') setGdEngineMode('pro');
+                  setGdCanvasW(data.canvasW ?? 800); setGdCanvasH(data.canvasH ?? 600); setGdBg(data.bg ?? '#ffffff');
+                  setGdFabricInitialJSON(data.fabricJSON ?? null);
+                  setGdFabricKey((k) => k + 1);
+                } else {
+                  if (gdEngineMode !== 'classic') setGdEngineMode('classic');
+                  const next = Array.isArray(data.elements) ? data.elements : [];
+                  gdCommitHistory(gdElements, next);
+                  setGdElements(next);
+                  setGdCanvasW(data.canvasW ?? 800); setGdCanvasH(data.canvasH ?? 600); setGdBg(data.bg ?? '#ffffff');
+                  setGdSelected(null);
+                }
               })}
-              onNew={() => { newCreativeDesign('graphic-design-editor'); gdCommitHistory(gdElements, []); setGdElements([]); setGdSelected(null); }}
+              onNew={() => {
+                newCreativeDesign('graphic-design-editor');
+                if (gdEngineMode === 'pro') { setGdFabricInitialJSON(null); setGdFabricKey((k) => k + 1); }
+                else { gdCommitHistory(gdElements, []); setGdElements([]); setGdSelected(null); }
+              }}
               onApplyBrandKit={async () => {
                 const kit = await loadBrandKitIfNeeded();
                 if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
                 setGdBg(kit.background_color || gdBg);
+                if (gdEngineMode === 'pro') setGdFabricKey((k) => k + 1);
                 showToast('Brand Kit applied!');
               }}
             />
+            {gdEngineMode === 'pro' && (
+              <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'1rem' }}>
+                <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
+                  <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Add Element</div>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => gdFabricApi?.addText()}>T  Text</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => gdFabricApi?.addRect()}>■  Rectangle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => gdFabricApi?.addCircle()}>●  Circle</button>
+                  <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.82rem', justifyContent:'flex-start', textAlign:'left' }} onClick={() => { setGdImageUrlDraft(''); setGdImageUrlModalOpen(true); }}>🖼  Image</button>
+                  <div style={{ borderTop:'1px solid var(--border)', margin:'0.75rem 0', paddingTop:'0.75rem' }}>
+                    <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Selection</div>
+                    <label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Fill colour</label>
+                    <input type="color" defaultValue="#2563eb" onChange={(e) => gdFabricApi?.setFill(e.target.value)} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', marginBottom:'0.5rem' }} />
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => gdFabricApi?.bringForward()}>Bring Forward</button>
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => gdFabricApi?.sendBackward()}>Send Backward</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => gdFabricApi?.deleteSelected()}>Delete Selected</button>
+                  </div>
+                  <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
+                    <button className="btn-ghost" style={{ width:'100%', marginBottom:'0.3rem', fontSize:'0.78rem' }} onClick={() => {
+                      const png = gdFabricApi?.exportPNG(); if (!png) return;
+                      const a = document.createElement('a'); a.href = png; a.download = `${creativeDesignName||'design'}.png`; a.click();
+                    }}>⬇ Export PNG</button>
+                    <button className="btn-ghost" style={{ width:'100%', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => gdFabricApi?.clear()}>Clear Canvas</button>
+                  </div>
+                </div>
+                <div style={{ overflow:'auto', display:'flex', justifyContent:'center', background:'var(--bg)', borderRadius:8, padding:'1rem' }}>
+                  <FabricCanvasEditor
+                    key={`${gdCanvasW}x${gdCanvasH}-${gdFabricKey}`}
+                    width={gdCanvasW}
+                    height={gdCanvasH}
+                    background={gdBg}
+                    initialJSON={gdFabricInitialJSON}
+                    onReady={setGdFabricApi}
+                  />
+                </div>
+                <Modal isOpen={gdImageUrlModalOpen} title="Add image" onClose={() => setGdImageUrlModalOpen(false)}>
+                  <input className="field-input" autoFocus placeholder="https://…" value={gdImageUrlDraft} onChange={(e) => setGdImageUrlDraft(e.target.value)} style={{ marginBottom:'0.75rem' }} />
+                  <div style={{ display:'flex', gap:10 }}>
+                    <Button variant="secondary" onClick={() => setGdImageUrlModalOpen(false)}>Cancel</Button>
+                    <Button disabled={!gdImageUrlDraft.trim()} onClick={() => { gdFabricApi?.addImage(gdImageUrlDraft.trim()); setGdImageUrlModalOpen(false); }}>Add</Button>
+                  </div>
+                </Modal>
+              </div>
+            )}
+            {gdEngineMode === 'classic' && (
             <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 220px', gap:'1rem' }}>
               {/* Toolbar */}
               <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
@@ -19868,6 +19941,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 )}
               </div>
             </div>
+            )}
             <ConfirmDialog
               isOpen={!!gdTemplateConfirm}
               onClose={() => setGdTemplateConfirm(null)}

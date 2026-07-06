@@ -8,6 +8,7 @@
     "start": "next start -p 4000"
   },
   "dependencies": {
+    "fabric": "^6.9.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "next": "^14.2.5",

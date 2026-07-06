@@ -63,6 +63,7 @@ const payrollRoutes       = require('./routes/payroll');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const deliveryRoutes      = require('./routes/delivery');
 const brandKitRoutes      = require('./routes/brandKit');
+const savedDesignsRoutes  = require('./routes/savedDesigns');
 const passwordMgrRoutes   = require('./routes/passwordManager');
 const digitalProductsRoutes = require('./routes/digitalProducts');
 const qrCodesRoutes       = require('./routes/qrCodes');
@@ -180,6 +181,7 @@ app.use('/api/v1/payroll',         requireAuth, requireModuleAccess('payroll'), 
 app.use('/api/v1/customer-subs',   requireAuth, requireModuleAccess('subscriptions'), subscriptionsRoutes);
 app.use('/api/v1/delivery',        requireAuth, requireModuleAccess('delivery-tracking'), deliveryRoutes);
 app.use('/api/v1/brand-kit',       requireAuth, requireModuleAccess('brand-kit'), brandKitRoutes);
+app.use('/api/v1/saved-designs',   savedDesignsRoutes);
 app.use('/api/v1/password-manager',requireAuth, requireModuleAccess('password-manager'), passwordMgrRoutes);
 app.use('/api/v1/digital-products',requireAuth, requireModuleAccess('digital-products'), digitalProductsRoutes);
 app.use('/api/v1/qr-codes',        requireAuth, requireModuleAccess('qr-code-generator'), qrCodesRoutes);

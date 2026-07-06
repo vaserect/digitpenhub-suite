@@ -159,6 +159,20 @@ function SearchIcon() {
   );
 }
 
+// Shared Save/Load bar for the three Creative tools (GD Editor, Flyer Builder,
+// Logo Maker) — each backs onto the same saved_designs table via a `tool` slug.
+function CreativeSaveBar({ designName, setDesignName, saving, onSave, onOpenGallery, onNew, onApplyBrandKit }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      <input className="form-input" style={{ maxWidth: 220, fontSize: '0.85rem' }} value={designName} onChange={(e) => setDesignName(e.target.value)} placeholder="Design name" />
+      <Button variant="primary" size="sm" disabled={saving} loading={saving} onClick={onSave}>Save</Button>
+      <Button variant="secondary" size="sm" onClick={onOpenGallery}>My Designs</Button>
+      <Button variant="ghost" size="sm" onClick={onNew}>+ New</Button>
+      {onApplyBrandKit && <Button variant="ghost" size="sm" onClick={onApplyBrandKit}>🎨 Apply Brand Kit</Button>}
+    </div>
+  );
+}
+
 function InvoiceStatusBadge({ status }) {
   const labels = {
     draft: { text: 'Draft', color: '#F5B041', bg: 'rgba(245, 176, 65, 0.16)' },
@@ -1404,6 +1418,13 @@ export default function AppShell() {
   const [gdAddType, setGdAddType]       = useState('text');
   const [gdHistory, setGdHistory]       = useState([]);
   const [gdHistoryIndex, setGdHistoryIndex] = useState(-1);
+  // Creative tools — shared save/load state (one saved_designs row per tool per design)
+  const [creativeDesignId, setCreativeDesignId] = useState({ 'graphic-design-editor': null, 'flyer-builder': null, 'logo-maker': null });
+  const [creativeDesignName, setCreativeDesignName] = useState('Untitled design');
+  const [creativeSavedList, setCreativeSavedList] = useState({ 'graphic-design-editor': null, 'flyer-builder': null, 'logo-maker': null });
+  const [creativeSaving, setCreativeSaving] = useState(false);
+  const [creativeGalleryOpen, setCreativeGalleryOpen] = useState(null); // null | tool slug
+  const creativeGalleryApplyFnRef = useRef(null);
   // Basic Video Editor
   const [vidFile, setVidFile]           = useState(null);
   const [vidUrl, setVidUrl]             = useState('');
@@ -5437,6 +5458,80 @@ export default function AppShell() {
       setPagesLoaded(true);
     } catch {
       setPagesLoaded(true);
+    }
+  }
+
+  // ── Creative tools — shared save/load + Brand Kit application ────────────
+  // One saved_designs row per tool per design; `data` is whatever shape that
+  // tool's state naturally serializes to (gdElements array, flyer field set, etc).
+  async function saveCreativeDesign(tool, data) {
+    setCreativeSaving(true);
+    try {
+      const existingId = creativeDesignId[tool];
+      if (existingId) {
+        const d = await apiFetch(`/api/v1/saved-designs/${existingId}`, { method: 'PUT', body: JSON.stringify({ name: creativeDesignName, data }) });
+        if (d.design) showToast('Design saved!');
+      } else {
+        const d = await apiFetch('/api/v1/saved-designs', { method: 'POST', body: JSON.stringify({ tool, name: creativeDesignName, data }) });
+        if (d.design) { setCreativeDesignId((s) => ({ ...s, [tool]: d.design.id })); showToast('Design saved!'); }
+      }
+      setCreativeSavedList((s) => ({ ...s, [tool]: null }));
+    } catch (err) {
+      showToast(err.message || 'Failed to save design.');
+    } finally {
+      setCreativeSaving(false);
+    }
+  }
+
+  async function loadCreativeDesignsList(tool) {
+    try {
+      const d = await apiFetch(`/api/v1/saved-designs?tool=${tool}`);
+      setCreativeSavedList((s) => ({ ...s, [tool]: d.designs || [] }));
+    } catch {
+      setCreativeSavedList((s) => ({ ...s, [tool]: [] }));
+    }
+  }
+
+  function openCreativeGallery(tool, applyFn) {
+    creativeGalleryApplyFnRef.current = applyFn;
+    setCreativeGalleryOpen(tool);
+    if (creativeSavedList[tool] === null) loadCreativeDesignsList(tool);
+  }
+
+  async function openCreativeDesign(tool, id) {
+    try {
+      const d = await apiFetch(`/api/v1/saved-designs/${id}`);
+      if (d.design) {
+        if (creativeGalleryApplyFnRef.current) creativeGalleryApplyFnRef.current(d.design.data || {});
+        setCreativeDesignId((s) => ({ ...s, [tool]: d.design.id }));
+        setCreativeDesignName(d.design.name);
+        setCreativeGalleryOpen(null);
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to load design.');
+    }
+  }
+
+  async function deleteCreativeDesign(tool, id) {
+    await apiFetch(`/api/v1/saved-designs/${id}`, { method: 'DELETE' });
+    setCreativeSavedList((s) => ({ ...s, [tool]: (s[tool] || []).filter((x) => x.id !== id) }));
+  }
+
+  function newCreativeDesign(tool) {
+    setCreativeDesignId((s) => ({ ...s, [tool]: null }));
+    setCreativeDesignName('Untitled design');
+  }
+
+  async function loadBrandKitIfNeeded() {
+    if (bkLoaded) return brandKit;
+    await loadBrandKit();
+    // loadBrandKit sets brandKit via setState, which won't be visible on this
+    // synchronous return — re-fetch directly so the caller gets the value now.
+    try {
+      const d = await apiFetch('/api/v1/brand-kit/');
+      return d.kit || null;
+    } catch {
+      return null;
     }
   }
 
@@ -19052,6 +19147,25 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Logo Maker</h2>
             </div>
+            <CreativeSaveBar
+              designName={creativeDesignName}
+              setDesignName={setCreativeDesignName}
+              saving={creativeSaving}
+              onSave={() => saveCreativeDesign('logo-maker', { logoText, logoTagline, logoFont, logoColor, logoBg, logoIcon, logoLayout, logoSize })}
+              onOpenGallery={() => openCreativeGallery('logo-maker', (data) => {
+                setLogoText(data.logoText ?? 'My Brand'); setLogoTagline(data.logoTagline ?? ''); setLogoFont(data.logoFont ?? 'Georgia');
+                setLogoColor(data.logoColor ?? '#2563eb'); setLogoBg(data.logoBg ?? '#ffffff'); setLogoIcon(data.logoIcon ?? '◆');
+                setLogoLayout(data.logoLayout ?? 'icon-left'); setLogoSize(data.logoSize ?? 48);
+              })}
+              onNew={() => newCreativeDesign('logo-maker')}
+              onApplyBrandKit={async () => {
+                const kit = await loadBrandKitIfNeeded();
+                if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
+                setLogoColor(kit.primary_color || logoColor);
+                setLogoFont(kit.primary_font || logoFont);
+                showToast('Brand Kit applied!');
+              }}
+            />
             <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:'1.5rem' }}>
               <div>
                 <div style={{ marginBottom:'0.75rem' }}>
@@ -19163,6 +19277,25 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Flyer Builder</h2>
             </div>
+            <CreativeSaveBar
+              designName={creativeDesignName}
+              setDesignName={setCreativeDesignName}
+              saving={creativeSaving}
+              onSave={() => saveCreativeDesign('flyer-builder', { flyerTitle, flyerSubtitle, flyerDate, flyerVenue, flyerPhone, flyerColor, flyerBg, flyerTemplate })}
+              onOpenGallery={() => openCreativeGallery('flyer-builder', (data) => {
+                setFlyerTitle(data.flyerTitle ?? 'Big Event'); setFlyerSubtitle(data.flyerSubtitle ?? ''); setFlyerDate(data.flyerDate ?? '');
+                setFlyerVenue(data.flyerVenue ?? ''); setFlyerPhone(data.flyerPhone ?? ''); setFlyerColor(data.flyerColor ?? '#2563eb');
+                setFlyerBg(data.flyerBg ?? '#f0f4ff'); setFlyerTemplate(data.flyerTemplate ?? 'modern');
+              })}
+              onNew={() => newCreativeDesign('flyer-builder')}
+              onApplyBrandKit={async () => {
+                const kit = await loadBrandKitIfNeeded();
+                if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
+                setFlyerColor(kit.primary_color || flyerColor);
+                setFlyerBg(kit.background_color || flyerBg);
+                showToast('Brand Kit applied!');
+              }}
+            />
             <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:'1.5rem' }}>
               <div>
                 <div style={{ marginBottom:'0.5rem' }}>
@@ -19376,6 +19509,26 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <button className="back-link" onClick={() => setView('home')}>← Back</button>
               <h2>Graphic Design Editor</h2>
             </div>
+            <CreativeSaveBar
+              designName={creativeDesignName}
+              setDesignName={setCreativeDesignName}
+              saving={creativeSaving}
+              onSave={() => saveCreativeDesign('graphic-design-editor', { elements: gdElements, canvasW: gdCanvasW, canvasH: gdCanvasH, bg: gdBg })}
+              onOpenGallery={() => openCreativeGallery('graphic-design-editor', (data) => {
+                const next = Array.isArray(data.elements) ? data.elements : [];
+                gdCommitHistory(gdElements, next);
+                setGdElements(next);
+                setGdCanvasW(data.canvasW ?? 800); setGdCanvasH(data.canvasH ?? 600); setGdBg(data.bg ?? '#ffffff');
+                setGdSelected(null);
+              })}
+              onNew={() => { newCreativeDesign('graphic-design-editor'); gdCommitHistory(gdElements, []); setGdElements([]); setGdSelected(null); }}
+              onApplyBrandKit={async () => {
+                const kit = await loadBrandKitIfNeeded();
+                if (!kit) { showToast('No Brand Kit set up yet — configure one in the Brand Kit module.'); return; }
+                setGdBg(kit.background_color || gdBg);
+                showToast('Brand Kit applied!');
+              }}
+            />
             <div style={{ display:'grid', gridTemplateColumns:'200px 1fr 220px', gap:'1rem' }}>
               {/* Toolbar */}
               <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
@@ -21593,6 +21746,29 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             </div>
           )}
         </div>
+      )}
+
+      {creativeGalleryOpen && (
+        <Modal isOpen title="My Designs" description="Saved designs for this tool." onClose={() => setCreativeGalleryOpen(null)}>
+          {creativeSavedList[creativeGalleryOpen] === null ? (
+            <SkeletonRows rows={3} />
+          ) : creativeSavedList[creativeGalleryOpen].length === 0 ? (
+            <EmptyState icon="🎨" title="No saved designs yet" description="Designs you save in this tool will show up here." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 360, overflowY: 'auto' }}>
+              {creativeSavedList[creativeGalleryOpen].map((d) => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--border)', borderRadius: 8, padding: '0.6rem 0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{d.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{new Date(d.updated_at).toLocaleString()}</div>
+                  </div>
+                  <Button size="sm" onClick={() => openCreativeDesign(creativeGalleryOpen, d.id)}>Open</Button>
+                  <Button size="sm" variant="ghost" style={{ color: 'var(--danger)' }} onClick={() => deleteCreativeDesign(creativeGalleryOpen, d.id)}>Delete</Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
       )}
 
       {upgradePrompt && (

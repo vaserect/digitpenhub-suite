@@ -1,5 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const { uploadLimiter } = require('../middleware/rateLimiters');
 const multer = require('multer');
 const path = require('path');
 const { requireAuth } = require('../middleware/auth');
@@ -53,7 +54,7 @@ router.get('/me', requireAuth, me);
 router.post('/change-password', requireAuth, loginLimiter, changePassword);
 router.patch('/me', requireAuth, updateProfile);
 router.patch('/me/email', requireAuth, loginLimiter, updateEmail);
-router.post('/me/avatar', requireAuth, (req, res, next) => {
+router.post('/me/avatar', requireAuth, uploadLimiter, (req, res, next) => {
   avatarUpload.single('avatar')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
     next();

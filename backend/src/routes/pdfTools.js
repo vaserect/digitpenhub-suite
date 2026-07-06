@@ -2,9 +2,11 @@ const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { PDFDocument, degrees } = require('pdf-lib');
 const multer = require('multer');
+const { uploadLimiter } = require('../middleware/rateLimiters');
 
 const r = Router();
 r.use(requireAuth);
+r.use(uploadLimiter);
 
 // Use memory storage — process in-memory, return result
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });

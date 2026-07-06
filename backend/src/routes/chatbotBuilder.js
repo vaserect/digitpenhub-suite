@@ -1,10 +1,11 @@
 const router = require('express').Router();
 const { requireAuth } = require('../middleware/auth');
+const { aiGenerationLimiter } = require('../middleware/rateLimiters');
 const c = require('../controllers/chatbotBuilderController');
 router.get('/stats', requireAuth, c.getStats);
 router.get('/', requireAuth, c.listFlows);
 router.get('/:id', requireAuth, c.getFlow);
-router.post('/generate', requireAuth, c.generateReply);
+router.post('/generate', requireAuth, aiGenerationLimiter, c.generateReply);
 router.post('/', requireAuth, c.createFlow);
 router.put('/:id', requireAuth, c.updateFlow);
 router.delete('/:id', requireAuth, c.deleteFlow);

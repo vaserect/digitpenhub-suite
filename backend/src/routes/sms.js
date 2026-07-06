@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { bulkSendLimiter } = require('../middleware/rateLimiters');
 const c = require('../controllers/smsController');
 const r = Router();
 r.use(requireAuth);
@@ -11,6 +12,6 @@ r.put('/contacts/:id',       c.updateContact);
 r.delete('/contacts/:id',    c.deleteContact);
 r.get('/campaigns',          c.listCampaigns);
 r.post('/campaigns',         c.createCampaign);
-r.post('/campaigns/:id/send', c.sendCampaign);
+r.post('/campaigns/:id/send', bulkSendLimiter, c.sendCampaign);
 r.delete('/campaigns/:id',   c.deleteCampaign);
 module.exports = r;

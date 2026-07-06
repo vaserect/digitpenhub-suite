@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
+const { bulkSendLimiter } = require('../middleware/rateLimiters');
 const {
   listLists, createList, updateList, deleteList,
   listSubscribers, addSubscriber, importSubscribers, removeSubscriber, unsubscribe,
@@ -34,6 +35,6 @@ router.post('/campaigns', createCampaign);
 router.get('/campaigns/:id', getCampaign);
 router.patch('/campaigns/:id', updateCampaign);
 router.delete('/campaigns/:id', deleteCampaign);
-router.post('/campaigns/:id/send', sendCampaign);
+router.post('/campaigns/:id/send', bulkSendLimiter, sendCampaign);
 
 module.exports = router;

@@ -1,11 +1,12 @@
 const router = require('express').Router();
 const { requireAuth } = require('../middleware/auth');
+const { aiGenerationLimiter } = require('../middleware/rateLimiters');
 const c = require('../controllers/meetingNotesController');
 router.get('/stats', requireAuth, c.getStats);
 router.get('/', requireAuth, c.listNotes);
 router.get('/:id', requireAuth, c.getNote);
 router.post('/', requireAuth, c.createNote);
-router.post('/:id/summarize', requireAuth, c.summarize);
+router.post('/:id/summarize', requireAuth, aiGenerationLimiter, c.summarize);
 router.put('/:id', requireAuth, c.updateNote);
 router.delete('/:id', requireAuth, c.deleteNote);
 module.exports = router;

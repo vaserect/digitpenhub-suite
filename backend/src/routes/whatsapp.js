@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { bulkSendLimiter } = require('../middleware/rateLimiters');
 const c = require('../controllers/whatsappController');
 const r = Router();
 r.use(requireAuth);
@@ -15,6 +16,6 @@ r.delete('/templates/:id', c.deleteTemplate);
 r.get('/broadcasts', c.listBroadcasts);
 r.post('/broadcasts', c.createBroadcast);
 r.put('/broadcasts/:id', c.updateBroadcast);
-r.post('/broadcasts/:id/send', c.sendBroadcast);
+r.post('/broadcasts/:id/send', bulkSendLimiter, c.sendBroadcast);
 r.delete('/broadcasts/:id', c.deleteBroadcast);
 module.exports = r;

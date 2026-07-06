@@ -1459,6 +1459,9 @@ export default function AppShell() {
   const [mpSearch, setMpSearch]         = useState('');
   const [mpCatFilter, setMpCatFilter]   = useState('');
   const [mpSaving, setMpSaving]         = useState(false);
+  const [mpVariants, setMpVariants]     = useState([]);
+  const [mpVariantDraft, setMpVariantDraft] = useState({ name:'', value:'', priceDelta:'', stock:'' });
+  const [mpVariantSaving, setMpVariantSaving] = useState(false);
 
   // ── Batch 8 state ────────────────────────────────────────────────────────────
   // Certificates (module slug "certificates" — distinct from the existing "certificate-generator" module)
@@ -19844,7 +19847,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
           <div className="module-head">
             <button className="back-link" onClick={() => { if (mpEditing) setMpEditing(null); else setView('home'); }}>← {mpEditing ? 'Back to Products' : 'Back'}</button>
             <h2>Marketplace</h2>
-            {!mpEditing && <button className="btn-primary" style={{ marginLeft:'auto', fontSize:'0.85rem' }} onClick={() => { setMpDraft({ name:'', description:'', category:'General', price:'', currency:'NGN', stock:'', status:'draft', tags:'', images:'' }); setMpEditing('new'); }}>+ Add Product</button>}
+            {!mpEditing && <button className="btn-primary" style={{ marginLeft:'auto', fontSize:'0.85rem' }} onClick={() => { setMpDraft({ name:'', description:'', category:'General', price:'', currency:'NGN', stock:'', status:'draft', tags:'', images:'' }); setMpVariants([]); setMpEditing('new'); }}>+ Add Product</button>}
           </div>
 
           {!mpEditing ? (
@@ -19896,7 +19899,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                           </div>
                           <div style={{ fontSize:'0.75rem', color:'var(--muted)', marginBottom:'0.5rem' }}>Stock: {p.stock} · Sales: {p.sales} · Views: {p.views}</div>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
-                            <button className="btn-ghost" style={{ fontSize:'0.75rem', flex:1 }} onClick={() => { setMpDraft({ name:p.name, description:p.description||'', category:p.category, price:p.price, currency:p.currency||'NGN', stock:p.stock, status:p.status, tags:Array.isArray(p.tags)?p.tags.join(','):'', images:Array.isArray(p.images)?p.images.join('\n'):'' }); setMpEditing(p.id); }}>Edit</button>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem', flex:1 }} onClick={async () => { setMpDraft({ name:p.name, description:p.description||'', category:p.category, price:p.price, currency:p.currency||'NGN', stock:p.stock, status:p.status, tags:Array.isArray(p.tags)?p.tags.join(','):'', images:Array.isArray(p.images)?p.images.join('\n'):'' }); setMpVariants([]); setMpEditing(p.id); const vd = await apiFetch(`/api/v1/marketplace/${p.id}/variants`); setMpVariants(vd.variants||[]); }}>Edit</button>
                             {p.status !== 'active' && <button className="btn-ghost" style={{ fontSize:'0.75rem', flex:1 }} onClick={async () => { const d=await apiFetch(`/api/v1/marketplace/${p.id}/publish`,{method:'POST'}); if(d.product) { setMpProducts(l=>l.map(x=>x.id===p.id?d.product:x)); setMpStats(s=>({...s,active:(s?.active||0)+1,draft:Math.max((s?.draft||0)-1,0)})); } }}>Publish</button>}
                             <Tooltip label={`Delete "${p.name}"`}>
                               <button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => setMpConfirmDelete({ id: p.id, name: p.name })}>✕</button>
@@ -19944,6 +19947,38 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                   </select>
                 </div>
               </div>
+
+              {mpEditing !== 'new' && (
+                <div style={{ marginBottom:'1.25rem' }}>
+                  <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.5rem' }}>Variants</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 100px 90px 32px', gap:'0.5rem', fontWeight:600, fontSize:'0.78rem', color:'var(--muted)', marginBottom:'0.25rem', padding:'0 2px' }}>
+                    <span>Name</span><span>Value</span><span>Price Δ</span><span>Stock</span><span></span>
+                  </div>
+                  {mpVariants.map((v) => (
+                    <div key={v.id} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 100px 90px 32px', gap:'0.5rem', marginBottom:'0.4rem' }}>
+                      <input className="form-input" value={v.name} onChange={(e) => setMpVariants(list=>list.map(x=>x.id===v.id?{...x,name:e.target.value}:x))} onBlur={async () => { await apiFetch(`/api/v1/marketplace/${mpEditing}/variants/${v.id}`, { method:'PUT', body:JSON.stringify({ name:v.name, value:v.value, priceDelta:v.price_delta, stock:v.stock }) }); }} />
+                      <input className="form-input" value={v.value} onChange={(e) => setMpVariants(list=>list.map(x=>x.id===v.id?{...x,value:e.target.value}:x))} onBlur={async () => { await apiFetch(`/api/v1/marketplace/${mpEditing}/variants/${v.id}`, { method:'PUT', body:JSON.stringify({ name:v.name, value:v.value, priceDelta:v.price_delta, stock:v.stock }) }); }} />
+                      <input className="form-input" type="number" value={v.price_delta} onChange={(e) => setMpVariants(list=>list.map(x=>x.id===v.id?{...x,price_delta:e.target.value}:x))} onBlur={async () => { await apiFetch(`/api/v1/marketplace/${mpEditing}/variants/${v.id}`, { method:'PUT', body:JSON.stringify({ name:v.name, value:v.value, priceDelta:v.price_delta, stock:v.stock }) }); }} />
+                      <input className="form-input" type="number" value={v.stock} onChange={(e) => setMpVariants(list=>list.map(x=>x.id===v.id?{...x,stock:e.target.value}:x))} onBlur={async () => { await apiFetch(`/api/v1/marketplace/${mpEditing}/variants/${v.id}`, { method:'PUT', body:JSON.stringify({ name:v.name, value:v.value, priceDelta:v.price_delta, stock:v.stock }) }); }} />
+                      <button className="btn-ghost" style={{ color:'var(--danger)' }} onClick={async () => { await apiFetch(`/api/v1/marketplace/${mpEditing}/variants/${v.id}`, { method:'DELETE' }); setMpVariants(list=>list.filter(x=>x.id!==v.id)); }}>×</button>
+                    </div>
+                  ))}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 100px 90px 32px', gap:'0.5rem', marginBottom:'0.5rem' }}>
+                    <input className="form-input" placeholder="e.g. Size" value={mpVariantDraft.name} onChange={(e) => setMpVariantDraft(d=>({...d,name:e.target.value}))} />
+                    <input className="form-input" placeholder="e.g. Large" value={mpVariantDraft.value} onChange={(e) => setMpVariantDraft(d=>({...d,value:e.target.value}))} />
+                    <input className="form-input" type="number" placeholder="0.00" value={mpVariantDraft.priceDelta} onChange={(e) => setMpVariantDraft(d=>({...d,priceDelta:e.target.value}))} />
+                    <input className="form-input" type="number" placeholder="0" value={mpVariantDraft.stock} onChange={(e) => setMpVariantDraft(d=>({...d,stock:e.target.value}))} />
+                    <span />
+                  </div>
+                  <button className="btn-ghost" disabled={!mpVariantDraft.name.trim() || !mpVariantDraft.value.trim() || mpVariantSaving} onClick={async () => {
+                    setMpVariantSaving(true);
+                    const d = await apiFetch(`/api/v1/marketplace/${mpEditing}/variants`, { method:'POST', body:JSON.stringify({ name:mpVariantDraft.name, value:mpVariantDraft.value, priceDelta:parseFloat(mpVariantDraft.priceDelta)||0, stock:parseInt(mpVariantDraft.stock)||0 }) });
+                    if (d.variant) { setMpVariants(list=>[...list, d.variant]); setMpVariantDraft({ name:'', value:'', priceDelta:'', stock:'' }); }
+                    setMpVariantSaving(false);
+                  }}>+ Add Variant</button>
+                </div>
+              )}
+
               <div style={{ display:'flex', gap:'0.5rem' }}>
                 <button className="btn-primary" disabled={!mpDraft.name.trim() || mpSaving} onClick={async () => {
                   setMpSaving(true);
@@ -21288,26 +21323,40 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               )}
 
               {storeTab === 'products' && (
-                storeProducts.length === 0 ? (
-                  <EmptyState
-                    icon="🛍️"
-                    title="No products listed yet"
-                    description="Add products in the Marketplace module — active ones will appear in your store automatically."
-                    action={<Button variant="secondary" onClick={() => openModule('marketplace')}>Go to Marketplace</Button>}
-                  />
-                ) : (
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'1rem' }}>
-                    {storeProducts.map(p => (
-                      <div key={p.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
-                        <div style={{ height:120, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--border)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)', fontSize:'1.5rem' }}>{!p.image_url && '📦'}</div>
-                        <div style={{ padding:'0.75rem' }}>
-                          <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{p.name}</div>
-                          <div style={{ fontWeight:700, color:'var(--primary)', marginTop:'0.25rem' }}>{storeDraft.currency} {Number(p.price||0).toLocaleString()}</div>
+                <>
+                  {storeSettings?.is_published && user?.orgId && (
+                    <div style={{ marginBottom:'1rem' }}>
+                      <a href={`/store/${user.orgId}`} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize:'0.85rem', textDecoration:'none', display:'inline-block' }}>🔗 View live store</a>
+                    </div>
+                  )}
+                  {storeProducts.length === 0 ? (
+                    <EmptyState
+                      icon="🛍️"
+                      title="No products listed yet"
+                      description="Add products in the Marketplace module — active ones will appear in your store automatically."
+                      action={<Button variant="secondary" onClick={() => openModule('marketplace')}>Go to Marketplace</Button>}
+                    />
+                  ) : (
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'1rem' }}>
+                      {storeProducts.map(p => (
+                        <div key={p.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+                          <div style={{ height:120, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--border)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)', fontSize:'1.5rem' }}>{!p.image_url && '📦'}</div>
+                          <div style={{ padding:'0.75rem' }}>
+                            <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{p.name}</div>
+                            <div style={{ fontWeight:700, color:'var(--primary)', marginTop:'0.25rem' }}>{storeDraft.currency} {Number(p.price||0).toLocaleString()}</div>
+                            {Array.isArray(p.variants) && p.variants.length > 0 ? (
+                              <div style={{ fontSize:'0.75rem', color:'var(--muted)', marginTop:'0.4rem' }}>
+                                {p.variants.map(v => <div key={v.id}>{v.name}: {v.value} — Stock: {v.stock}</div>)}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize:'0.75rem', color:'var(--muted)', marginTop:'0.4rem' }}>Stock: {p.stock}</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               {storeTab === 'preview' && (

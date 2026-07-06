@@ -1,8 +1,182 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { requireModuleAccess } = require('../utils/planAccess');
 const db = require('../db');
 const r = Router();
+
+// ── Public routes — no auth. These power the live storefront at
+// frontend/app/store/[orgId]/page.jsx and must stay reachable by
+// unauthenticated shoppers. Mounted before the requireAuth gate below,
+// mirroring the pattern in backend/src/routes/pages.js. ──────────────────────
+
+r.get('/public/:orgId', async (req, res) => {
+  const { orgId } = req.params;
+  const { rows: settingsRows } = await db.query(
+    `SELECT * FROM store_settings WHERE org_id=$1 AND is_published=TRUE`, [orgId]);
+  if (!settingsRows.length) return res.status(404).json({ error: 'not_found' });
+
+  const { rows: products } = await db.query(
+    `SELECT * FROM marketplace_products WHERE org_id=$1 AND status='active' ORDER BY created_at DESC`,
+    [orgId]
+  );
+  const { rows: variants } = await db.query(
+    `SELECT * FROM product_variants WHERE org_id=$1 ORDER BY created_at ASC`, [orgId]
+  );
+  const withVariants = products.map(p => ({
+    ...p,
+    variants: variants.filter(v => v.product_id === p.id),
+  }));
+
+  res.json({ settings: settingsRows[0], products: withVariants });
+});
+
+r.post('/public/:orgId/checkout', async (req, res) => {
+  const { orgId } = req.params;
+  const { items, couponCode, customerName, customerEmail, customerPhone, customerAddress, paymentMethod } = req.body || {};
+
+  if (!customerName?.trim()) return res.status(400).json({ error: 'customerName is required.' });
+  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'items are required.' });
+
+  const { rows: settingsRows } = await db.query(
+    `SELECT * FROM store_settings WHERE org_id=$1 AND is_published=TRUE`, [orgId]);
+  if (!settingsRows.length) return res.status(404).json({ error: 'not_found' });
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Re-fetch product/variant server-side and build priced line items.
+    const lineItems = [];
+    for (const it of items) {
+      const qty = Number(it.qty) || 0;
+      if (!it.productId || qty <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Invalid item in cart.' });
+      }
+      const { rows: prodRows } = await client.query(
+        `SELECT * FROM marketplace_products WHERE id=$1 AND org_id=$2 AND status='active'`,
+        [it.productId, orgId]
+      );
+      if (!prodRows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Product ${it.productId} is not available.` });
+      }
+      const product = prodRows[0];
+      let variant = null;
+      if (it.variantId) {
+        const { rows: varRows } = await client.query(
+          `SELECT * FROM product_variants WHERE id=$1 AND product_id=$2 AND org_id=$3`,
+          [it.variantId, it.productId, orgId]
+        );
+        if (!varRows.length) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: `Variant ${it.variantId} is not available.` });
+        }
+        variant = varRows[0];
+      }
+      const unitPrice = Number(product.price) + (variant ? Number(variant.price_delta || 0) : 0);
+      lineItems.push({
+        productId: product.id,
+        variantId: variant ? variant.id : null,
+        name: variant ? `${product.name} (${variant.name}: ${variant.value})` : product.name,
+        qty,
+        price: unitPrice,
+      });
+    }
+
+    const subtotal = lineItems.reduce((s, li) => s + li.price * li.qty, 0);
+
+    // 2. Validate + apply coupon, mirroring couponsController.validateCoupon's rules.
+    let discount = 0;
+    let couponRow = null;
+    if (couponCode) {
+      const { rows: cRows } = await client.query(
+        `SELECT * FROM coupons WHERE org_id=$1 AND code=UPPER($2)`, [orgId, couponCode]
+      );
+      if (!cRows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Invalid coupon code.' });
+      }
+      const c = cRows[0];
+      if (c.status !== 'active') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Coupon is not active.' });
+      }
+      if (c.expires_at && new Date(c.expires_at) < new Date()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Coupon has expired.' });
+      }
+      if (c.max_uses && c.uses_count >= c.max_uses) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Coupon usage limit reached.' });
+      }
+      if (c.min_order && subtotal < Number(c.min_order)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Minimum order of ₦${c.min_order} required.` });
+      }
+      discount = c.type === 'percent' ? subtotal * Number(c.value) / 100 : Number(c.value);
+      couponRow = c;
+    }
+
+    const total = Math.max(subtotal - discount, 0);
+
+    // 3. Atomically decrement stock per line item.
+    for (const li of lineItems) {
+      if (li.variantId) {
+        const { rows } = await client.query(
+          `UPDATE product_variants SET stock = stock - $1 WHERE id=$2 AND stock >= $1 RETURNING stock`,
+          [li.qty, li.variantId]
+        );
+        if (!rows.length) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'out_of_stock', productId: li.productId, variantId: li.variantId });
+        }
+      } else {
+        const { rows } = await client.query(
+          `UPDATE marketplace_products SET stock = stock - $1 WHERE id=$2 AND stock >= $1 RETURNING stock`,
+          [li.qty, li.productId]
+        );
+        if (!rows.length) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'out_of_stock', productId: li.productId });
+        }
+      }
+      // Track sales per product regardless of variant.
+      await client.query(`UPDATE marketplace_products SET sales = sales + $1 WHERE id=$2`, [li.qty, li.productId]);
+    }
+
+    // 4. Insert the order.
+    const seqRes = await client.query(`SELECT nextval('order_number_seq') AS n`);
+    const orderNumber = `ORD-${String(seqRes.rows[0].n).padStart(5, '0')}`;
+    const { rows: orderRows } = await client.query(
+      `INSERT INTO orders (org_id, order_number, customer_name, customer_email, customer_phone, customer_address, items, subtotal, discount, tax_amount, shipping, total, status, payment_status, payment_method)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending','unpaid',$13) RETURNING *`,
+      [
+        orgId, orderNumber, customerName.trim(), customerEmail || null, customerPhone || null, customerAddress || null,
+        JSON.stringify(lineItems), subtotal, discount, 0, 0, total, paymentMethod || null,
+      ]
+    );
+
+    // 5. Increment coupon usage count.
+    if (couponRow) {
+      await client.query(`UPDATE coupons SET uses_count = uses_count + 1 WHERE id=$1`, [couponRow.id]);
+    }
+
+    await client.query('COMMIT');
+    const order = orderRows[0];
+    res.status(201).json({ orderId: order.id, orderNumber: order.order_number, total: Number(order.total) });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Storefront checkout failed', err);
+    res.status(500).json({ error: 'Checkout failed. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
+// ── Protected routes ──────────────────────────────────────────────────────────
 r.use(requireAuth);
+r.use(requireModuleAccess('online-store-builder'));
 
 r.get('/settings', async (req, res) => {
   const { rows } = await db.query(
@@ -43,7 +217,10 @@ r.post('/unpublish', async (req, res) => {
 r.get('/products', async (req, res) => {
   const { rows } = await db.query(
     `SELECT * FROM marketplace_products WHERE org_id=$1 AND status='active' ORDER BY created_at DESC`, [req.user.orgId]);
-  res.json({ products: rows });
+  const { rows: variants } = await db.query(
+    `SELECT * FROM product_variants WHERE org_id=$1 ORDER BY created_at ASC`, [req.user.orgId]);
+  const withVariants = rows.map(p => ({ ...p, variants: variants.filter(v => v.product_id === p.id) }));
+  res.json({ products: withVariants });
 });
 
 module.exports = r;

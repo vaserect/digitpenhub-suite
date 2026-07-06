@@ -65,4 +65,45 @@ r.post('/:id/view', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Product Variants ────────────────────────────────────────────────────────
+
+r.get('/:productId/variants', async (req, res) => {
+  const owns = await db.query(`SELECT 1 FROM marketplace_products WHERE id=$1 AND org_id=$2`, [req.params.productId, req.user.orgId]);
+  if (!owns.rows.length) return res.status(404).json({ error: 'Not found.' });
+  const { rows } = await db.query(
+    `SELECT * FROM product_variants WHERE product_id=$1 AND org_id=$2 ORDER BY created_at ASC`,
+    [req.params.productId, req.user.orgId]
+  );
+  res.json({ variants: rows });
+});
+
+r.post('/:productId/variants', async (req, res) => {
+  const owns = await db.query(`SELECT 1 FROM marketplace_products WHERE id=$1 AND org_id=$2`, [req.params.productId, req.user.orgId]);
+  if (!owns.rows.length) return res.status(404).json({ error: 'Not found.' });
+  const { name, value, priceDelta, stock, sku } = req.body || {};
+  if (!name?.trim() || !value?.trim()) return res.status(400).json({ error: 'name and value are required.' });
+  const { rows } = await db.query(
+    `INSERT INTO product_variants (product_id, org_id, name, value, price_delta, stock, sku)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [req.params.productId, req.user.orgId, name.trim(), value.trim(), Number(priceDelta)||0, Number(stock)||0, sku||null]
+  );
+  res.status(201).json({ variant: rows[0] });
+});
+
+r.put('/:productId/variants/:variantId', async (req, res) => {
+  const { name, value, priceDelta, stock, sku } = req.body || {};
+  const { rows } = await db.query(
+    `UPDATE product_variants SET name=$1, value=$2, price_delta=$3, stock=$4, sku=$5
+     WHERE id=$6 AND product_id=$7 AND org_id=$8 RETURNING *`,
+    [name, value, Number(priceDelta)||0, Number(stock)||0, sku||null, req.params.variantId, req.params.productId, req.user.orgId]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Not found.' });
+  res.json({ variant: rows[0] });
+});
+
+r.delete('/:productId/variants/:variantId', async (req, res) => {
+  await db.query(`DELETE FROM product_variants WHERE id=$1 AND product_id=$2 AND org_id=$3`, [req.params.variantId, req.params.productId, req.user.orgId]);
+  res.json({ ok: true });
+});
+
 module.exports = r;

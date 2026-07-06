@@ -215,7 +215,10 @@ app.use('/api/v1/lms',                requireAuth, requireModuleAccess('learning
 app.use('/api/v1/school',             requireAuth, requireModuleAccess('school-management'), schoolRoutes);
 app.use('/api/v1/school-assignments', requireAuth, requireModuleAccess('assignments'), assignmentsRoutes2);
 app.use('/api/v1/cbt',                requireAuth, requireModuleAccess('cbt-platform'), cbtRoutes);
-app.use('/api/v1/store-builder',      requireAuth, requireModuleAccess('online-store-builder'), storeBuilderRoutes);
+// Auth/module-access gating for store-builder lives inside storeBuilderRoutes
+// itself (after its public storefront routes), matching the pagesRoutes
+// pattern, so unauthenticated shoppers can reach /public/:orgId and checkout.
+app.use('/api/v1/store-builder',      storeBuilderRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 

@@ -552,6 +552,8 @@ export default function AppShell() {
   const [jobDeleting, setJobDeleting] = useState(false);
   const [applicantConfirmDelete, setApplicantConfirmDelete] = useState(null);
   const [applicantDeleting, setApplicantDeleting] = useState(false);
+  const [applicantSelected, setApplicantSelected] = useState([]);
+  const [applicantBulkDeleting, setApplicantBulkDeleting] = useState(false);
 
   // Milestone 17: Accounting
   const [accTab, setAccTab] = useState('ledger');
@@ -637,6 +639,8 @@ export default function AppShell() {
   const [waBroadcastOpen, setWaBroadcastOpen] = useState(false);
   const [waContactConfirmDelete, setWaContactConfirmDelete] = useState(null);
   const [waContactDeleting, setWaContactDeleting] = useState(false);
+  const [waContactSelected, setWaContactSelected] = useState([]);
+  const [waContactBulkDeleting, setWaContactBulkDeleting] = useState(false);
   const [waTemplateConfirmDelete, setWaTemplateConfirmDelete] = useState(null);
   const [waTemplateDeleting, setWaTemplateDeleting] = useState(false);
   const [waBroadcastConfirmDelete, setWaBroadcastConfirmDelete] = useState(null);
@@ -655,6 +659,8 @@ export default function AppShell() {
   const [affConvOpen, setAffConvOpen] = useState(false);
   const [affConfirmDelete, setAffConfirmDelete] = useState(null);
   const [affDeleting, setAffDeleting] = useState(false);
+  const [affSelected, setAffSelected] = useState([]);
+  const [affBulkDeleting, setAffBulkDeleting] = useState(false);
 
   // Milestone 23: Referral Program
   const [refLoaded, setRefLoaded] = useState(false);
@@ -666,6 +672,8 @@ export default function AppShell() {
   const [refPgmOpen, setRefPgmOpen] = useState(false);
   const [refDraft, setRefDraft] = useState({ programId: '', referrerName: '', referrerEmail: '', referrerCode: '', refereeName: '', refereeEmail: '', refereePhone: '', notes: '' });
   const [refOpen, setRefOpen] = useState(false);
+  const [refSelected, setRefSelected] = useState([]);
+  const [refBulkDeleting, setRefBulkDeleting] = useState(false);
   const [refPgmConfirmDelete, setRefPgmConfirmDelete] = useState(null);
   const [refPgmDeleting, setRefPgmDeleting] = useState(false);
 
@@ -728,6 +736,8 @@ export default function AppShell() {
   const [tmCommentBody, setTmCommentBody]   = useState('');
   const [tmConfirmDelete, setTmConfirmDelete] = useState(null);
   const [tmDeleting, setTmDeleting]         = useState(false);
+  const [tmSelected, setTmSelected]         = useState([]);
+  const [tmBulkDeleting, setTmBulkDeleting] = useState(false);
   const [tmQuery, setTmQuery]               = useState('');
 
   // ── Forms / Survey Builder ────────────────────────────────────────────────
@@ -760,6 +770,8 @@ export default function AppShell() {
   const [hdReplyInternal, setHdReplyInternal] = useState(false);
   const [hdConfirmDelete, setHdConfirmDelete] = useState(null);
   const [hdDeleting, setHdDeleting]         = useState(false);
+  const [hdSelected, setHdSelected]         = useState([]);
+  const [hdBulkDeleting, setHdBulkDeleting] = useState(false);
 
   // ── SMS Marketing ─────────────────────────────────────────────────────────
   const [smsLoaded, setSmsLoaded]           = useState(false);
@@ -777,6 +789,8 @@ export default function AppShell() {
   const [smsCampDeleting, setSmsCampDeleting] = useState(false);
   const [smsContactConfirmDelete, setSmsContactConfirmDelete] = useState(null);
   const [smsContactDeleting, setSmsContactDeleting] = useState(false);
+  const [smsContactSelected, setSmsContactSelected] = useState([]);
+  const [smsContactBulkDeleting, setSmsContactBulkDeleting] = useState(false);
   const [smsQuery, setSmsQuery]             = useState('');
   const [smsImportOpen, setSmsImportOpen]   = useState(false);
   const [smsImportText, setSmsImportText]   = useState('');
@@ -792,6 +806,8 @@ export default function AppShell() {
   const [calDraft, setCalDraft]             = useState({ title:'', description:'', startAt:'', endAt:'', allDay:false, color:'#2563eb', location:'', url:'' });
   const [calConfirmDelete, setCalConfirmDelete] = useState(null);
   const [calDeleting, setCalDeleting]       = useState(false);
+  const [calSelected, setCalSelected]       = useState([]);
+  const [calBulkDeleting, setCalBulkDeleting] = useState(false);
   const [calQuery, setCalQuery]             = useState('');
 
   // ── Time Tracking ─────────────────────────────────────────────────────────
@@ -802,6 +818,8 @@ export default function AppShell() {
   const [ttEntries, setTtEntries]           = useState([]);
   const [ttEntryConfirmDelete, setTtEntryConfirmDelete] = useState(null);
   const [ttEntryDeleting, setTtEntryDeleting] = useState(false);
+  const [ttEntrySelected, setTtEntrySelected] = useState([]);
+  const [ttEntryBulkDeleting, setTtEntryBulkDeleting] = useState(false);
   const [ttRunning, setTtRunning]           = useState(null);
   const [ttElapsed, setTtElapsed]           = useState(0);
   const [ttDesc, setTtDesc]                 = useState('');
@@ -823,6 +841,8 @@ export default function AppShell() {
   const NOTE_COLORS = ['#ffffff','#fef9c3','#d1fae5','#dbeafe','#fce7f3','#ede9fe','#ffedd5'];
   const [noteConfirmDelete, setNoteConfirmDelete] = useState(null);
   const [noteDeleting, setNoteDeleting]     = useState(false);
+  const [noteSelected, setNoteSelected]     = useState([]);
+  const [noteBulkDeleting, setNoteBulkDeleting] = useState(false);
 
   // ── Knowledge Base ────────────────────────────────────────────────────────
   const [kbLoaded, setKbLoaded]             = useState(false);
@@ -840,6 +860,8 @@ export default function AppShell() {
   const [kbSearch, setKbSearch]             = useState('');
   const [kbConfirmDelete, setKbConfirmDelete] = useState(null);
   const [kbDeleting, setKbDeleting]         = useState(false);
+  const [kbSelected, setKbSelected]         = useState([]);
+  const [kbBulkDeleting, setKbBulkDeleting] = useState(false);
 
   // ── Coupons ───────────────────────────────────────────────────────────────
   const [couponLoaded, setCouponLoaded]     = useState(false);
@@ -865,6 +887,8 @@ export default function AppShell() {
   const [urlCopied, setUrlCopied]           = useState(null);
   const [urlConfirmDelete, setUrlConfirmDelete] = useState(null);
   const [urlDeleting, setUrlDeleting]       = useState(false);
+  const [urlSelected, setUrlSelected]       = useState([]);
+  const [urlBulkDeleting, setUrlBulkDeleting] = useState(false);
 
   // ── Asset Management ──────────────────────────────────────────────────────
   const [assetLoaded, setAssetLoaded]       = useState(false);
@@ -889,6 +913,8 @@ export default function AppShell() {
   const [orderDraft, setOrderDraft]         = useState({ customerName:'', customerEmail:'', customerPhone:'', customerAddress:'', items:[{ name:'', qty:1, price:0 }], discount:'0', taxAmount:'0', shipping:'0', paymentMethod:'', notes:'' });
   const [orderConfirmDelete, setOrderConfirmDelete] = useState(null);
   const [orderDeleting, setOrderDeleting]   = useState(false);
+  const [orderSelected, setOrderSelected]   = useState([]);
+  const [orderBulkDeleting, setOrderBulkDeleting] = useState(false);
 
   // ── Document Management ───────────────────────────────────────────────────
   const [docLoaded, setDocLoaded]           = useState(false);
@@ -905,6 +931,8 @@ export default function AppShell() {
   const [docFolderDeleting, setDocFolderDeleting] = useState(false);
   const [docFileConfirmDelete, setDocFileConfirmDelete] = useState(null);
   const [docFileDeleting, setDocFileDeleting] = useState(false);
+  const [docFileSelected, setDocFileSelected] = useState([]);
+  const [docFileBulkDeleting, setDocFileBulkDeleting] = useState(false);
 
   // ── Payroll ───────────────────────────────────────────────────────────────
   const [payLoaded, setPayLoaded]           = useState(false);
@@ -918,6 +946,8 @@ export default function AppShell() {
   const [payItemDraft, setPayItemDraft]     = useState({ employeeName:'', employeeEmail:'', department:'', grossSalary:'', allowances:'0', otherDeductions:'0', bankName:'', accountNumber:'' });
   const [payRunConfirmDelete, setPayRunConfirmDelete] = useState(null);
   const [payRunDeleting, setPayRunDeleting] = useState(false);
+  const [payRunSelected, setPayRunSelected] = useState([]);
+  const [payRunBulkDeleting, setPayRunBulkDeleting] = useState(false);
 
   // ── Subscriptions ─────────────────────────────────────────────────────────
   const [subLoaded, setSubLoaded]           = useState(false);
@@ -933,6 +963,8 @@ export default function AppShell() {
   const [subDraft, setSubDraft]             = useState({ planId:'', customerName:'', customerEmail:'', customerPhone:'', amount:'', currentPeriodEnd:'', notes:'' });
   const [subConfirmDelete, setSubConfirmDelete] = useState(null);
   const [subDeleting, setSubDeleting]       = useState(false);
+  const [subSelected, setSubSelected]       = useState([]);
+  const [subBulkDeleting, setSubBulkDeleting] = useState(false);
 
   // ── Delivery Tracking ─────────────────────────────────────────────────────
   const [delLoaded, setDelLoaded]           = useState(false);
@@ -944,6 +976,8 @@ export default function AppShell() {
   const [delSearch, setDelSearch]           = useState('');
   const [delConfirmDelete, setDelConfirmDelete] = useState(null);
   const [delDeleting, setDelDeleting]       = useState(false);
+  const [delSelected, setDelSelected]       = useState([]);
+  const [delBulkDeleting, setDelBulkDeleting] = useState(false);
 
   // ── Brand Kit ─────────────────────────────────────────────────────────────
   const [bkLoaded, setBkLoaded]             = useState(false);
@@ -1537,6 +1571,8 @@ export default function AppShell() {
   const [payrollYear, setPayrollYear] = useState(String(new Date().getFullYear()));
   const [hrEmpConfirmDelete, setHrEmpConfirmDelete] = useState(null);
   const [hrEmpDeleting, setHrEmpDeleting] = useState(false);
+  const [hrEmpSelected, setHrEmpSelected] = useState([]);
+  const [hrEmpBulkDeleting, setHrEmpBulkDeleting] = useState(false);
   const [hrDeptConfirmDelete, setHrDeptConfirmDelete] = useState(null);
   const [hrDeptDeleting, setHrDeptDeleting] = useState(false);
   const [hrPayrollConfirmProcess, setHrPayrollConfirmProcess] = useState(null);
@@ -2434,6 +2470,17 @@ export default function AppShell() {
     } finally { setApplicantDeleting(false); setApplicantConfirmDelete(null); }
   }
 
+  async function confirmApplicantBulkDelete() {
+    setApplicantBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/recruitment/applicants/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: applicantSelected }) });
+      setApplicantList((prev) => prev.filter((a) => !applicantSelected.includes(a.id)));
+      setApplicantSelected([]);
+      const s = await apiFetch('/api/v1/recruitment/stats'); setRecruitStats(s);
+      showToast('Applicants removed.');
+    } finally { setApplicantBulkDeleting(false); }
+  }
+
   async function handleMoveApplicantStage(id, stage) {
     await apiFetch(`/api/v1/recruitment/applicants/${id}`, { method: 'PUT', body: JSON.stringify({ stage }) });
     setApplicantList((prev) => prev.map((a) => a.id === id ? { ...a, stage } : a));
@@ -2663,6 +2710,17 @@ export default function AppShell() {
     } finally { setWaContactDeleting(false); setWaContactConfirmDelete(null); }
   }
 
+  async function confirmWaContactBulkDelete() {
+    setWaContactBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/whatsapp/contacts/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: waContactSelected }) });
+      setWaContacts((prev) => prev.filter((c) => !waContactSelected.includes(c.id)));
+      setWaContactSelected([]);
+      const s = await apiFetch('/api/v1/whatsapp/stats'); setWaStats(s);
+      showToast('Contacts removed.');
+    } finally { setWaContactBulkDeleting(false); }
+  }
+
   async function handleCreateWaTemplate(e) {
     e.preventDefault();
     const data = await apiFetch('/api/v1/whatsapp/templates', { method: 'POST', body: JSON.stringify(waTemplateDraft) });
@@ -2760,6 +2818,17 @@ export default function AppShell() {
     } finally { setAffDeleting(false); setAffConfirmDelete(null); }
   }
 
+  async function confirmAffBulkDelete() {
+    setAffBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/affiliates/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: affSelected }) });
+      setAffiliates((prev) => prev.filter((a) => !affSelected.includes(a.id)));
+      setAffSelected([]);
+      const s = await apiFetch('/api/v1/affiliates/stats'); setAffStats(s);
+      showToast('Affiliates removed.');
+    } finally { setAffBulkDeleting(false); }
+  }
+
   async function handleCreateConversion(e) {
     e.preventDefault();
     const data = await apiFetch('/api/v1/affiliates/conversions', { method: 'POST', body: JSON.stringify(affConvDraft) });
@@ -2839,6 +2908,17 @@ export default function AppShell() {
     setReferrals((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
     const s = await apiFetch('/api/v1/referrals/stats');
     setRefStats(s);
+  }
+
+  async function confirmRefBulkDelete() {
+    setRefBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/referrals/referrals/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: refSelected }) });
+      setReferrals((prev) => prev.filter((r) => !refSelected.includes(r.id)));
+      setRefSelected([]);
+      const s = await apiFetch('/api/v1/referrals/stats'); setRefStats(s);
+      showToast('Referrals deleted.');
+    } finally { setRefBulkDeleting(false); }
   }
 
   // ── Inventory ──────────────────────────────────────────────────────────────
@@ -3084,6 +3164,17 @@ export default function AppShell() {
     } finally { setTmDeleting(false); setTmConfirmDelete(null); }
   }
 
+  async function confirmTmBulkDelete() {
+    setTmBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/tasks/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: tmSelected }) });
+      setTmTasks((t) => t.filter((x) => !tmSelected.includes(x.id)));
+      setTmSelected([]);
+      const s = await apiFetch('/api/v1/tasks/stats'); setTmStats(s);
+      showToast('Tasks deleted.');
+    } finally { setTmBulkDeleting(false); }
+  }
+
   async function loadTaskComments(taskId) {
     const res = await apiFetch(`/api/v1/tasks/${taskId}/comments`);
     setTmComments(res.comments || []);
@@ -3216,6 +3307,17 @@ export default function AppShell() {
     } finally { setHdDeleting(false); setHdConfirmDelete(null); }
   }
 
+  async function confirmHdBulkDelete() {
+    setHdBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/helpdesk/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: hdSelected }) });
+      setHdTickets((t) => t.filter((x) => !hdSelected.includes(x.id)));
+      setHdSelected([]);
+      const s = await apiFetch('/api/v1/helpdesk/stats'); setHdStats(s);
+      showToast('Tickets deleted.');
+    } finally { setHdBulkDeleting(false); }
+  }
+
   async function handleAddHdReply(e) {
     e.preventDefault();
     if (!hdReplyBody.trim()) return;
@@ -3292,6 +3394,16 @@ export default function AppShell() {
     } finally { setSmsContactDeleting(false); setSmsContactConfirmDelete(null); }
   }
 
+  async function confirmSmsContactBulkDelete() {
+    setSmsContactBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/sms/contacts/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: smsContactSelected }) });
+      setSmsContacts((c) => c.filter((x) => !smsContactSelected.includes(x.id)));
+      setSmsContactSelected([]);
+      showToast('Contacts removed.');
+    } finally { setSmsContactBulkDeleting(false); }
+  }
+
   // Parses "name,phone,tags" CSV text (optional header row, auto-detected by
   // checking whether the first row's phone-looking column actually contains
   // digits) into contact objects ready for the bulk-import endpoint.
@@ -3357,6 +3469,16 @@ export default function AppShell() {
       setCalEvents((e) => e.filter((x) => x.id !== calConfirmDelete.id));
       showToast('Event deleted.');
     } finally { setCalDeleting(false); setCalConfirmDelete(null); }
+  }
+
+  async function confirmCalBulkDelete() {
+    setCalBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/calendar/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: calSelected }) });
+      setCalEvents((e) => e.filter((x) => !calSelected.includes(x.id)));
+      setCalSelected([]);
+      showToast('Events deleted.');
+    } finally { setCalBulkDeleting(false); }
   }
 
   // ── Time Tracking ─────────────────────────────────────────────────────────
@@ -3432,6 +3554,17 @@ export default function AppShell() {
     } finally { setTtEntryDeleting(false); setTtEntryConfirmDelete(null); }
   }
 
+  async function confirmTtEntryBulkDelete() {
+    setTtEntryBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/time-tracking/entries/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: ttEntrySelected }) });
+      setTtEntries((e) => e.filter((x) => !ttEntrySelected.includes(x.id)));
+      setTtEntrySelected([]);
+      const s = await apiFetch('/api/v1/time-tracking/stats'); setTtStats(s);
+      showToast('Entries deleted.');
+    } finally { setTtEntryBulkDeleting(false); }
+  }
+
   function fmtSeconds(s) {
     if (!s) return '0:00:00';
     const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); const sec = s%60;
@@ -3468,6 +3601,16 @@ export default function AppShell() {
       setNotesList((n) => n.filter((x) => x.id !== noteConfirmDelete.id));
       showToast('Note deleted.');
     } finally { setNoteDeleting(false); setNoteConfirmDelete(null); }
+  }
+
+  async function confirmNoteBulkDelete() {
+    setNoteBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/notes/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: noteSelected }) });
+      setNotesList((n) => n.filter((x) => !noteSelected.includes(x.id)));
+      setNoteSelected([]);
+      showToast('Notes deleted.');
+    } finally { setNoteBulkDeleting(false); }
   }
 
   async function handleToggleNotePin(note) {
@@ -3511,6 +3654,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/kb/stats'); setKbStats(s);
       showToast('Article deleted.');
     } finally { setKbDeleting(false); setKbConfirmDelete(null); }
+  }
+
+  async function confirmKbBulkDelete() {
+    setKbBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/kb/articles/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: kbSelected }) });
+      setKbArticles((a) => a.filter((x) => !kbSelected.includes(x.id)));
+      setKbSelected([]);
+      const s = await apiFetch('/api/v1/kb/stats'); setKbStats(s);
+      showToast('Articles deleted.');
+    } finally { setKbBulkDeleting(false); }
   }
 
   async function handleAddKbCategory(e) {
@@ -3600,6 +3754,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/url-shortener/stats'); setUrlStats(s);
       showToast('Link deleted.');
     } finally { setUrlDeleting(false); setUrlConfirmDelete(null); }
+  }
+
+  async function confirmUrlBulkDelete() {
+    setUrlBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/url-shortener/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: urlSelected }) });
+      setUrlLinks((l) => l.filter((x) => !urlSelected.includes(x.id)));
+      setUrlSelected([]);
+      const s = await apiFetch('/api/v1/url-shortener/stats'); setUrlStats(s);
+      showToast('Links deleted.');
+    } finally { setUrlBulkDeleting(false); }
   }
 
   function handleCopyLink(slug) {
@@ -3697,6 +3862,17 @@ export default function AppShell() {
     } finally { setOrderDeleting(false); setOrderConfirmDelete(null); }
   }
 
+  async function confirmOrderBulkDelete() {
+    setOrderBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/orders/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: orderSelected }) });
+      setOrders((o) => o.filter((x) => !orderSelected.includes(x.id)));
+      setOrderSelected([]);
+      const s = await apiFetch('/api/v1/orders/stats'); setOrderStats(s);
+      showToast('Orders deleted.');
+    } finally { setOrderBulkDeleting(false); }
+  }
+
   // ── Document Management ───────────────────────────────────────────────────
 
   async function loadDocuments() {
@@ -3752,6 +3928,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/documents/stats'); setDocStats(s);
       showToast('Document deleted.');
     } finally { setDocFileDeleting(false); setDocFileConfirmDelete(null); }
+  }
+
+  async function confirmDocFileBulkDelete() {
+    setDocFileBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/documents/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: docFileSelected }) });
+      setDocFiles((d) => d.filter((x) => !docFileSelected.includes(x.id)));
+      setDocFileSelected([]);
+      const s = await apiFetch('/api/v1/documents/stats'); setDocStats(s);
+      showToast('Documents deleted.');
+    } finally { setDocFileBulkDeleting(false); }
   }
 
   // ── Payroll ───────────────────────────────────────────────────────────────
@@ -3815,6 +4002,18 @@ export default function AppShell() {
     } finally { setPayRunDeleting(false); setPayRunConfirmDelete(null); }
   }
 
+  async function confirmPayRunBulkDelete() {
+    setPayRunBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/payroll/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: payRunSelected }) });
+      setPayRuns((r) => r.filter((x) => !payRunSelected.includes(x.id)));
+      if (payViewRun && payRunSelected.includes(payViewRun.id)) setPayViewRun(null);
+      setPayRunSelected([]);
+      const s = await apiFetch('/api/v1/payroll/stats'); setPayStats(s);
+      showToast('Payroll runs deleted.');
+    } finally { setPayRunBulkDeleting(false); }
+  }
+
   // ── Subscriptions ─────────────────────────────────────────────────────────
 
   async function loadSubscriptions() {
@@ -3862,6 +4061,17 @@ export default function AppShell() {
     } finally { setSubDeleting(false); setSubConfirmDelete(null); }
   }
 
+  async function confirmSubBulkDelete() {
+    setSubBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/customer-subs/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: subSelected }) });
+      setSubList((l) => l.filter((x) => !subSelected.includes(x.id)));
+      setSubSelected([]);
+      const s = await apiFetch('/api/v1/customer-subs/stats'); setSubStats(s);
+      showToast('Subscriptions deleted.');
+    } finally { setSubBulkDeleting(false); }
+  }
+
   // ── Delivery Tracking ─────────────────────────────────────────────────────
 
   async function loadDelivery() {
@@ -3896,6 +4106,17 @@ export default function AppShell() {
       const s = await apiFetch('/api/v1/delivery/stats'); setDelStats(s);
       showToast('Delivery deleted.');
     } finally { setDelDeleting(false); setDelConfirmDelete(null); }
+  }
+
+  async function confirmDelBulkDelete() {
+    setDelBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/delivery/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: delSelected }) });
+      setDeliveries((d) => d.filter((x) => !delSelected.includes(x.id)));
+      setDelSelected([]);
+      const s = await apiFetch('/api/v1/delivery/stats'); setDelStats(s);
+      showToast('Deliveries deleted.');
+    } finally { setDelBulkDeleting(false); }
   }
 
   // ── Brand Kit ─────────────────────────────────────────────────────────────
@@ -4877,6 +5098,18 @@ export default function AppShell() {
       setHrEmpDeleting(false);
       setHrEmpConfirmDelete(null);
     }
+  }
+
+  async function confirmHrEmpBulkDelete() {
+    setHrEmpBulkDeleting(true);
+    try {
+      await apiFetch('/api/v1/hr/employees/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: hrEmpSelected }) });
+      setEmployees((prev) => prev.filter((e) => !hrEmpSelected.includes(e.id)));
+      setHrEmpSelected([]);
+      const s = await apiFetch('/api/v1/hr/stats');
+      setHrStats(s);
+      showToast('Employees deleted.');
+    } finally { setHrEmpBulkDeleting(false); }
   }
 
   async function handleCreateDepartment(e) {
@@ -9677,11 +9910,12 @@ export default function AppShell() {
                         <div className="table-wrap">
                           <table className="data-table">
                             <thead>
-                              <tr><th>Name</th><th>Title</th><th>Department</th><th>Type</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
+                              <tr><th style={{ width:32 }}><input type="checkbox" checked={hrEmpSelected.length>0 && hrEmpSelected.length===filteredEmployees.length} onChange={(e) => setHrEmpSelected(e.target.checked ? filteredEmployees.map((e)=>e.id) : [])} /></th><th>Name</th><th>Title</th><th>Department</th><th>Type</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
                             </thead>
                             <tbody>
                               {filteredEmployees.map((emp) => (
                                 <tr key={emp.id}>
+                                  <td><input type="checkbox" checked={hrEmpSelected.includes(emp.id)} onChange={(e) => setHrEmpSelected((sel) => e.target.checked ? [...sel, emp.id] : sel.filter((id)=>id!==emp.id))} /></td>
                                   <td><strong>{emp.full_name}</strong><br /><small style={{ color: 'var(--text-muted)' }}>{emp.email || '—'}</small></td>
                                   <td>{emp.job_title || '—'}</td>
                                   <td>{emp.department_name || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
@@ -9702,6 +9936,11 @@ export default function AppShell() {
                           </table>
                         </div>
                       )}
+                      <BulkActionBar
+                        selectedCount={hrEmpSelected.length}
+                        onClearSelection={() => setHrEmpSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${hrEmpSelected.length} employee(s)?`, confirmDescription:"This can't be undone.", onClick:confirmHrEmpBulkDelete }]}
+                      />
                     </div>
                   )}
 
@@ -11194,11 +11433,12 @@ export default function AppShell() {
                       <div className="table-wrap">
                         <table className="data-table">
                           <thead>
-                            <tr><th>Name</th><th>Job</th><th>Stage</th><th>Source</th><th>Applied</th><th>Actions</th></tr>
+                            <tr><th style={{ width:32 }}><input type="checkbox" checked={applicantSelected.length>0 && applicantSelected.length===applicantList.length} onChange={(e) => setApplicantSelected(e.target.checked ? applicantList.map((a)=>a.id) : [])} /></th><th>Name</th><th>Job</th><th>Stage</th><th>Source</th><th>Applied</th><th>Actions</th></tr>
                           </thead>
                           <tbody>
                             {applicantList.map((ap) => (
                               <tr key={ap.id}>
+                                <td><input type="checkbox" checked={applicantSelected.includes(ap.id)} onChange={(e) => setApplicantSelected((sel) => e.target.checked ? [...sel, ap.id] : sel.filter((id)=>id!==ap.id))} /></td>
                                 <td>
                                   <strong>{ap.full_name}</strong>
                                   {ap.email && <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{ap.email}</div>}
@@ -11222,6 +11462,11 @@ export default function AppShell() {
                         </table>
                       </div>
                     )}
+                    <BulkActionBar
+                      selectedCount={applicantSelected.length}
+                      onClearSelection={() => setApplicantSelected([])}
+                      actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${applicantSelected.length} applicant(s)?`, confirmDescription:"This can't be undone.", onClick:confirmApplicantBulkDelete }]}
+                    />
                   </div>
                 )}
 
@@ -11844,10 +12089,11 @@ export default function AppShell() {
                   {waContacts.length === 0 ? <div className="empty-state"><p>No contacts yet.</p></div> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Tags</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={waContactSelected.length>0 && waContactSelected.length===waContacts.length} onChange={(e) => setWaContactSelected(e.target.checked ? waContacts.map((c)=>c.id) : [])} /></th><th>Name</th><th>Phone</th><th>Status</th><th>Tags</th><th></th></tr></thead>
                         <tbody>
                           {waContacts.map((c) => (
                             <tr key={c.id}>
+                              <td><input type="checkbox" checked={waContactSelected.includes(c.id)} onChange={(e) => setWaContactSelected((sel) => e.target.checked ? [...sel, c.id] : sel.filter((id)=>id!==c.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{c.name}</td>
                               <td>{c.phone}</td>
                               <td><span className="ctag">{c.status}</span></td>
@@ -11857,6 +12103,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={waContactSelected.length}
+                        onClearSelection={() => setWaContactSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${waContactSelected.length} contact(s)?`, confirmDescription:"This can't be undone.", onClick:confirmWaContactBulkDelete }]}
+                      />
                     </div>
                   )}
                 </>
@@ -12039,10 +12290,11 @@ export default function AppShell() {
                   {affiliates.length === 0 ? <div className="empty-state"><p>No affiliates yet.</p></div> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Name</th><th>Code</th><th>Commission</th><th>Sales</th><th>Earned</th><th>Pending</th><th>Status</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={affSelected.length>0 && affSelected.length===affiliates.length} onChange={(e) => setAffSelected(e.target.checked ? affiliates.map((a)=>a.id) : [])} /></th><th>Name</th><th>Code</th><th>Commission</th><th>Sales</th><th>Earned</th><th>Pending</th><th>Status</th><th></th></tr></thead>
                         <tbody>
                           {affiliates.map((a) => (
                             <tr key={a.id}>
+                              <td><input type="checkbox" checked={affSelected.includes(a.id)} onChange={(e) => setAffSelected((sel) => e.target.checked ? [...sel, a.id] : sel.filter((id)=>id!==a.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{a.name}</td>
                               <td><code style={{ fontSize: '0.75rem' }}>{a.promo_code}</code></td>
                               <td>{a.commission_type==='percentage' ? `${a.commission_value}%` : `₦${Number(a.commission_value).toLocaleString()}`}</td>
@@ -12055,6 +12307,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={affSelected.length}
+                        onClearSelection={() => setAffSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${affSelected.length} affiliate(s)?`, confirmDescription:"This can't be undone.", onClick:confirmAffBulkDelete }]}
+                      />
                     </div>
                   )}
                 </>
@@ -12210,10 +12467,11 @@ export default function AppShell() {
                   {referrals.length === 0 ? <div className="empty-state"><p>No referrals logged yet.</p></div> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Referrer</th><th>Code</th><th>Referee</th><th>Program</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={refSelected.length>0 && refSelected.length===referrals.length} onChange={(e) => setRefSelected(e.target.checked ? referrals.map((r)=>r.id) : [])} /></th><th>Referrer</th><th>Code</th><th>Referee</th><th>Program</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                         <tbody>
                           {referrals.map((r) => (
                             <tr key={r.id}>
+                              <td><input type="checkbox" checked={refSelected.includes(r.id)} onChange={(e) => setRefSelected((sel) => e.target.checked ? [...sel, r.id] : sel.filter((id)=>id!==r.id))} /></td>
                               <td style={{ fontWeight: 600 }}>{r.referrer_name}</td>
                               <td><code style={{ fontSize: '0.75rem' }}>{r.referrer_code||'—'}</code></td>
                               <td>{r.referee_name}</td>
@@ -12233,6 +12491,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={refSelected.length}
+                        onClearSelection={() => setRefSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${refSelected.length} referral(s)?`, confirmDescription:"This can't be undone.", onClick:confirmRefBulkDelete }]}
+                      />
                     </div>
                   )}
                 </>
@@ -12847,6 +13110,9 @@ export default function AppShell() {
                     </div>
                     {visibleTasks.filter((t)=>t.status===col.key).map((t) => (
                       <div key={t.id} className="card" style={{ marginBottom:'0.5rem', padding:'0.6rem', cursor:'pointer', borderLeft:`3px solid ${priorityColor[t.priority]||'var(--border)'}` }} onClick={() => { setTmDetailId(t.id); loadTaskComments(t.id); }}>
+                        <div style={{ display:'flex', alignItems:'flex-start', gap:'0.35rem' }}>
+                          <input type="checkbox" checked={tmSelected.includes(t.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setTmSelected((sel) => e.target.checked ? [...sel, t.id] : sel.filter((id)=>id!==t.id))} style={{ marginTop:'0.2rem' }} />
+                          <div style={{ flex:1 }}>
                         <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.25rem' }}>{t.title}</div>
                         {t.due_date && <div style={{ fontSize:'0.72rem', color: new Date(t.due_date)<new Date()&&t.status!=='done' ? 'var(--danger)' : 'var(--muted)' }}>Due {new Date(t.due_date).toLocaleDateString()}</div>}
                         {t.assignee && <div style={{ fontSize:'0.72rem', color:'var(--muted)' }}>→ {t.assignee}</div>}
@@ -12856,12 +13122,19 @@ export default function AppShell() {
                           {col.key !== 'done' && <button className="btn-ghost" style={{ fontSize:'0.68rem', padding:'1px 5px' }} onClick={(e) => { e.stopPropagation(); const next = {todo:'in_progress',in_progress:'review',review:'done'}; handleMoveTask(t.id, next[col.key]); }}>→</button>}
                           <Button variant="ghost" size="sm" style={{ fontSize:'0.68rem', padding:'1px 5px', color:'var(--danger)' }} onClick={(e) => { e.stopPropagation(); handleDeleteTmTask(t.id); }}>Del</Button>
                         </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
             )}
+            <BulkActionBar
+              selectedCount={tmSelected.length}
+              onClearSelection={() => setTmSelected([])}
+              actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${tmSelected.length} task(s)?`, confirmDescription:"This can't be undone.", onClick:confirmTmBulkDelete }]}
+            />
             {tmDetailId && taskDetail && (
               <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }} onClick={() => setTmDetailId(null)}>
                 <div style={{ background:'var(--surface)', borderRadius:12, padding:'1.5rem', width:480, maxHeight:'80vh', overflowY:'auto' }} onClick={(e) => e.stopPropagation()}>
@@ -13218,10 +13491,11 @@ export default function AppShell() {
                 return (
                   <div className="table-wrap">
                     <table className="data-table">
-                      <thead><tr><th>Ticket</th><th>Subject</th><th>Requester</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
+                      <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={hdSelected.length>0 && hdSelected.length===searchFiltered.length} onChange={(e) => setHdSelected(e.target.checked ? searchFiltered.map((t)=>t.id) : [])} /></th><th>Ticket</th><th>Subject</th><th>Requester</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
                       <tbody>
                         {searchFiltered.map((t) => (
                           <tr key={t.id} style={{ cursor:'pointer' }} onClick={() => loadTicketDetail(t.id)}>
+                            <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={hdSelected.includes(t.id)} onChange={(e) => setHdSelected((sel) => e.target.checked ? [...sel, t.id] : sel.filter((id)=>id!==t.id))} /></td>
                             <td style={{ fontWeight:600, fontFamily:'monospace', fontSize:'0.8rem' }}>{t.ticket_number}</td>
                             <td style={{ fontWeight:600 }}>{t.subject}</td>
                             <td>
@@ -13238,6 +13512,11 @@ export default function AppShell() {
                   </div>
                 );
               })()}
+              <BulkActionBar
+                selectedCount={hdSelected.length}
+                onClearSelection={() => setHdSelected([])}
+                actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${hdSelected.length} ticket(s)?`, confirmDescription:"This can't be undone.", onClick:confirmHdBulkDelete }]}
+              />
             </>
             <ConfirmDialog
               isOpen={!!hdConfirmDelete}
@@ -13368,10 +13647,11 @@ export default function AppShell() {
                   ) : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Name</th><th>Phone</th><th>Tags</th><th>Status</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={smsContactSelected.length>0 && smsContactSelected.length===filteredContacts.length} onChange={(e) => setSmsContactSelected(e.target.checked ? filteredContacts.map((c)=>c.id) : [])} /></th><th>Name</th><th>Phone</th><th>Tags</th><th>Status</th><th></th></tr></thead>
                         <tbody>
                           {filteredContacts.map((c) => (
                             <tr key={c.id}>
+                              <td><input type="checkbox" checked={smsContactSelected.includes(c.id)} onChange={(e) => setSmsContactSelected((sel) => e.target.checked ? [...sel, c.id] : sel.filter((id)=>id!==c.id))} /></td>
                               <td style={{ fontWeight:600 }}>{c.name}</td>
                               <td style={{ fontFamily:'monospace', fontSize:'0.85rem' }}>{c.phone}</td>
                               <td>{(c.tags||[]).map((t) => <span key={t} className="ctag" style={{ marginRight:'0.25rem' }}>{t}</span>)}</td>
@@ -13381,6 +13661,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={smsContactSelected.length}
+                        onClearSelection={() => setSmsContactSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${smsContactSelected.length} contact(s)?`, confirmDescription:"This can't be undone.", onClick:confirmSmsContactBulkDelete }]}
+                      />
                     </div>
                   )}
                 </>
@@ -13551,10 +13836,11 @@ export default function AppShell() {
                     ) : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Event</th><th>Start</th><th>End</th><th>Location</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={calSelected.length>0 && calSelected.length===visibleEvents.length} onChange={(e) => setCalSelected(e.target.checked ? visibleEvents.map((ev)=>ev.id) : [])} /></th><th>Event</th><th>Start</th><th>End</th><th>Location</th><th></th></tr></thead>
                         <tbody>
                           {visibleEvents.map((e) => (
                             <tr key={e.id}>
+                              <td><input type="checkbox" checked={calSelected.includes(e.id)} onChange={(ev) => setCalSelected((sel) => ev.target.checked ? [...sel, e.id] : sel.filter((id)=>id!==e.id))} /></td>
                               <td>
                                 <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:e.color, marginRight:6 }}></span>
                                 <span style={{ fontWeight:600 }}>{e.title}</span>
@@ -13570,6 +13856,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={calSelected.length}
+                        onClearSelection={() => setCalSelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${calSelected.length} event(s)?`, confirmDescription:"This can't be undone.", onClick:confirmCalBulkDelete }]}
+                      />
                     </div>
                     )}
                   </div>
@@ -13677,10 +13968,11 @@ export default function AppShell() {
                   {ttEntries.filter((e) => !e.is_running).length === 0 ? <div className="empty-state"><p>No time entries yet.</p></div> : (
                     <div className="table-wrap">
                       <table className="data-table">
-                        <thead><tr><th>Project</th><th>Description</th><th>Start</th><th>Duration</th><th>Billable</th><th></th></tr></thead>
+                        <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={ttEntrySelected.length>0 && ttEntrySelected.length===ttEntries.filter((e) => !e.is_running).length} onChange={(ev) => setTtEntrySelected(ev.target.checked ? ttEntries.filter((e) => !e.is_running).map((e)=>e.id) : [])} /></th><th>Project</th><th>Description</th><th>Start</th><th>Duration</th><th>Billable</th><th></th></tr></thead>
                         <tbody>
                           {ttEntries.filter((e) => !e.is_running).map((e) => (
                             <tr key={e.id}>
+                              <td><input type="checkbox" checked={ttEntrySelected.includes(e.id)} onChange={(ev) => setTtEntrySelected((sel) => ev.target.checked ? [...sel, e.id] : sel.filter((id)=>id!==e.id))} /></td>
                               <td>{e.project_name ? <span className="ctag" style={{ background: e.project_color+'22', color: e.project_color }}>{e.project_name}</span> : <span style={{ color:'var(--muted)' }}>—</span>}</td>
                               <td style={{ fontSize:'0.85rem' }}>{e.description || '—'}</td>
                               <td style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{new Date(e.started_at).toLocaleString()}</td>
@@ -13691,6 +13983,11 @@ export default function AppShell() {
                           ))}
                         </tbody>
                       </table>
+                      <BulkActionBar
+                        selectedCount={ttEntrySelected.length}
+                        onClearSelection={() => setTtEntrySelected([])}
+                        actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${ttEntrySelected.length} entry(s)?`, confirmDescription:"This can't be undone.", onClick:confirmTtEntryBulkDelete }]}
+                      />
                     </div>
                   )}
                 </>
@@ -13795,8 +14092,9 @@ export default function AppShell() {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'0.75rem' }}>
                 {filtered.map((n) => (
                   <div key={n.id} style={{ background: n.color||'#ffffff', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', position:'relative' }}>
+                    <input type="checkbox" checked={noteSelected.includes(n.id)} onChange={(e) => setNoteSelected((sel) => e.target.checked ? [...sel, n.id] : sel.filter((id)=>id!==n.id))} style={{ position:'absolute', top:8, left:8 }} />
                     {n.pinned && <span style={{ position:'absolute', top:8, right:8, fontSize:'0.9rem' }}>📌</span>}
-                    <div style={{ fontWeight:700, marginBottom:'0.4rem', paddingRight:n.pinned?20:0 }}>{n.title}</div>
+                    <div style={{ fontWeight:700, marginBottom:'0.4rem', paddingLeft:20, paddingRight:n.pinned?20:0 }}>{n.title}</div>
                     {n.content && <p style={{ fontSize:'0.82rem', color:'#444', whiteSpace:'pre-wrap', marginBottom:'0.5rem', maxHeight:80, overflow:'hidden' }}>{n.content}</p>}
                     {(n.tags||[]).length>0 && <div style={{ marginBottom:'0.5rem' }}>{n.tags.map((t) => <span key={t} className="ctag" style={{ marginRight:'0.25rem', fontSize:'0.7rem' }}>{t}</span>)}</div>}
                     <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginBottom:'0.4rem' }}>{new Date(n.updated_at).toLocaleDateString()}</div>
@@ -13810,6 +14108,11 @@ export default function AppShell() {
               </div>
             );
           })()}
+          <BulkActionBar
+            selectedCount={noteSelected.length}
+            onClearSelection={() => setNoteSelected([])}
+            actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${noteSelected.length} note(s)?`, confirmDescription:"This can't be undone.", onClick:confirmNoteBulkDelete }]}
+          />
           <ConfirmDialog
             isOpen={!!noteConfirmDelete}
             onClose={() => setNoteConfirmDelete(null)}
@@ -13876,10 +14179,11 @@ export default function AppShell() {
                     return filtered.length === 0 ? <div className="empty-state"><p>No articles yet.</p></div> : (
                       <div className="table-wrap">
                         <table className="data-table">
-                          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Updated</th><th>Actions</th></tr></thead>
+                          <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={kbSelected.length>0 && kbSelected.length===filtered.length} onChange={(e) => setKbSelected(e.target.checked ? filtered.map((a)=>a.id) : [])} /></th><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Updated</th><th>Actions</th></tr></thead>
                           <tbody>
                             {filtered.map((a) => (
                               <tr key={a.id}>
+                                <td><input type="checkbox" checked={kbSelected.includes(a.id)} onChange={(e) => setKbSelected((sel) => e.target.checked ? [...sel, a.id] : sel.filter((id)=>id!==a.id))} /></td>
                                 <td style={{ fontWeight:600, cursor:'pointer' }} onClick={() => { setKbViewingArticle(a.id); setKbArticleDetail(a); }}>{a.title}</td>
                                 <td style={{ fontSize:'0.85rem' }}>{a.category_name || '—'}</td>
                                 <td><span className="ctag" style={{ background: a.status==='published'?'var(--success-bg)':undefined, color: a.status==='published'?'var(--success)':undefined }}>{a.status}</span></td>
@@ -13893,6 +14197,11 @@ export default function AppShell() {
                             ))}
                           </tbody>
                         </table>
+                        <BulkActionBar
+                          selectedCount={kbSelected.length}
+                          onClearSelection={() => setKbSelected([])}
+                          actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${kbSelected.length} article(s)?`, confirmDescription:"This can't be undone.", onClick:confirmKbBulkDelete }]}
+                        />
                       </div>
                     );
                   })()}
@@ -14091,6 +14400,9 @@ export default function AppShell() {
             loading={!urlLoaded}
             rows={urlLinks}
             getRowKey={(l) => l.id}
+            selectable
+            selectedKeys={urlSelected}
+            onSelectionChange={setUrlSelected}
             emptyState={<EmptyState icon="🔗" title="No short links yet" description="Shorten your first URL to start tracking clicks." action={<Button onClick={() => setUrlForm(true)}>+ Shorten URL</Button>} />}
             columns={[
               { key: 'title', header: 'Title / Target', render: (l) => (
@@ -14117,6 +14429,11 @@ export default function AppShell() {
                 </>
               ) },
             ]}
+          />
+          <BulkActionBar
+            selectedCount={urlSelected.length}
+            onClearSelection={() => setUrlSelected([])}
+            actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${urlSelected.length} link(s)?`, confirmDescription:"This can't be undone.", onClick:confirmUrlBulkDelete }]}
           />
           <ConfirmDialog
             isOpen={!!urlConfirmDelete}
@@ -14299,10 +14616,11 @@ export default function AppShell() {
             return filtered.length === 0 ? <div className="empty-state"><p>No orders found.</p></div> : (
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead>
+                  <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={orderSelected.length>0 && orderSelected.length===filtered.length} onChange={(e) => setOrderSelected(e.target.checked ? filtered.map((o)=>o.id) : [])} /></th><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead>
                   <tbody>
                     {filtered.map((o) => (
                       <tr key={o.id} style={{ cursor:'pointer' }} onClick={() => setViewingOrder(o)}>
+                        <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={orderSelected.includes(o.id)} onChange={(e) => setOrderSelected((sel) => e.target.checked ? [...sel, o.id] : sel.filter((id)=>id!==o.id))} /></td>
                         <td style={{ fontFamily:'monospace', fontWeight:700, fontSize:'0.85rem' }}>{o.order_number}</td>
                         <td>
                           <div style={{ fontWeight:600 }}>{o.customer_name}</div>
@@ -14327,6 +14645,13 @@ export default function AppShell() {
               </div>
             );
           })()}
+          {!viewingOrder && (
+            <BulkActionBar
+              selectedCount={orderSelected.length}
+              onClearSelection={() => setOrderSelected([])}
+              actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${orderSelected.length} order(s)?`, confirmDescription:"This can't be undone.", onClick:confirmOrderBulkDelete }]}
+            />
+          )}
           {viewingOrder && (
             <div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem' }}>
@@ -14448,10 +14773,11 @@ export default function AppShell() {
                 return filtered.length === 0 ? <div className="empty-state"><p>No documents in this folder.</p></div> : (
                   <div className="table-wrap">
                     <table className="data-table">
-                      <thead><tr><th>Name</th><th>Type</th><th>Tags</th><th>Updated</th><th></th></tr></thead>
+                      <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={docFileSelected.length>0 && docFileSelected.length===filtered.length} onChange={(e) => setDocFileSelected(e.target.checked ? filtered.map((d)=>d.id) : [])} /></th><th>Name</th><th>Type</th><th>Tags</th><th>Updated</th><th></th></tr></thead>
                       <tbody>
                         {filtered.map((d) => (
                           <tr key={d.id}>
+                            <td><input type="checkbox" checked={docFileSelected.includes(d.id)} onChange={(e) => setDocFileSelected((sel) => e.target.checked ? [...sel, d.id] : sel.filter((id)=>id!==d.id))} /></td>
                             <td>
                               <span style={{ marginRight:6 }}>{fileIcon(d.file_type)}</span>
                               <span style={{ fontWeight:600 }}>{d.name}</span>
@@ -14468,6 +14794,11 @@ export default function AppShell() {
                         ))}
                       </tbody>
                     </table>
+                    <BulkActionBar
+                      selectedCount={docFileSelected.length}
+                      onClearSelection={() => setDocFileSelected([])}
+                      actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${docFileSelected.length} document(s)?`, confirmDescription:"This can't be undone.", onClick:confirmDocFileBulkDelete }]}
+                    />
                   </div>
                 );
               })()}
@@ -14532,10 +14863,11 @@ export default function AppShell() {
             payRuns.length === 0 ? <div className="empty-state"><p>No payroll runs yet.</p></div> : (
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>Name</th><th>Period</th><th>Employees</th><th>Gross</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={payRunSelected.length>0 && payRunSelected.length===payRuns.length} onChange={(e) => setPayRunSelected(e.target.checked ? payRuns.map((r)=>r.id) : [])} /></th><th>Name</th><th>Period</th><th>Employees</th><th>Gross</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {payRuns.map((r) => (
                       <tr key={r.id} style={{ cursor:'pointer' }} onClick={() => handleOpenPayRun(r)}>
+                        <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={payRunSelected.includes(r.id)} onChange={(e) => setPayRunSelected((sel) => e.target.checked ? [...sel, r.id] : sel.filter((id)=>id!==r.id))} /></td>
                         <td style={{ fontWeight:600 }}>{r.name}</td>
                         <td style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{r.period_start ? `${r.period_start} → ${r.period_end}` : '—'}</td>
                         <td>{r.employee_count}</td>
@@ -14551,6 +14883,11 @@ export default function AppShell() {
                     ))}
                   </tbody>
                 </table>
+                <BulkActionBar
+                  selectedCount={payRunSelected.length}
+                  onClearSelection={() => setPayRunSelected([])}
+                  actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${payRunSelected.length} payroll run(s)?`, confirmDescription:"This can't be undone.", onClick:confirmPayRunBulkDelete }]}
+                />
               </div>
             )
           ) : (
@@ -14733,10 +15070,11 @@ export default function AppShell() {
                     return filtered.length === 0 ? <div className="empty-state"><p>No subscribers yet.</p></div> : (
                       <div className="table-wrap">
                         <table className="data-table">
-                          <thead><tr><th>Customer</th><th>Plan</th><th>Amount</th><th>Status</th><th>Renewal</th><th></th></tr></thead>
+                          <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={subSelected.length>0 && subSelected.length===filtered.length} onChange={(e) => setSubSelected(e.target.checked ? filtered.map((s)=>s.id) : [])} /></th><th>Customer</th><th>Plan</th><th>Amount</th><th>Status</th><th>Renewal</th><th></th></tr></thead>
                           <tbody>
                             {filtered.map((s) => (
                               <tr key={s.id}>
+                                <td><input type="checkbox" checked={subSelected.includes(s.id)} onChange={(e) => setSubSelected((sel) => e.target.checked ? [...sel, s.id] : sel.filter((id)=>id!==s.id))} /></td>
                                 <td><div style={{ fontWeight:600 }}>{s.customer_name}</div><div style={{ fontSize:'0.72rem', color:'var(--muted)' }}>{s.customer_email}</div></td>
                                 <td style={{ fontSize:'0.85rem' }}>{s.plan_name||'—'}</td>
                                 <td style={{ fontWeight:700 }}>₦{Number(s.amount).toLocaleString()}</td>
@@ -14751,6 +15089,11 @@ export default function AppShell() {
                             ))}
                           </tbody>
                         </table>
+                        <BulkActionBar
+                          selectedCount={subSelected.length}
+                          onClearSelection={() => setSubSelected([])}
+                          actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${subSelected.length} subscriber(s)?`, confirmDescription:"This can't be undone.", onClick:confirmSubBulkDelete }]}
+                        />
                       </div>
                     );
                   })()}
@@ -14823,10 +15166,11 @@ export default function AppShell() {
             return filtered.length === 0 ? <div className="empty-state"><p>No deliveries found.</p></div> : (
               <div className="table-wrap">
                 <table className="data-table">
-                  <thead><tr><th>ID</th><th>Customer</th><th>Address</th><th>Courier</th><th>Status</th><th>ETA</th><th></th></tr></thead>
+                  <thead><tr><th style={{ width:32 }}><input type="checkbox" checked={delSelected.length>0 && delSelected.length===filtered.length} onChange={(e) => setDelSelected(e.target.checked ? filtered.map((d)=>d.id) : [])} /></th><th>ID</th><th>Customer</th><th>Address</th><th>Courier</th><th>Status</th><th>ETA</th><th></th></tr></thead>
                   <tbody>
                     {filtered.map((d) => (
                       <tr key={d.id}>
+                        <td><input type="checkbox" checked={delSelected.includes(d.id)} onChange={(e) => setDelSelected((sel) => e.target.checked ? [...sel, d.id] : sel.filter((id)=>id!==d.id))} /></td>
                         <td><div style={{ fontFamily:'monospace', fontWeight:700, fontSize:'0.8rem' }}>{d.delivery_number}</div>{priorityBadge[d.priority] && <span style={{ fontSize:'0.7rem' }}>{priorityBadge[d.priority]} {d.priority}</span>}</td>
                         <td><div style={{ fontWeight:600 }}>{d.customer_name}</div><div style={{ fontSize:'0.72rem', color:'var(--muted)' }}>{d.customer_phone}</div></td>
                         <td style={{ fontSize:'0.8rem', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.delivery_address}</td>
@@ -14842,6 +15186,11 @@ export default function AppShell() {
                     ))}
                   </tbody>
                 </table>
+                <BulkActionBar
+                  selectedCount={delSelected.length}
+                  onClearSelection={() => setDelSelected([])}
+                  actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${delSelected.length} delivery(s)?`, confirmDescription:"This can't be undone.", onClick:confirmDelBulkDelete }]}
+                />
               </div>
             );
           })()}

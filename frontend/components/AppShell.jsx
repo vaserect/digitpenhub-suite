@@ -1383,6 +1383,7 @@ export default function AppShell() {
   const [flyerColor, setFlyerColor]     = useState('#2563eb');
   const [flyerBg, setFlyerBg]           = useState('#f0f4ff');
   const [flyerTemplate, setFlyerTemplate] = useState('modern');
+  const [flyerExporting, setFlyerExporting] = useState('');
   // Resume Builder
   const [resumeName, setResumeName]     = useState('');
   const [resumeTitle, setResumeTitle]   = useState('');
@@ -1401,6 +1402,8 @@ export default function AppShell() {
   const [gdCanvasH, setGdCanvasH]       = useState(600);
   const [gdBg, setGdBg]                 = useState('#ffffff');
   const [gdAddType, setGdAddType]       = useState('text');
+  const [gdHistory, setGdHistory]       = useState([]);
+  const [gdHistoryIndex, setGdHistoryIndex] = useState(-1);
   // Basic Video Editor
   const [vidFile, setVidFile]           = useState(null);
   const [vidUrl, setVidUrl]             = useState('');
@@ -1730,6 +1733,40 @@ export default function AppShell() {
     notifIntervalRef.current = setInterval(pollCount, 30000);
     return () => clearInterval(notifIntervalRef.current);
   }, []);
+
+  // Graphic Design Editor — commit a snapshot to the undo/redo history (up to 50 steps)
+  const gdCommitHistory = useCallback((before, after) => {
+    setGdHistory(h => {
+      const base = h.length === 0 ? [before] : h.slice(0, gdHistoryIndex + 1);
+      const updated = [...base, after];
+      const capped = updated.length > 50 ? updated.slice(updated.length - 50) : updated;
+      setGdHistoryIndex(capped.length - 1);
+      return capped;
+    });
+  }, [gdHistoryIndex]);
+  const gdUndo = useCallback(() => {
+    if (gdHistoryIndex <= 0) return;
+    const newIndex = gdHistoryIndex - 1;
+    setGdHistoryIndex(newIndex);
+    setGdElements(gdHistory[newIndex]);
+  }, [gdHistory, gdHistoryIndex]);
+  const gdRedo = useCallback(() => {
+    if (gdHistoryIndex >= gdHistory.length - 1) return;
+    const newIndex = gdHistoryIndex + 1;
+    setGdHistoryIndex(newIndex);
+    setGdElements(gdHistory[newIndex]);
+  }, [gdHistory, gdHistoryIndex]);
+  useEffect(() => {
+    if (!(view === 'module' && activeModuleSlug === 'graphic-design-editor')) return;
+    function onKeyDown(e) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== 'z') return;
+      e.preventDefault();
+      if (e.shiftKey) gdRedo(); else gdUndo();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [view, activeModuleSlug, gdUndo, gdRedo]);
 
   const totalModules = useMemo(
     () => categories.reduce((sum, c) => sum + c.modules.length, 0),
@@ -18926,7 +18963,38 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
               <div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.75rem' }}>
                   <span style={{ fontWeight:600, fontSize:'0.85rem', color:'var(--muted)' }}>Preview</span>
-                  <button className="btn-ghost" style={{ fontSize:'0.78rem' }} onClick={() => { const w=window.open(''); w.document.write(`<html><body style="margin:0;padding:2rem;background:#f5f5f5">${document.getElementById('flyer-preview').innerHTML}</body></html>`); setTimeout(()=>{ w.print(); w.close(); },300); }}>Print / Save as PDF</button>
+                  <div style={{ display:'flex', gap:'0.4rem' }}>
+                    {[['png','PNG'],['jpg','JPG'],['pdf','PDF']].map(([fmt,label]) => (
+                      <button key={fmt} className="btn-ghost" style={{ fontSize:'0.78rem' }} disabled={!!flyerExporting} onClick={async () => {
+                        const node = document.getElementById('flyer-preview');
+                        if (!node) return;
+                        setFlyerExporting(fmt);
+                        try {
+                          const html2canvas = (await import('html2canvas')).default;
+                          const canvas = await html2canvas(node, { backgroundColor: fmt === 'jpg' ? '#ffffff' : null, scale: 2 });
+                          if (fmt === 'png' || fmt === 'jpg') {
+                            const mime = fmt === 'jpg' ? 'image/jpeg' : 'image/png';
+                            const a = document.createElement('a');
+                            a.href = canvas.toDataURL(mime, 0.92);
+                            a.download = `flyer.${fmt}`;
+                            a.click();
+                          } else {
+                            const { jsPDF } = await import('jspdf');
+                            const imgData = canvas.toDataURL('image/png');
+                            const orientation = canvas.width >= canvas.height ? 'landscape' : 'portrait';
+                            const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height] });
+                            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                            pdf.save('flyer.pdf');
+                          }
+                          showToast(`${label} downloaded!`);
+                        } catch (err) {
+                          showToast('Export failed');
+                        } finally {
+                          setFlyerExporting('');
+                        }
+                      }}>{flyerExporting === fmt ? '…' : `Export ${label}`}</button>
+                    ))}
+                  </div>
                 </div>
                 <div id="flyer-preview" style={{ maxWidth:480, margin:'0 auto' }}>
                   {templates[flyerTemplate]}
@@ -19024,14 +19092,60 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
       {/* ── Graphic Design Editor ───────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'graphic-design-editor' && (() => {
         let gdIdCounter = gdElements.length;
+        function gdCommit(next) {
+          gdCommitHistory(gdElements, next);
+          setGdElements(next);
+        }
         function addElement(type) {
           const id = Date.now();
           const base = { id, type, x:40+Math.random()*80, y:40+Math.random()*60, w:type==='image'?180:type==='shape'?100:200, h:type==='shape'?80:type==='text'?40:120, zIndex:gdIdCounter++ };
           const extra = type==='text' ? { text:'Your text', fontSize:24, color:'#111111', fontFamily:'Arial', bold:false, italic:false }
             : type==='shape' ? { shape:'rect', fill:'#2563eb', stroke:'none' }
             : { src:'', fit:'contain' };
-          setGdElements(e => [...e, { ...base, ...extra }]);
+          gdCommit([...gdElements, { ...base, ...extra }]);
           setGdSelected(id);
+        }
+        const scaleX = Math.min(gdCanvasW,600)/gdCanvasW;
+        const scaleY = Math.min(gdCanvasH,400)/gdCanvasH;
+        function startDrag(el, e) {
+          e.stopPropagation();
+          e.preventDefault();
+          setGdSelected(el.id);
+          const before = gdElements;
+          const startX = e.clientX, startY = e.clientY;
+          const origX = el.x, origY = el.y;
+          function onMove(ev) {
+            const dx = (ev.clientX - startX) / scaleX;
+            const dy = (ev.clientY - startY) / scaleY;
+            setGdElements(els => els.map(x => x.id === el.id ? { ...x, x: origX + dx, y: origY + dy } : x));
+          }
+          function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            setGdElements(curr => { gdCommitHistory(before, curr); return curr; });
+          }
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        }
+        function startResize(el, e) {
+          e.stopPropagation();
+          e.preventDefault();
+          setGdSelected(el.id);
+          const before = gdElements;
+          const startX = e.clientX, startY = e.clientY;
+          const origW = el.w, origH = el.h;
+          function onMove(ev) {
+            const dw = (ev.clientX - startX) / scaleX;
+            const dh = (ev.clientY - startY) / scaleY;
+            setGdElements(els => els.map(x => x.id === el.id ? { ...x, w: Math.max(10, origW + dw), h: Math.max(10, origH + dh) } : x));
+          }
+          function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            setGdElements(curr => { gdCommitHistory(before, curr); return curr; });
+          }
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
         }
         const sel = gdElements.find(e=>e.id===gdSelected);
         return (
@@ -19055,26 +19169,42 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                   </div>
                   <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Background</label><input type="color" value={gdBg} onChange={(e) => setGdBg(e.target.value)} style={{ width:'100%', height:32, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer' }} /></div>
                 </div>
+                <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem', display:'flex', gap:'0.3rem' }}>
+                  <button className="btn-ghost" style={{ flex:1, fontSize:'0.78rem' }} disabled={gdHistoryIndex<=0} onClick={gdUndo}>Undo</button>
+                  <button className="btn-ghost" style={{ flex:1, fontSize:'0.78rem' }} disabled={gdHistoryIndex>=gdHistory.length-1} onClick={gdRedo}>Redo</button>
+                </div>
                 {gdElements.length > 0 && (
                   <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
                     <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--muted)', marginBottom:'0.5rem', textTransform:'uppercase' }}>Layers</div>
                     {[...gdElements].reverse().map(el => (
                       <div key={el.id} onClick={() => setGdSelected(el.id)} style={{ padding:'0.3rem 0.5rem', borderRadius:4, background:gdSelected===el.id?'var(--primary-light)':'transparent', cursor:'pointer', fontSize:'0.78rem', display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.15rem' }}>
                         <span style={{ color:gdSelected===el.id?'var(--primary)':'var(--text)' }}>{el.type === 'text' ? `T ${el.text?.slice(0,12)}` : el.type === 'shape' ? `■ Shape` : '🖼 Image'}</span>
-                        <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.75rem', padding:0 }} onClick={(e) => { e.stopPropagation(); setGdElements(els=>els.filter(x=>x.id!==el.id)); if(gdSelected===el.id) setGdSelected(null); }}>✕</button>
+                        <button style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.75rem', padding:0 }} onClick={(e) => { e.stopPropagation(); gdCommit(gdElements.filter(x=>x.id!==el.id)); if(gdSelected===el.id) setGdSelected(null); }}>✕</button>
                       </div>
                     ))}
                   </div>
                 )}
                 <div style={{ borderTop:'1px solid var(--border)', marginTop:'0.75rem', paddingTop:'0.75rem' }}>
-                  <button className="btn-primary" style={{ width:'100%', fontSize:'0.8rem' }} onClick={() => {
+                  <button className="btn-primary" style={{ width:'100%', fontSize:'0.8rem' }} onClick={async () => {
                     const canvas = document.createElement('canvas'); canvas.width=gdCanvasW; canvas.height=gdCanvasH;
                     const ctx = canvas.getContext('2d'); ctx.fillStyle=gdBg; ctx.fillRect(0,0,gdCanvasW,gdCanvasH);
                     const sorted = [...gdElements].sort((a,b)=>a.zIndex-b.zIndex);
-                    sorted.forEach(el => {
+                    for (const el of sorted) {
                       if (el.type==='shape') { ctx.fillStyle=el.fill||'#2563eb'; ctx.fillRect(el.x,el.y,el.w,el.h); }
                       else if (el.type==='text') { ctx.fillStyle=el.color||'#111'; ctx.font=`${el.bold?'bold ':''}${el.italic?'italic ':''}${el.fontSize||24}px ${el.fontFamily||'Arial'}`; ctx.fillText(el.text||'',el.x,el.y+el.fontSize); }
-                    });
+                      else if (el.type==='image' && el.src) {
+                        try {
+                          const img = await new Promise((resolve, reject) => {
+                            const im = new Image();
+                            im.crossOrigin = 'anonymous';
+                            im.onload = () => resolve(im);
+                            im.onerror = reject;
+                            im.src = el.src;
+                          });
+                          ctx.drawImage(img, el.x, el.y, el.w, el.h);
+                        } catch (err) { /* skip images that fail to load (e.g. CORS) */ }
+                      }
+                    }
                     const a = document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='design.png'; a.click();
                   }}>Export PNG</button>
                 </div>
@@ -19083,12 +19213,15 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
               <div style={{ background:'#e5e7eb', borderRadius:8, padding:'1rem', overflow:'auto', display:'flex', alignItems:'flex-start', justifyContent:'center' }}>
                 <div style={{ position:'relative', width:Math.min(gdCanvasW,600), height:Math.min(gdCanvasH,400), background:gdBg, boxShadow:'0 4px 24px rgba(0,0,0,0.15)', userSelect:'none', overflow:'hidden' }}>
                   {gdElements.map(el => (
-                    <div key={el.id} onClick={() => setGdSelected(el.id)}
-                      style={{ position:'absolute', left:el.x*(Math.min(gdCanvasW,600)/gdCanvasW), top:el.y*(Math.min(gdCanvasH,400)/gdCanvasH), width:el.w*(Math.min(gdCanvasW,600)/gdCanvasW), height:el.h*(Math.min(gdCanvasH,400)/gdCanvasH), cursor:'pointer', border:gdSelected===el.id?'2px solid #2563eb':'2px solid transparent', boxSizing:'border-box', zIndex:el.zIndex,
+                    <div key={el.id} onClick={() => setGdSelected(el.id)} onMouseDown={(e) => startDrag(el, e)}
+                      style={{ position:'absolute', left:el.x*scaleX, top:el.y*scaleY, width:el.w*scaleX, height:el.h*scaleY, cursor:'move', border:gdSelected===el.id?'2px solid #2563eb':'2px solid transparent', boxSizing:'border-box', zIndex:el.zIndex,
                       background: el.type==='shape' ? el.fill : 'transparent', display:'flex', alignItems:el.type==='text'?'flex-start':'center', justifyContent:'center' }}>
-                      {el.type==='text' && <span style={{ color:el.color, fontFamily:el.fontFamily, fontSize:`${el.fontSize*(Math.min(gdCanvasW,600)/gdCanvasW)}px`, fontWeight:el.bold?700:400, fontStyle:el.italic?'italic':'normal', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{el.text}</span>}
-                      {el.type==='image' && el.src && <img src={el.src} alt="" style={{ width:'100%', height:'100%', objectFit:el.fit||'contain' }} />}
+                      {el.type==='text' && <span style={{ color:el.color, fontFamily:el.fontFamily, fontSize:`${el.fontSize*scaleX}px`, fontWeight:el.bold?700:400, fontStyle:el.italic?'italic':'normal', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{el.text}</span>}
+                      {el.type==='image' && el.src && <img src={el.src} alt="" draggable={false} style={{ width:'100%', height:'100%', objectFit:el.fit||'contain', pointerEvents:'none' }} />}
                       {el.type==='image' && !el.src && <div style={{ color:'#999', fontSize:'0.75rem', textAlign:'center' }}>Click inspector<br/>to set image URL</div>}
+                      {gdSelected===el.id && (
+                        <div onMouseDown={(e) => startResize(el, e)} style={{ position:'absolute', right:-6, bottom:-6, width:12, height:12, borderRadius:'50%', background:'#2563eb', border:'2px solid #fff', cursor:'nwse-resize' }} />
+                      )}
                     </div>
                   ))}
                   {gdElements.length===0 && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#aaa', fontSize:'0.88rem' }}>Add elements from the toolbar to get started</div>}
@@ -19102,29 +19235,29 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.3rem', marginBottom:'0.5rem' }}>
                       {[['X',sel.x,'x'],['Y',sel.y,'y'],['W',sel.w,'w'],['H',sel.h,'h']].map(([l,v,k]) => (
                         <div key={k}><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>{l}</label>
-                          <input type="number" className="form-input" style={{ fontSize:'0.8rem', padding:'0.3rem' }} value={Math.round(v)} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,[k]:+e.target.value}:x))} /></div>
+                          <input type="number" className="form-input" style={{ fontSize:'0.8rem', padding:'0.3rem' }} value={Math.round(v)} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,[k]:+e.target.value}:x))} /></div>
                       ))}
                     </div>
                     {sel.type==='text' && (
                       <>
-                        <div style={{ marginBottom:'0.4rem' }}><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Text</label><textarea className="form-input" style={{ fontSize:'0.8rem', resize:'none' }} rows={2} value={sel.text} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,text:e.target.value}:x))} /></div>
+                        <div style={{ marginBottom:'0.4rem' }}><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Text</label><textarea className="form-input" style={{ fontSize:'0.8rem', resize:'none' }} rows={2} value={sel.text} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,text:e.target.value}:x))} /></div>
                         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.3rem', marginBottom:'0.4rem' }}>
-                          <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Size</label><input type="number" className="form-input" style={{ fontSize:'0.8rem', padding:'0.3rem' }} value={sel.fontSize} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,fontSize:+e.target.value}:x))} /></div>
-                          <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Colour</label><input type="color" value={sel.color} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,color:e.target.value}:x))} style={{ width:'100%', height:34, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer' }} /></div>
+                          <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Size</label><input type="number" className="form-input" style={{ fontSize:'0.8rem', padding:'0.3rem' }} value={sel.fontSize} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,fontSize:+e.target.value}:x))} /></div>
+                          <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block' }}>Colour</label><input type="color" value={sel.color} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,color:e.target.value}:x))} style={{ width:'100%', height:34, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer' }} /></div>
                         </div>
                         <div style={{ display:'flex', gap:'0.3rem' }}>
-                          <button onClick={() => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,bold:!x.bold}:x))} className={sel.bold?'btn-primary':'btn-ghost'} style={{ flex:1, fontSize:'0.8rem', fontWeight:700 }}>B</button>
-                          <button onClick={() => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,italic:!x.italic}:x))} className={sel.italic?'btn-primary':'btn-ghost'} style={{ flex:1, fontSize:'0.8rem', fontStyle:'italic' }}>I</button>
+                          <button onClick={() => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,bold:!x.bold}:x))} className={sel.bold?'btn-primary':'btn-ghost'} style={{ flex:1, fontSize:'0.8rem', fontWeight:700 }}>B</button>
+                          <button onClick={() => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,italic:!x.italic}:x))} className={sel.italic?'btn-primary':'btn-ghost'} style={{ flex:1, fontSize:'0.8rem', fontStyle:'italic' }}>I</button>
                         </div>
                       </>
                     )}
                     {sel.type==='shape' && (
-                      <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Fill</label><input type="color" value={sel.fill} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,fill:e.target.value}:x))} style={{ width:'100%', height:34, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer' }} /></div>
+                      <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Fill</label><input type="color" value={sel.fill} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,fill:e.target.value}:x))} style={{ width:'100%', height:34, borderRadius:6, border:'1px solid var(--border)', cursor:'pointer' }} /></div>
                     )}
                     {sel.type==='image' && (
-                      <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Image URL</label><input className="form-input" style={{ fontSize:'0.78rem' }} value={sel.src} onChange={(e) => setGdElements(els=>els.map(x=>x.id===sel.id?{...x,src:e.target.value}:x))} placeholder="https://…" /></div>
+                      <div><label style={{ fontSize:'0.72rem', color:'var(--muted)', display:'block', marginBottom:'0.2rem' }}>Image URL</label><input className="form-input" style={{ fontSize:'0.78rem' }} value={sel.src} onChange={(e) => gdCommit(gdElements.map(x=>x.id===sel.id?{...x,src:e.target.value}:x))} placeholder="https://…" /></div>
                     )}
-                    <button className="btn-ghost" style={{ width:'100%', marginTop:'0.5rem', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => { setGdElements(e=>e.filter(x=>x.id!==sel.id)); setGdSelected(null); }}>Delete Element</button>
+                    <button className="btn-ghost" style={{ width:'100%', marginTop:'0.5rem', fontSize:'0.78rem', color:'var(--danger)' }} onClick={() => { gdCommit(gdElements.filter(x=>x.id!==sel.id)); setGdSelected(null); }}>Delete Element</button>
                   </div>
                 )}
               </div>

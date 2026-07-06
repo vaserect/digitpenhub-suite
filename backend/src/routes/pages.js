@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
-const { listPages, getPage, createPage, updatePage, deletePage, getPublicPage, listPublicSitemap, previewPage } = require('../controllers/pagesController');
+const { listPages, getPage, createPage, updatePage, deletePage, getPublicPage, listPublicSitemap, previewPage, getPageAnalytics } = require('../controllers/pagesController');
 
 const router = Router();
 
@@ -16,6 +16,7 @@ router.use(requireAuth);
 router.use(requireModuleAccess('website-builder'));
 router.get('/preview/:id', previewPage);
 router.get('/', listPages);
+router.get('/:id/analytics', getPageAnalytics);
 router.get('/:id', getPage);
 router.post('/', createPage);
 router.put('/:id', updatePage);

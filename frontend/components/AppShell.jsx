@@ -1589,7 +1589,9 @@ export default function AppShell() {
   const [pages, setPages] = useState([]);
   const [pagesLoaded, setPagesLoaded] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
-  const [pageDraft, setPageDraft] = useState({ title: '', slug: '', metaDescription: '', ogImage: '', canonicalUrl: '', status: 'draft', blocks: [] });
+  const [pageDraft, setPageDraft] = useState({ title: '', slug: '', metaDescription: '', ogImage: '', canonicalUrl: '', customDomain: '', status: 'draft', blocks: [] });
+  const [pageAnalytics, setPageAnalytics] = useState(null);
+  const [dragBlockIdx, setDragBlockIdx] = useState(null);
   const [editingBlock, setEditingBlock] = useState(null);
   const [pexelsPickerOpen, setPexelsPickerOpen] = useState(false);
   const [pexelsTarget, setPexelsTarget] = useState('block');
@@ -2530,9 +2532,11 @@ export default function AppShell() {
   function openLpPageEditor(page) {
     setPageEditorSource('landing-page-builder');
     setEditingPage(page);
-    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
+    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
     setEditingBlock(null);
     setBlockDraft({});
+    setPageAnalytics(null);
+    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch(() => {});
   }
 
   async function handleSaveLandingPage() {
@@ -2541,7 +2545,7 @@ export default function AppShell() {
     try {
       const data = await apiFetch(`/api/v1/pages/${editingPage.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, status: pageDraft.status, blocks: pageDraft.blocks }),
+        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, status: pageDraft.status, blocks: pageDraft.blocks }),
       });
       setEditingPage(data.page);
       setPageDraft((d) => ({ ...d, ...data.page, blocks: Array.isArray(data.page.blocks) ? data.page.blocks : d.blocks }));
@@ -5329,9 +5333,21 @@ export default function AppShell() {
 
   function openPageEditor(page) {
     setEditingPage(page);
-    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
+    setPageDraft({ title: page.title, slug: page.slug, metaDescription: page.meta_description || '', ogImage: page.og_image || '', canonicalUrl: page.canonical_url || '', customDomain: page.custom_domain || '', status: page.status, blocks: Array.isArray(page.blocks) ? page.blocks : [] });
     setEditingBlock(null);
     setBlockDraft({});
+    setPageAnalytics(null);
+    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch(() => {});
+  }
+
+  function reorderBlocks(dragIdx, dropIdx) {
+    if (dragIdx === dropIdx || dragIdx == null || dropIdx == null) return;
+    setPageDraft((d) => {
+      const arr = [...d.blocks];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(dropIdx, 0, moved);
+      return { ...d, blocks: arr };
+    });
   }
 
   function startBlankEmailCampaign() {
@@ -5594,7 +5610,7 @@ export default function AppShell() {
     try {
       const data = await apiFetch(`/api/v1/pages/${editingPage.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, status: pageDraft.status, blocks: pageDraft.blocks }),
+        body: JSON.stringify({ title: pageDraft.title, slug: pageDraft.slug, metaDescription: pageDraft.metaDescription, ogImage: pageDraft.ogImage, canonicalUrl: pageDraft.canonicalUrl, customDomain: pageDraft.customDomain, status: pageDraft.status, blocks: pageDraft.blocks }),
       });
       setEditingPage(data.page);
       setPageDraft((d) => ({ ...d, ...data.page, blocks: Array.isArray(data.page.blocks) ? data.page.blocks : d.blocks }));
@@ -9355,6 +9371,14 @@ export default function AppShell() {
                     </div>
                   </div>
 
+                  {pageAnalytics && (
+                    <div className="stats-row" style={{ marginBottom: 14 }}>
+                      <div className="stat-card"><div className="stat-value">{pageAnalytics.totalViews}</div><div className="stat-label">Views</div></div>
+                      <div className="stat-card"><div className="stat-value">{pageAnalytics.uniqueVisitors}</div><div className="stat-label">Unique Visitors</div></div>
+                      <div className="stat-card"><div className="stat-value">{pageAnalytics.dailyViews?.length || 0}</div><div className="stat-label">Active Days (30d)</div></div>
+                    </div>
+                  )}
+
                   {/* Page settings */}
                   <div className="card" style={{ marginBottom: 18, padding: '16px 20px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -9381,6 +9405,11 @@ export default function AppShell() {
                         <label className="field-label">Canonical URL (optional)</label>
                         <input className="field-input" value={pageDraft.canonicalUrl} onChange={(e) => setPageDraft((d) => ({ ...d, canonicalUrl: e.target.value }))} placeholder="Leave blank to use this page's own URL" />
                       </div>
+                      <div className="field" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                        <label className="field-label">Custom domain (optional)</label>
+                        <input className="field-input" value={pageDraft.customDomain} onChange={(e) => setPageDraft((d) => ({ ...d, customDomain: e.target.value.toLowerCase() }))} placeholder="www.example.com" />
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Point a CNAME record for this domain to your app's host to connect it to this page.</div>
+                      </div>
                     </div>
                   </div>
 
@@ -9397,11 +9426,17 @@ export default function AppShell() {
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                         {pageDraft.blocks.map((block, idx) => (
-                          <div key={block.id || idx} className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, border: editingBlock?.id === block.id ? '2px solid var(--primary)' : undefined }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              <button className="ctag" onClick={() => moveBlock(idx, -1)} disabled={idx === 0} style={{ padding: '2px 6px', fontSize: 11, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
-                              <button className="ctag" onClick={() => moveBlock(idx, 1)} disabled={idx === pageDraft.blocks.length - 1} style={{ padding: '2px 6px', fontSize: 11, opacity: idx === pageDraft.blocks.length - 1 ? 0.3 : 1 }}>▼</button>
-                            </div>
+                          <div
+                            key={block.id || idx}
+                            className="card"
+                            draggable
+                            onDragStart={() => setDragBlockIdx(idx)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => { e.preventDefault(); reorderBlocks(dragBlockIdx, idx); setDragBlockIdx(null); }}
+                            onDragEnd={() => setDragBlockIdx(null)}
+                            style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, border: editingBlock?.id === block.id ? '2px solid var(--primary)' : undefined, opacity: dragBlockIdx === idx ? 0.5 : 1, cursor: 'grab' }}
+                          >
+                            <span style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1 }} title="Drag to reorder">⠿</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 600, fontSize: 13, textTransform: 'capitalize' }}>{block.type}</div>
                               <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -11594,6 +11629,14 @@ export default function AppShell() {
                 </div>
               </div>
 
+              {pageAnalytics && (
+                <div className="stats-row" style={{ marginBottom: 14 }}>
+                  <div className="stat-card"><div className="stat-value">{pageAnalytics.totalViews}</div><div className="stat-label">Views</div></div>
+                  <div className="stat-card"><div className="stat-value">{pageAnalytics.uniqueVisitors}</div><div className="stat-label">Unique Visitors</div></div>
+                  <div className="stat-card"><div className="stat-value">{pageAnalytics.dailyViews?.length || 0}</div><div className="stat-label">Active Days (30d)</div></div>
+                </div>
+              )}
+
               {/* Page settings */}
               <div className="card" style={{ marginBottom: 18, padding: '16px 20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -11620,6 +11663,11 @@ export default function AppShell() {
                     <label className="field-label">Canonical URL (optional)</label>
                     <input className="field-input" value={pageDraft.canonicalUrl} onChange={(e) => setPageDraft((d) => ({ ...d, canonicalUrl: e.target.value }))} placeholder="Leave blank to use this page's own URL" />
                   </div>
+                  <div className="field" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                    <label className="field-label">Custom domain (optional)</label>
+                    <input className="field-input" value={pageDraft.customDomain} onChange={(e) => setPageDraft((d) => ({ ...d, customDomain: e.target.value.toLowerCase() }))} placeholder="www.example.com" />
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Point a CNAME record for this domain to your app's host to connect it to this page.</div>
+                  </div>
                 </div>
               </div>
 
@@ -11636,11 +11684,17 @@ export default function AppShell() {
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                     {pageDraft.blocks.map((block, idx) => (
-                      <div key={block.id || idx} className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, border: editingBlock?.id === block.id ? '2px solid var(--primary)' : undefined }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <button className="ctag" onClick={() => moveBlock(idx, -1)} disabled={idx === 0} style={{ padding: '2px 6px', fontSize: 11, opacity: idx === 0 ? 0.3 : 1 }}>▲</button>
-                          <button className="ctag" onClick={() => moveBlock(idx, 1)} disabled={idx === pageDraft.blocks.length - 1} style={{ padding: '2px 6px', fontSize: 11, opacity: idx === pageDraft.blocks.length - 1 ? 0.3 : 1 }}>▼</button>
-                        </div>
+                      <div
+                        key={block.id || idx}
+                        className="card"
+                        draggable
+                        onDragStart={() => setDragBlockIdx(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => { e.preventDefault(); reorderBlocks(dragBlockIdx, idx); setDragBlockIdx(null); }}
+                        onDragEnd={() => setDragBlockIdx(null)}
+                        style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, border: editingBlock?.id === block.id ? '2px solid var(--primary)' : undefined, opacity: dragBlockIdx === idx ? 0.5 : 1, cursor: 'grab' }}
+                      >
+                        <span style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1 }} title="Drag to reorder">⠿</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, textTransform: 'capitalize' }}>{block.type}</div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

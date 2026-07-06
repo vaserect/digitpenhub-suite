@@ -1,7 +1,14 @@
+const crypto = require('crypto');
 const db = require('../db');
 
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function visitorHash(req) {
+  const ip = req.ip || req.headers['x-forwarded-for'] || '';
+  const ua = req.headers['user-agent'] || '';
+  return crypto.createHash('sha256').update(`${ip}::${ua}`).digest('hex');
 }
 
 // ── Protected (org-scoped) ───────────────────────────────────────────────────
@@ -28,7 +35,7 @@ async function getPage(req, res) {
 }
 
 async function createPage(req, res) {
-  const { title, slug, metaDescription, pageType } = req.body || {};
+  const { title, slug, metaDescription, pageType, customDomain } = req.body || {};
   if (!title || !title.trim()) return res.status(400).json({ error: 'title is required.' });
 
   const finalSlug = slug ? slugify(slug) : slugify(title);
@@ -36,9 +43,9 @@ async function createPage(req, res) {
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO pages (org_id, slug, title, meta_description, page_type)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [req.user.orgId, finalSlug, title.trim(), metaDescription || null, pageType || 'page']
+      `INSERT INTO pages (org_id, slug, title, meta_description, page_type, custom_domain)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [req.user.orgId, finalSlug, title.trim(), metaDescription || null, pageType || 'page', customDomain ? customDomain.trim().toLowerCase() : null]
     );
     res.status(201).json({ page: rows[0] });
   } catch (err) {
@@ -49,7 +56,7 @@ async function createPage(req, res) {
 
 async function updatePage(req, res) {
   const { id } = req.params;
-  const { title, slug, metaDescription, ogImage, canonicalUrl, blocks, status } = req.body || {};
+  const { title, slug, metaDescription, ogImage, canonicalUrl, blocks, status, customDomain } = req.body || {};
 
   const existing = await db.query(`SELECT id FROM pages WHERE id = $1 AND org_id = $2`, [id, req.user.orgId]);
   if (!existing.rows.length) return res.status(404).json({ error: 'Page not found.' });
@@ -64,6 +71,7 @@ async function updatePage(req, res) {
   if (ogImage !== undefined)         { updates.push(`og_image = $${idx++}`);         values.push(ogImage || null); }
   if (canonicalUrl !== undefined)    { updates.push(`canonical_url = $${idx++}`);    values.push(canonicalUrl || null); }
   if (blocks !== undefined)          { updates.push(`blocks = $${idx++}`);           values.push(JSON.stringify(Array.isArray(blocks) ? blocks : [])); }
+  if (customDomain !== undefined)    { updates.push(`custom_domain = $${idx++}`);   values.push(customDomain ? customDomain.trim().toLowerCase() : null); }
   if (status !== undefined && ['draft','published'].includes(status)) {
     updates.push(`status = $${idx++}`);
     values.push(status);
@@ -81,7 +89,7 @@ async function updatePage(req, res) {
     );
     res.json({ page: rows[0] });
   } catch (err) {
-    if (err.code === '23505') return res.status(409).json({ error: 'That slug is already in use.' });
+    if (err.code === '23505') return res.status(409).json({ error: 'That slug or custom domain is already in use.' });
     throw err;
   }
 }
@@ -97,17 +105,66 @@ async function deletePage(req, res) {
 
 async function getPublicPage(req, res) {
   const { slug } = req.params;
+  // A visitor's Host header may match a page's connected custom_domain — in that
+  // case serve that page directly, regardless of the /p/:slug route hit. Falls
+  // back to the normal org-shared slug lookup otherwise.
+  const host = (req.headers.host || '').split(':')[0].toLowerCase();
 
-  const { rows } = await db.query(
-    `SELECT id, slug, title, meta_description, og_image, canonical_url, blocks
-     FROM pages WHERE slug = $1 AND status = 'published'`,
-    [slug]
-  );
+  let rows;
+  if (host) {
+    ({ rows } = await db.query(
+      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks
+       FROM pages WHERE custom_domain = $1 AND status = 'published'`,
+      [host]
+    ));
+  }
+  if (!rows || !rows.length) {
+    ({ rows } = await db.query(
+      `SELECT id, org_id, slug, title, meta_description, og_image, canonical_url, blocks
+       FROM pages WHERE slug = $1 AND status = 'published'`,
+      [slug]
+    ));
+  }
   if (!rows.length) return res.status(404).json({ error: 'Page not found.' });
 
-  db.query(`UPDATE pages SET view_count = view_count + 1 WHERE id = $1`, [rows[0].id]).catch(() => {});
+  const page = rows[0];
+  db.query(`UPDATE pages SET view_count = view_count + 1 WHERE id = $1`, [page.id]).catch(() => {});
+  try {
+    db.query(
+      `INSERT INTO page_views (page_id, org_id, visitor_hash) VALUES ($1, $2, $3)`,
+      [page.id, page.org_id, visitorHash(req)]
+    ).catch(() => {});
+  } catch (_) { /* never let analytics tracking break the page */ }
 
-  res.json({ page: rows[0] });
+  delete page.org_id;
+  res.json({ page });
+}
+
+async function getPageAnalytics(req, res) {
+  const { id } = req.params;
+  const page = await db.query(`SELECT id FROM pages WHERE id = $1 AND org_id = $2`, [id, req.user.orgId]);
+  if (!page.rows.length) return res.status(404).json({ error: 'Page not found.' });
+
+  const [totals, daily] = await Promise.all([
+    db.query(
+      `SELECT COUNT(*)::int AS total_views, COUNT(DISTINCT visitor_hash)::int AS unique_visitors
+       FROM page_views WHERE page_id = $1`,
+      [id]
+    ),
+    db.query(
+      `SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS views
+       FROM page_views
+       WHERE page_id = $1 AND created_at >= now() - interval '30 days'
+       GROUP BY day ORDER BY day ASC`,
+      [id]
+    ),
+  ]);
+
+  res.json({
+    totalViews: totals.rows[0]?.total_views || 0,
+    uniqueVisitors: totals.rows[0]?.unique_visitors || 0,
+    dailyViews: daily.rows,
+  });
 }
 
 // Public — no auth. Lists every published page across all orgs so a single
@@ -132,4 +189,4 @@ async function previewPage(req, res) {
   res.json({ page: rows[0] });
 }
 
-module.exports = { listPages, getPage, createPage, updatePage, deletePage, getPublicPage, listPublicSitemap, previewPage };
+module.exports = { listPages, getPage, createPage, updatePage, deletePage, getPublicPage, listPublicSitemap, previewPage, getPageAnalytics };

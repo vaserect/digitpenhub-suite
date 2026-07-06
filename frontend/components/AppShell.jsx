@@ -1497,6 +1497,23 @@ export default function AppShell() {
   const [schoolClassFilter, setSchoolClassFilter] = useState('');
   const [schoolConfirmAction, setSchoolConfirmAction] = useState(null);
   const [schoolConfirming, setSchoolConfirming] = useState(false);
+  // Attendance & Grades
+  const [schoolAttClassId, setSchoolAttClassId] = useState('');
+  const [schoolAttDate, setSchoolAttDate] = useState(new Date().toISOString().slice(0,10));
+  const [schoolAttRoster, setSchoolAttRoster] = useState([]);
+  const [schoolAttDraft, setSchoolAttDraft] = useState({});
+  const [schoolAttSaving, setSchoolAttSaving] = useState(false);
+  const [schoolAttHeatmap, setSchoolAttHeatmap] = useState([]);
+  const [schoolGradeClassId, setSchoolGradeClassId] = useState('');
+  const [schoolGradeSubjectId, setSchoolGradeSubjectId] = useState('');
+  const [schoolGradeTerm, setSchoolGradeTerm] = useState('Term 1 2024/2025');
+  const [schoolGradeRecords, setSchoolGradeRecords] = useState([]);
+  const [schoolGradeDraft, setSchoolGradeDraft] = useState({});
+  const [schoolGradeSaving, setSchoolGradeSaving] = useState(null);
+  const [spAttendance, setSpAttendance] = useState(null);
+  const [spGrades, setSpGrades] = useState(null);
+  const [ppAttendance, setPpAttendance] = useState(null);
+  const [ppGrades, setPpGrades] = useState(null);
   // Assignments
   const [asgLoaded, setAsgLoaded]       = useState(false);
   const [asgList, setAsgList]           = useState([]);
@@ -6862,6 +6879,63 @@ export default function AppShell() {
         setSchoolSubjects((l) => l.filter((x) => x.id !== id));
       }
     } finally { setSchoolConfirming(false); setSchoolConfirmAction(null); }
+  }
+  async function loadAttendanceRoster(classId, date) {
+    if (!classId || !date) { setSchoolAttRoster([]); return; }
+    const d = await apiFetch(`/api/v1/school/attendance?classId=${classId}&date=${date}`);
+    setSchoolAttRoster(d.attendance || []);
+    const draft = {};
+    (d.attendance || []).forEach(a => { draft[a.student_id] = a.status || 'present'; });
+    setSchoolAttDraft(draft);
+  }
+  async function loadAttendanceHeatmap(classId) {
+    if (!classId) { setSchoolAttHeatmap([]); return; }
+    const to = new Date().toISOString().slice(0,10);
+    const from = new Date(Date.now() - 29*24*60*60*1000).toISOString().slice(0,10);
+    const d = await apiFetch(`/api/v1/school/attendance/heatmap?classId=${classId}&from=${from}&to=${to}`);
+    setSchoolAttHeatmap(d.days || []);
+  }
+  async function saveAttendance() {
+    if (!schoolAttClassId || !schoolAttDate) return;
+    setSchoolAttSaving(true);
+    try {
+      const records = schoolAttRoster.map(a => ({ studentId: a.student_id, status: schoolAttDraft[a.student_id] || 'present' }));
+      await apiFetch('/api/v1/school/attendance', { method:'POST', body: JSON.stringify({ classId: schoolAttClassId, date: schoolAttDate, records }) });
+      showToast('Attendance saved!');
+      await Promise.all([loadAttendanceRoster(schoolAttClassId, schoolAttDate), loadAttendanceHeatmap(schoolAttClassId)]);
+    } finally { setSchoolAttSaving(false); }
+  }
+  async function loadGradeRecords(classId, subjectId, term) {
+    const params = new URLSearchParams();
+    if (classId) params.set('classId', classId);
+    if (subjectId) params.set('subjectId', subjectId);
+    if (term) params.set('term', term);
+    const d = await apiFetch(`/api/v1/school/grades?${params.toString()}`);
+    setSchoolGradeRecords(d.grades || []);
+  }
+  async function saveGradeRow(student) {
+    const draft = schoolGradeDraft[student.id] || {};
+    if (draft.score === undefined || draft.score === '') return;
+    setSchoolGradeSaving(student.id);
+    try {
+      const d = await apiFetch('/api/v1/school/grades', { method:'POST', body: JSON.stringify({
+        classId: schoolGradeClassId || null, subjectId: schoolGradeSubjectId || null, studentId: student.id,
+        term: schoolGradeTerm, assessmentType: draft.assessmentType || 'Test',
+        score: Number(draft.score), maxScore: Number(draft.maxScore) || 100, weight: Number(draft.weight) || 1,
+      }) });
+      if (d.grade) { showToast('Grade saved!'); await loadGradeRecords(schoolGradeClassId, schoolGradeSubjectId, schoolGradeTerm); }
+    } finally { setSchoolGradeSaving(null); }
+  }
+  async function deleteGradeRecord(id) {
+    await apiFetch(`/api/v1/school/grades/${id}`, { method:'DELETE' });
+    setSchoolGradeRecords(l => l.filter(g => g.id !== id));
+  }
+  async function loadStudentAttendanceGrades(studentId) {
+    const [att, gr] = await Promise.all([
+      apiFetch(`/api/v1/school/attendance/student/${studentId}`),
+      apiFetch(`/api/v1/school/grades/student/${studentId}`),
+    ]);
+    return { attendance: att, grades: gr };
   }
   async function loadAssignments() {
     const data = await apiFetch('/api/v1/school-assignments');
@@ -20183,7 +20257,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             </div>
           )}
           <div style={{ display:'flex', gap:'0.4rem', marginBottom:'1rem', flexWrap:'wrap' }}>
-            {['students','classes','teachers','subjects'].map(t => <button key={t} onClick={() => setSchoolTab(t)} className={schoolTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
+            {['students','classes','teachers','subjects','attendance','grades'].map(t => <button key={t} onClick={() => setSchoolTab(t)} className={schoolTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
           </div>
 
           {schoolTab === 'students' && (
@@ -20337,6 +20411,126 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+          {schoolTab === 'attendance' && (
+            <div>
+              <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.75rem', flexWrap:'wrap', alignItems:'flex-end' }}>
+                <select className="form-input" style={{ maxWidth:220, fontSize:'0.82rem' }} value={schoolAttClassId} onChange={(e) => { setSchoolAttClassId(e.target.value); loadAttendanceRoster(e.target.value, schoolAttDate); loadAttendanceHeatmap(e.target.value); }}>
+                  <option value="">Select a class…</option>
+                  {schoolClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <input className="form-input" type="date" style={{ maxWidth:180, fontSize:'0.82rem' }} value={schoolAttDate} onChange={(e) => { setSchoolAttDate(e.target.value); loadAttendanceRoster(schoolAttClassId, e.target.value); }} />
+                <button className="btn-primary" style={{ fontSize:'0.82rem' }} disabled={!schoolAttClassId || !schoolAttRoster.length || schoolAttSaving} onClick={saveAttendance}>{schoolAttSaving ? 'Saving…' : 'Save Attendance'}</button>
+              </div>
+              {!schoolAttClassId ? (
+                <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Select a class to mark attendance.</div>
+              ) : schoolAttRoster.length === 0 ? (
+                <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No students in this class yet.</div>
+              ) : (
+                <div className="table-wrap" style={{ marginBottom:'1.25rem' }}>
+                  <table className="data-table">
+                    <thead><tr><th>Student No</th><th>Name</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {schoolAttRoster.map(a => (
+                        <tr key={a.student_id}>
+                          <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'var(--primary)' }}>{a.student_no}</td>
+                          <td style={{ fontWeight:500 }}>{a.student_name}</td>
+                          <td>
+                            <div style={{ display:'flex', gap:'0.3rem' }}>
+                              {['present','absent','late','excused'].map(st => (
+                                <button key={st} onClick={() => setSchoolAttDraft(d => ({ ...d, [a.student_id]: st }))}
+                                  className={(schoolAttDraft[a.student_id]||'present')===st ? 'btn-primary' : 'btn-ghost'}
+                                  style={{ fontSize:'0.72rem', textTransform:'capitalize', padding:'0.25rem 0.5rem' }}>{st}</button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {schoolAttClassId && (
+                <div>
+                  <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.5rem' }}>Last 30 Days — Attendance Rate</div>
+                  {schoolAttHeatmap.length === 0 ? (
+                    <div style={{ fontSize:'0.82rem', color:'var(--muted)' }}>No attendance recorded yet for this class.</div>
+                  ) : (
+                    <div style={{ display:'flex', gap:'3px', flexWrap:'wrap' }}>
+                      {schoolAttHeatmap.map(day => {
+                        const rate = day.presentRate;
+                        const bg = rate == null ? 'var(--border)' : rate >= 90 ? 'rgba(34,197,94,0.85)' : rate >= 70 ? 'rgba(234,179,8,0.85)' : 'rgba(239,68,68,0.85)';
+                        return <div key={day.date} title={`${day.date}: ${rate==null?'no data':rate+'% present'}`} style={{ width:16, height:16, borderRadius:3, background:bg }} />;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {schoolTab === 'grades' && (
+            <div>
+              <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.75rem', flexWrap:'wrap', alignItems:'flex-end' }}>
+                <select className="form-input" style={{ maxWidth:200, fontSize:'0.82rem' }} value={schoolGradeClassId} onChange={(e) => { setSchoolGradeClassId(e.target.value); loadGradeRecords(e.target.value, schoolGradeSubjectId, schoolGradeTerm); }}>
+                  <option value="">Select a class…</option>
+                  {schoolClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select className="form-input" style={{ maxWidth:200, fontSize:'0.82rem' }} value={schoolGradeSubjectId} onChange={(e) => { setSchoolGradeSubjectId(e.target.value); loadGradeRecords(schoolGradeClassId, e.target.value, schoolGradeTerm); }}>
+                  <option value="">Select a subject…</option>
+                  {schoolSubjects.filter(s => !schoolGradeClassId || s.class_id === schoolGradeClassId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                <input className="form-input" style={{ maxWidth:220, fontSize:'0.82rem' }} placeholder="Term (e.g. Term 1 2024/2025)" value={schoolGradeTerm} onChange={(e) => setSchoolGradeTerm(e.target.value)} onBlur={() => loadGradeRecords(schoolGradeClassId, schoolGradeSubjectId, schoolGradeTerm)} />
+              </div>
+              {!schoolGradeClassId ? (
+                <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Select a class to enter grades.</div>
+              ) : (
+                <div>
+                  <div className="table-wrap" style={{ marginBottom:'1rem' }}>
+                    <table className="data-table">
+                      <thead><tr><th>Student</th><th>Assessment</th><th>Score</th><th>Max</th><th>Weight</th><th></th></tr></thead>
+                      <tbody>
+                        {schoolStudents.filter(s => s.class_id === schoolGradeClassId).map(s => {
+                          const draft = schoolGradeDraft[s.id] || {};
+                          return (
+                            <tr key={s.id}>
+                              <td style={{ fontWeight:500 }}>{s.name}</td>
+                              <td><input className="form-input" style={{ fontSize:'0.8rem', maxWidth:120 }} placeholder="Test/Exam/Assignment" value={draft.assessmentType||''} onChange={(e) => setSchoolGradeDraft(d => ({ ...d, [s.id]: { ...d[s.id], assessmentType:e.target.value } }))} /></td>
+                              <td><input className="form-input" type="number" style={{ fontSize:'0.8rem', maxWidth:80 }} value={draft.score??''} onChange={(e) => setSchoolGradeDraft(d => ({ ...d, [s.id]: { ...d[s.id], score:e.target.value } }))} /></td>
+                              <td><input className="form-input" type="number" style={{ fontSize:'0.8rem', maxWidth:80 }} placeholder="100" value={draft.maxScore??''} onChange={(e) => setSchoolGradeDraft(d => ({ ...d, [s.id]: { ...d[s.id], maxScore:e.target.value } }))} /></td>
+                              <td><input className="form-input" type="number" style={{ fontSize:'0.8rem', maxWidth:70 }} placeholder="1" value={draft.weight??''} onChange={(e) => setSchoolGradeDraft(d => ({ ...d, [s.id]: { ...d[s.id], weight:e.target.value } }))} /></td>
+                              <td><button className="btn-primary" style={{ fontSize:'0.72rem' }} disabled={!draft.score || schoolGradeSaving===s.id} onClick={() => saveGradeRow(s)}>{schoolGradeSaving===s.id?'Saving…':'Save'}</button></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.5rem' }}>Recorded Grades — {schoolGradeTerm}</div>
+                  {schoolGradeRecords.length === 0 ? (
+                    <div style={{ fontSize:'0.82rem', color:'var(--muted)' }}>No grades recorded yet for this class/subject/term.</div>
+                  ) : (
+                    <div className="table-wrap">
+                      <table className="data-table">
+                        <thead><tr><th>Student</th><th>Subject</th><th>Assessment</th><th>Score</th><th>Weight</th><th></th></tr></thead>
+                        <tbody>
+                          {schoolGradeRecords.map(g => (
+                            <tr key={g.id}>
+                              <td style={{ fontWeight:500 }}>{g.student_name}</td>
+                              <td style={{ fontSize:'0.82rem' }}>{g.subject_name||'—'}</td>
+                              <td style={{ fontSize:'0.82rem' }}>{g.assessment_type}</td>
+                              <td style={{ fontSize:'0.82rem' }}>{g.score}/{g.max_score}</td>
+                              <td style={{ fontSize:'0.82rem' }}>{g.weight}</td>
+                              <td><button className="btn-ghost" style={{ fontSize:'0.72rem', color:'var(--danger)' }} onClick={() => deleteGradeRecord(g.id)}>Delete</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <ConfirmDialog
@@ -20725,7 +20919,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             <div>
               <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1.25rem' }}>
                 <label style={{ fontSize:'0.85rem', color:'var(--muted)' }}>Viewing as:</label>
-                <select className="form-input" style={{ maxWidth:260 }} value={ppStudent?.id || ''} onChange={(e) => setPpStudent(schoolStudents.find(s=>s.id===e.target.value)||null)}>
+                <select className="form-input" style={{ maxWidth:260 }} value={ppStudent?.id || ''} onChange={(e) => { setPpStudent(schoolStudents.find(s=>s.id===e.target.value)||null); setSpAttendance(null); setSpGrades(null); }}>
                   <option value="">Select a student…</option>
                   {schoolStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.student_no})</option>)}
                 </select>
@@ -20739,7 +20933,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 return (
                   <div>
                     <div style={{ display:'flex', gap:'0.4rem', marginBottom:'1rem' }}>
-                      {['courses','assignments','subjects','classmates'].map(t => <button key={t} onClick={() => setSpTab(t)} className={spTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
+                      {['courses','assignments','attendance','grades','subjects','classmates'].map(t => <button key={t} onClick={() => { setSpTab(t); if ((t==='attendance'||t==='grades') && !spAttendance) loadStudentAttendanceGrades(ppStudent.id).then(r => { setSpAttendance(r.attendance); setSpGrades(r.grades); }); }} className={spTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
                     </div>
                     <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'1.1rem', marginBottom:'1.25rem', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div>
@@ -20753,6 +20947,46 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     )}
                     {spTab === 'assignments' && (
                       <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Assignments for {cls?.name || 'your class'} will appear here once your teacher creates them in the Assignments module.</div>
+                    )}
+                    {spTab === 'attendance' && (
+                      !spAttendance ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Loading attendance…</div> : (
+                        <div>
+                          <div className="stats-row" style={{ marginBottom:'1rem' }}>
+                            {[['Present %', spAttendance.summary.presentPct!=null?`${spAttendance.summary.presentPct}%`:'—'],['Present',spAttendance.summary.present],['Late',spAttendance.summary.late],['Absent',spAttendance.summary.absent],['Excused',spAttendance.summary.excused]].map(([l,v]) => (
+                              <div key={l} className="stat-card"><div className="stat-value">{v}</div><div className="stat-label">{l}</div></div>
+                            ))}
+                          </div>
+                          {spAttendance.records.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No attendance recorded yet.</div> : (
+                            <div className="table-wrap">
+                              <table className="data-table">
+                                <thead><tr><th>Date</th><th>Status</th></tr></thead>
+                                <tbody>{spAttendance.records.slice(0,30).map(r => <tr key={r.id}><td style={{ fontSize:'0.82rem' }}>{new Date(r.date).toLocaleDateString()}</td><td><span className="ctag" style={{ textTransform:'capitalize' }}>{r.status}</span></td></tr>)}</tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+                    {spTab === 'grades' && (
+                      !spGrades ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Loading grades…</div> :
+                      spGrades.summary.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No grades recorded yet.</div> : (
+                        <div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem', marginBottom:'1.25rem' }}>
+                            {spGrades.summary.map(s => (
+                              <div key={s.subjectId||'unassigned'} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.85rem' }}>
+                                <div style={{ fontWeight:600 }}>{s.subjectName}</div>
+                                <div style={{ fontSize:'1.2rem', fontWeight:700, color:'var(--primary)' }}>{s.average!=null?`${s.average}%`:'—'}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="table-wrap">
+                            <table className="data-table">
+                              <thead><tr><th>Subject</th><th>Term</th><th>Assessment</th><th>Score</th></tr></thead>
+                              <tbody>{spGrades.records.map(g => <tr key={g.id}><td style={{ fontSize:'0.82rem' }}>{g.subject_name||'—'}</td><td style={{ fontSize:'0.82rem' }}>{g.term}</td><td style={{ fontSize:'0.82rem' }}>{g.assessment_type}</td><td style={{ fontSize:'0.82rem' }}>{g.score}/{g.max_score}</td></tr>)}</tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )
                     )}
                     {spTab === 'subjects' && (
                       classSubjects.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No subjects assigned yet.</div> : (
@@ -20816,7 +21050,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 return (
                   <div>
                     <div style={{ display:'flex', gap:'0.4rem', marginBottom:'1rem' }}>
-                      {['assignments','subjects','students'].map(t => <button key={t} onClick={() => setTpTab(t)} className={tpTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
+                      {['assignments','attendance','grades','subjects','students'].map(t => <button key={t} onClick={() => setTpTab(t)} className={tpTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
                     </div>
                     <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'1.1rem', marginBottom:'1.25rem' }}>
                       <div style={{ fontWeight:700, fontSize:'1.05rem' }}>{ppStudent.name}</div>
@@ -20824,6 +21058,18 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                     </div>
                     {tpTab === 'assignments' && (
                       <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Create and grade assignments for your classes in the Assignments module — your grading queue will surface here.</div>
+                    )}
+                    {tpTab === 'attendance' && (
+                      <div style={{ textAlign:'center', padding:'2rem', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10 }}>
+                        <div style={{ fontSize:'0.88rem', color:'var(--muted)', marginBottom:'0.75rem' }}>Mark daily attendance for {myClasses.length ? myClasses.map(c=>c.name).join(', ') : 'your classes'} in School Management.</div>
+                        <button className="btn-primary" style={{ fontSize:'0.85rem' }} onClick={() => { setSchoolTab('attendance'); if (myClasses[0]) { setSchoolAttClassId(myClasses[0].id); loadAttendanceRoster(myClasses[0].id, schoolAttDate); loadAttendanceHeatmap(myClasses[0].id); } setView('module'); setActiveModuleSlug('school-management'); }}>Go to Attendance →</button>
+                      </div>
+                    )}
+                    {tpTab === 'grades' && (
+                      <div style={{ textAlign:'center', padding:'2rem', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10 }}>
+                        <div style={{ fontSize:'0.88rem', color:'var(--muted)', marginBottom:'0.75rem' }}>Enter grades for {mySubjects.length ? mySubjects.map(s=>s.name).join(', ') : 'your subjects'} in School Management.</div>
+                        <button className="btn-primary" style={{ fontSize:'0.85rem' }} onClick={() => { setSchoolTab('grades'); if (mySubjects[0]) { setSchoolGradeSubjectId(mySubjects[0].id); if (mySubjects[0].class_id) setSchoolGradeClassId(mySubjects[0].class_id); loadGradeRecords(mySubjects[0].class_id||'', mySubjects[0].id, schoolGradeTerm); } setView('module'); setActiveModuleSlug('school-management'); }}>Go to Grade Book →</button>
+                      </div>
                     )}
                     {tpTab === 'subjects' && (
                       mySubjects.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No subjects assigned to you yet.</div> : (
@@ -20872,7 +21118,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
             <div>
               <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1.25rem' }}>
                 <label style={{ fontSize:'0.85rem', color:'var(--muted)' }}>Select child:</label>
-                <select className="form-input" style={{ maxWidth:260 }} value={ppStudent?.id || ''} onChange={(e) => { setPpStudent(schoolStudents.find(s=>s.id===e.target.value)||null); setPpTab('overview'); }}>
+                <select className="form-input" style={{ maxWidth:260 }} value={ppStudent?.id || ''} onChange={(e) => { setPpStudent(schoolStudents.find(s=>s.id===e.target.value)||null); setPpTab('overview'); setPpAttendance(null); setPpGrades(null); }}>
                   <option value="">Choose a child…</option>
                   {schoolStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.student_no})</option>)}
                 </select>
@@ -20885,7 +21131,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                 return (
                   <div>
                     <div style={{ display:'flex', gap:'0.4rem', marginBottom:'1rem' }}>
-                      {['overview','subjects','contact'].map(t => <button key={t} onClick={() => setPpTab(t)} className={ppTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
+                      {['overview','attendance','grades','subjects','contact'].map(t => <button key={t} onClick={() => { setPpTab(t); if ((t==='attendance'||t==='grades') && !ppAttendance) loadStudentAttendanceGrades(ppStudent.id).then(r => { setPpAttendance(r.attendance); setPpGrades(r.grades); }); }} className={ppTab===t?'btn-primary':'btn-ghost'} style={{ fontSize:'0.82rem', textTransform:'capitalize' }}>{t}</button>)}
                     </div>
                     {ppTab === 'overview' && (
                       <div>
@@ -20899,8 +21145,48 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
                             <div key={l} className="stat-card"><div className="stat-value" style={{ fontSize:'1.1rem' }}>{v}</div><div className="stat-label">{l}</div></div>
                           ))}
                         </div>
-                        <div style={{ marginTop:'1.25rem', textAlign:'center', padding:'1.5rem', color:'var(--muted)', fontSize:'0.88rem', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10 }}>Grades and assignment results will appear here once teachers begin grading work in the Assignments and CBT Platform modules.</div>
+                        <div style={{ marginTop:'1.25rem', textAlign:'center', padding:'1.5rem', color:'var(--muted)', fontSize:'0.88rem', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10 }}>Assignment-level results will appear here once teachers begin grading work in the Assignments and CBT Platform modules. See the Attendance and Grades tabs for recorded attendance and grade-book scores.</div>
                       </div>
+                    )}
+                    {ppTab === 'attendance' && (
+                      !ppAttendance ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Loading attendance…</div> : (
+                        <div>
+                          <div className="stats-row" style={{ marginBottom:'1rem' }}>
+                            {[['Present %', ppAttendance.summary.presentPct!=null?`${ppAttendance.summary.presentPct}%`:'—'],['Present',ppAttendance.summary.present],['Late',ppAttendance.summary.late],['Absent',ppAttendance.summary.absent],['Excused',ppAttendance.summary.excused]].map(([l,v]) => (
+                              <div key={l} className="stat-card"><div className="stat-value">{v}</div><div className="stat-label">{l}</div></div>
+                            ))}
+                          </div>
+                          {ppAttendance.records.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No attendance recorded yet.</div> : (
+                            <div className="table-wrap">
+                              <table className="data-table">
+                                <thead><tr><th>Date</th><th>Status</th></tr></thead>
+                                <tbody>{ppAttendance.records.slice(0,30).map(r => <tr key={r.id}><td style={{ fontSize:'0.82rem' }}>{new Date(r.date).toLocaleDateString()}</td><td><span className="ctag" style={{ textTransform:'capitalize' }}>{r.status}</span></td></tr>)}</tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+                    {ppTab === 'grades' && (
+                      !ppGrades ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>Loading grades…</div> :
+                      ppGrades.summary.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No grades recorded yet.</div> : (
+                        <div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'0.75rem', marginBottom:'1.25rem' }}>
+                            {ppGrades.summary.map(s => (
+                              <div key={s.subjectId||'unassigned'} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.85rem' }}>
+                                <div style={{ fontWeight:600 }}>{s.subjectName}</div>
+                                <div style={{ fontSize:'1.2rem', fontWeight:700, color:'var(--primary)' }}>{s.average!=null?`${s.average}%`:'—'}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="table-wrap">
+                            <table className="data-table">
+                              <thead><tr><th>Subject</th><th>Term</th><th>Assessment</th><th>Score</th></tr></thead>
+                              <tbody>{ppGrades.records.map(g => <tr key={g.id}><td style={{ fontSize:'0.82rem' }}>{g.subject_name||'—'}</td><td style={{ fontSize:'0.82rem' }}>{g.term}</td><td style={{ fontSize:'0.82rem' }}>{g.assessment_type}</td><td style={{ fontSize:'0.82rem' }}>{g.score}/{g.max_score}</td></tr>)}</tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )
                     )}
                     {ppTab === 'subjects' && (
                       classSubjects.length === 0 ? <div style={{ textAlign:'center', padding:'2rem', color:'var(--muted)', fontSize:'0.88rem' }}>No subjects assigned yet.</div> : (

@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [pgRes, refRes] = await Promise.all([
@@ -112,8 +113,19 @@ async function deleteReferral(req, res) {
   res.json({ ok: true });
 }
 
+async function exportReferrals(req, res) {
+  const { rows } = await db.query(
+    `SELECT r.*, rp.name AS program_name FROM referrals r
+     LEFT JOIN referral_programs rp ON rp.id=r.program_id
+     WHERE r.org_id=$1
+     ORDER BY r.created_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'referrals.csv', rows, autoColumns(rows));
+}
+
 module.exports = {
   getStats,
   listPrograms, createProgram, updateProgram, deleteProgram,
-  listReferrals, createReferral, updateReferral, deleteReferral,
+  listReferrals, exportReferrals, createReferral, updateReferral, deleteReferral,
 };

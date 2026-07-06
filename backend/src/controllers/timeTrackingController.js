@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [projRes, todayRes, weekRes, runRes] = await Promise.all([
@@ -102,4 +103,14 @@ async function deleteEntry(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listProjects, createProject, updateProject, deleteProject, listEntries, startTimer, stopTimer, createEntry, deleteEntry };
+async function exportEntries(req, res) {
+  const { rows } = await db.query(
+    `SELECT e.*, p.name AS project_name FROM time_entries e
+     LEFT JOIN time_projects p ON p.id=e.project_id
+     WHERE e.org_id=$1 ORDER BY e.started_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'time-entries.csv', rows, autoColumns(rows));
+}
+
+module.exports = { getStats, listProjects, createProject, updateProject, deleteProject, listEntries, exportEntries, startTimer, stopTimer, createEntry, deleteEntry };

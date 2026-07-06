@@ -9,6 +9,7 @@ r.post('/plans',          c.createPlan);
 r.put('/plans/:id',       c.updatePlan);
 r.delete('/plans/:id',    c.deletePlan);
 r.get('/',                c.listSubscriptions);
+r.get('/export',          c.exportSubscriptions);
 r.post('/',               c.createSubscription);
 r.put('/:id',             c.updateSubscription);
 r.delete('/:id',          c.deleteSubscription);

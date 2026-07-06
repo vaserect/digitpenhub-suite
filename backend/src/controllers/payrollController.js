@@ -1,6 +1,7 @@
 const db = require('../db');
 const { calculateStatutoryDeductions } = require('../utils/payrollCalculator');
 const { renderPayslipPdf } = require('../utils/payslipPdf');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getBranding(orgId) {
   const { rows } = await db.query(`SELECT display_name, primary_color FROM org_branding WHERE org_id=$1`, [orgId]);
@@ -27,6 +28,16 @@ async function listRuns(req, res) {
     [req.user.orgId]
   );
   res.json({ runs: rows });
+}
+
+async function exportRuns(req, res) {
+  const { rows } = await db.query(
+    `SELECT r.*, COUNT(i.id)::int AS employee_count
+     FROM payroll_runs r LEFT JOIN payroll_items i ON i.run_id=r.id
+     WHERE r.org_id=$1 GROUP BY r.id ORDER BY r.created_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'payroll-runs.csv', rows, autoColumns(rows));
 }
 
 async function getRun(req, res) {
@@ -125,4 +136,4 @@ async function getPayslipPdf(req, res) {
   res.send(pdf);
 }
 
-module.exports = { getStats, listRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem, getPayslipPdf };
+module.exports = { getStats, listRuns, exportRuns, getRun, createRun, updateRun, deleteRun, addItem, removeItem, getPayslipPdf };

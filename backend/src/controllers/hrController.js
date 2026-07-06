@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -63,6 +64,20 @@ async function listEmployees(req, res) {
     [req.user.orgId, status]
   );
   res.json({ employees: rows });
+}
+
+async function exportEmployees(req, res) {
+  const { rows } = await db.query(
+    `SELECT e.id, e.full_name, e.email, e.phone, e.job_title, e.employment_type,
+            e.start_date, e.salary_ngn, e.status, e.notes, e.created_at, e.updated_at,
+            d.name AS department_name
+     FROM employees e
+     LEFT JOIN departments d ON d.id = e.department_id
+     WHERE e.org_id = $1
+     ORDER BY e.full_name`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'employees.csv', rows, autoColumns(rows));
 }
 
 async function createEmployee(req, res) {
@@ -334,7 +349,7 @@ async function getHrStats(req, res) {
 
 module.exports = {
   listDepartments, createDepartment, updateDepartment, deleteDepartment,
-  listEmployees, createEmployee, updateEmployee, deleteEmployee,
+  listEmployees, exportEmployees, createEmployee, updateEmployee, deleteEmployee,
   listLeaveRequests, createLeaveRequest, reviewLeaveRequest, deleteLeaveRequest,
   listPayrollRuns, getPayrollRun, createPayrollRun, updatePayrollEntry, processPayrollRun, deletePayrollRun,
   getHrStats,

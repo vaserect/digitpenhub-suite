@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -16,6 +17,11 @@ async function listCoupons(req, res) {
   if (status) vals.push(status);
   const { rows } = await db.query(`SELECT * FROM coupons WHERE org_id=$1${extra} ORDER BY created_at DESC`, vals);
   res.json({ coupons: rows });
+}
+
+async function exportCoupons(req, res) {
+  const { rows } = await db.query(`SELECT * FROM coupons WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'coupons.csv', rows, autoColumns(rows));
 }
 
 async function createCoupon(req, res) {
@@ -69,4 +75,4 @@ async function validateCoupon(req, res) {
   res.json({ valid: true, coupon: c, discountAmount: discount });
 }
 
-module.exports = { getStats, listCoupons, createCoupon, updateCoupon, deleteCoupon, validateCoupon };
+module.exports = { getStats, listCoupons, exportCoupons, createCoupon, updateCoupon, deleteCoupon, validateCoupon };

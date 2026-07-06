@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -72,6 +73,16 @@ async function listSubscriptions(req, res) {
   res.json({ subscriptions: rows });
 }
 
+async function exportSubscriptions(req, res) {
+  const { rows } = await db.query(
+    `SELECT s.*, p.name AS plan_name, p.billing_cycle FROM customer_subscriptions s
+     LEFT JOIN subscription_plans p ON p.id=s.plan_id
+     WHERE s.org_id=$1 ORDER BY s.created_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'subscribers.csv', rows, autoColumns(rows));
+}
+
 async function createSubscription(req, res) {
   const { planId, customerName, customerEmail, customerPhone, startedAt, currentPeriodEnd, amount, notes } = req.body || {};
   if (!customerName?.trim()) return res.status(400).json({ error: 'customerName required' });
@@ -105,4 +116,4 @@ async function deleteSubscription(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listPlans, createPlan, updatePlan, deletePlan, listSubscriptions, createSubscription, updateSubscription, deleteSubscription };
+module.exports = { getStats, listPlans, createPlan, updatePlan, deletePlan, listSubscriptions, exportSubscriptions, createSubscription, updateSubscription, deleteSubscription };

@@ -5,6 +5,7 @@ const r = Router();
 r.use(requireAuth);
 r.get('/stats',           c.getStats);
 r.get('/',                c.listTickets);
+r.get('/export',          c.exportTickets);
 r.post('/',               c.createTicket);
 r.get('/:id',             c.getTicket);
 r.put('/:id',             c.updateTicket);

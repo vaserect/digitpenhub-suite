@@ -5,6 +5,7 @@ const r = Router();
 r.use(requireAuth);
 r.get('/stats',            c.getStats);
 r.get('/',                 c.listRuns);
+r.get('/export',           c.exportRuns);
 r.post('/',                c.createRun);
 r.get('/:id',              c.getRun);
 r.put('/:id',              c.updateRun);

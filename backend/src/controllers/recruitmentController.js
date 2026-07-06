@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,18 @@ async function listApplicants(req, res) {
   res.json({ applicants: rows });
 }
 
+async function exportApplicants(req, res) {
+  const { rows } = await db.query(
+    `SELECT a.*, jp.title AS job_title
+     FROM applicants a
+     LEFT JOIN job_postings jp ON jp.id = a.job_id
+     WHERE a.org_id = $1
+     ORDER BY a.applied_at DESC, a.created_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'applicants.csv', rows, autoColumns(rows));
+}
+
 async function createApplicant(req, res) {
   const { fullName, email, phone, jobId, stage, source, resumeUrl, notes, appliedAt } = req.body || {};
   if (!fullName?.trim()) return res.status(400).json({ error: 'fullName is required.' });
@@ -150,5 +163,5 @@ async function deleteApplicant(req, res) {
 module.exports = {
   getStats,
   listJobs, createJob, updateJob, deleteJob,
-  listApplicants, createApplicant, updateApplicant, deleteApplicant,
+  listApplicants, exportApplicants, createApplicant, updateApplicant, deleteApplicant,
 };

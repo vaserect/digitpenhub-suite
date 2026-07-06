@@ -2,7 +2,7 @@ const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const {
   listDepartments, createDepartment, updateDepartment, deleteDepartment,
-  listEmployees, createEmployee, updateEmployee, deleteEmployee,
+  listEmployees, exportEmployees, createEmployee, updateEmployee, deleteEmployee,
   listLeaveRequests, createLeaveRequest, reviewLeaveRequest, deleteLeaveRequest,
   listPayrollRuns, getPayrollRun, createPayrollRun, updatePayrollEntry, processPayrollRun, deletePayrollRun,
   getHrStats,
@@ -19,6 +19,7 @@ router.put('/departments/:id', updateDepartment);
 router.delete('/departments/:id', deleteDepartment);
 
 router.get('/employees', listEmployees);
+router.get('/employees/export', exportEmployees);
 router.post('/employees', createEmployee);
 router.put('/employees/:id', updateEmployee);
 router.delete('/employees/:id', deleteEmployee);

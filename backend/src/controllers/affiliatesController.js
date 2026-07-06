@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [affRes, convRes] = await Promise.all([
@@ -127,8 +128,24 @@ async function deleteConversion(req, res) {
   res.json({ ok: true });
 }
 
+async function exportAffiliates(req, res) {
+  const { rows } = await db.query(
+    `SELECT a.*,
+            COUNT(ac.id)::int                                          AS conversion_count,
+            COALESCE(SUM(ac.amount_ngn),0)                            AS total_sales,
+            COALESCE(SUM(ac.commission_ngn),0)                        AS total_earned,
+            COALESCE(SUM(ac.commission_ngn) FILTER(WHERE ac.status='pending'),0) AS pending
+     FROM affiliates a
+     LEFT JOIN affiliate_conversions ac ON ac.affiliate_id=a.id
+     WHERE a.org_id=$1
+     GROUP BY a.id ORDER BY a.name`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'affiliates.csv', rows, autoColumns(rows));
+}
+
 module.exports = {
   getStats,
-  listAffiliates, createAffiliate, updateAffiliate, deleteAffiliate,
+  listAffiliates, exportAffiliates, createAffiliate, updateAffiliate, deleteAffiliate,
   listConversions, createConversion, updateConversion, deleteConversion,
 };

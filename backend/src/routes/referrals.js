@@ -9,6 +9,7 @@ r.post('/programs', c.createProgram);
 r.put('/programs/:id', c.updateProgram);
 r.delete('/programs/:id', c.deleteProgram);
 r.get('/referrals', c.listReferrals);
+r.get('/referrals/export', c.exportReferrals);
 r.post('/referrals', c.createReferral);
 r.put('/referrals/:id', c.updateReferral);
 r.delete('/referrals/:id', c.deleteReferral);

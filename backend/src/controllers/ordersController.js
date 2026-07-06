@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -23,6 +24,11 @@ async function listOrders(req, res) {
   if (search)        {conditions.push(`(customer_name ILIKE $${i} OR order_number ILIKE $${i})`); vals.push(`%${search}%`); i++;}
   const { rows } = await db.query(`SELECT * FROM orders WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`, vals);
   res.json({ orders: rows });
+}
+
+async function exportOrders(req, res) {
+  const { rows } = await db.query(`SELECT * FROM orders WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'orders.csv', rows, autoColumns(rows));
 }
 
 async function getOrder(req, res) {
@@ -70,4 +76,4 @@ async function deleteOrder(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listOrders, getOrder, createOrder, updateOrder, deleteOrder };
+module.exports = { getStats, listOrders, exportOrders, getOrder, createOrder, updateOrder, deleteOrder };

@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -21,6 +22,11 @@ async function listAssets(req, res) {
   if (search)   {conditions.push(`name ILIKE $${i++}`);      vals.push(`%${search}%`);}
   const { rows } = await db.query(`SELECT * FROM asset_items WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`, vals);
   res.json({ assets: rows });
+}
+
+async function exportAssets(req, res) {
+  const { rows } = await db.query(`SELECT * FROM asset_items WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'assets.csv', rows, autoColumns(rows));
 }
 
 async function createAsset(req, res) {
@@ -59,4 +65,4 @@ async function deleteAsset(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listAssets, createAsset, updateAsset, deleteAsset };
+module.exports = { getStats, listAssets, exportAssets, createAsset, updateAsset, deleteAsset };

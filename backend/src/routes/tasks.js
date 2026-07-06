@@ -5,6 +5,7 @@ const r = Router();
 r.use(requireAuth);
 r.get('/stats',            c.getStats);
 r.get('/',                 c.listTasks);
+r.get('/export',           c.exportTasks);
 r.post('/',                c.createTask);
 r.put('/:id',              c.updateTask);
 r.delete('/:id',           c.deleteTask);

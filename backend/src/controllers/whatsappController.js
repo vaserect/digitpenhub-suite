@@ -1,5 +1,6 @@
 const db = require('../db');
 const { whatsappProviderConfigured } = require('../utils/messagingProviders');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [cRes, tRes, bRes] = await Promise.all([
@@ -165,9 +166,14 @@ async function sendBroadcast(req, res) {
   res.json({ broadcast: rows[0], simulated });
 }
 
+async function exportContacts(req, res) {
+  const { rows } = await db.query(`SELECT * FROM whatsapp_contacts WHERE org_id=$1 ORDER BY name`, [req.user.orgId]);
+  sendCsv(res, 'whatsapp-contacts.csv', rows, autoColumns(rows));
+}
+
 module.exports = {
   getStats,
-  listContacts, createContact, updateContact, deleteContact,
+  listContacts, exportContacts, createContact, updateContact, deleteContact,
   listTemplates, createTemplate, updateTemplate, deleteTemplate,
   listBroadcasts, createBroadcast, updateBroadcast, deleteBroadcast, sendBroadcast,
 };

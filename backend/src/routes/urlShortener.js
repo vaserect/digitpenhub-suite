@@ -5,6 +5,7 @@ const r = Router();
 r.use(requireAuth);
 r.get('/stats',   c.getStats);
 r.get('/',        c.listLinks);
+r.get('/export',  c.exportLinks);
 r.post('/',       c.createLink);
 r.put('/:id',     c.updateLink);
 r.delete('/:id',  c.deleteLink);

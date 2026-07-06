@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -77,4 +78,9 @@ async function addReply(req, res) {
   res.status(201).json({ reply: rows[0] });
 }
 
-module.exports = { getStats, listTickets, getTicket, createTicket, updateTicket, deleteTicket, addReply };
+async function exportTickets(req, res) {
+  const { rows } = await db.query(`SELECT * FROM helpdesk_tickets WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'helpdesk-tickets.csv', rows, autoColumns(rows));
+}
+
+module.exports = { getStats, listTickets, exportTickets, getTicket, createTicket, updateTicket, deleteTicket, addReply };

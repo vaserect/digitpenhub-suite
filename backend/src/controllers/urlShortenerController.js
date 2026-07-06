@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 function genSlug(len=6) {
   const chars='abcdefghijklmnopqrstuvwxyz0123456789';
@@ -57,4 +58,9 @@ async function deleteLink(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listLinks, createLink, updateLink, deleteLink };
+async function exportLinks(req, res) {
+  const { rows } = await db.query(`SELECT * FROM short_links WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'short-links.csv', rows, autoColumns(rows));
+}
+
+module.exports = { getStats, listLinks, exportLinks, createLink, updateLink, deleteLink };

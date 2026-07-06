@@ -1,5 +1,6 @@
 const db = require('../db');
 const { smsProviderConfigured } = require('../utils/messagingProviders');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [campRes, contactRes] = await Promise.all([
@@ -129,4 +130,9 @@ async function deleteCampaign(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listContacts, createContact, updateContact, deleteContact, bulkCreateContacts, listCampaigns, createCampaign, sendCampaign, deleteCampaign };
+async function exportContacts(req, res) {
+  const { rows } = await db.query(`SELECT * FROM sms_contacts WHERE org_id=$1 ORDER BY created_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'sms-contacts.csv', rows, autoColumns(rows));
+}
+
+module.exports = { getStats, listContacts, exportContacts, createContact, updateContact, deleteContact, bulkCreateContacts, listCampaigns, createCampaign, sendCampaign, deleteCampaign };

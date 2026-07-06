@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [docRes, folRes] = await Promise.all([
@@ -70,4 +71,9 @@ async function deleteDocument(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listFolders, createFolder, deleteFolder, listDocuments, createDocument, updateDocument, deleteDocument };
+async function exportDocuments(req, res) {
+  const { rows } = await db.query(`SELECT * FROM documents WHERE org_id=$1 ORDER BY updated_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'documents.csv', rows, autoColumns(rows, ['org_id', 'file_data']));
+}
+
+module.exports = { getStats, listFolders, createFolder, deleteFolder, listDocuments, exportDocuments, createDocument, updateDocument, deleteDocument };

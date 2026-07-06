@@ -9,6 +9,7 @@ r.post('/projects',        c.createProject);
 r.put('/projects/:id',     c.updateProject);
 r.delete('/projects/:id',  c.deleteProject);
 r.get('/entries',          c.listEntries);
+r.get('/entries/export',   c.exportEntries);
 r.post('/entries/start',   c.startTimer);
 r.put('/entries/:id/stop', c.stopTimer);
 r.post('/entries',         c.createEntry);

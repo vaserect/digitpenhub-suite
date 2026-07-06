@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function getStats(req, res) {
   const [artRes, catRes] = await Promise.all([
@@ -86,4 +87,14 @@ async function deleteArticle(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listCategories, createCategory, deleteCategory, listArticles, getArticle, createArticle, updateArticle, deleteArticle };
+async function exportArticles(req, res) {
+  const { rows } = await db.query(
+    `SELECT a.*, c.name AS category_name FROM kb_articles a
+     LEFT JOIN kb_categories c ON c.id=a.category_id
+     WHERE a.org_id=$1 ORDER BY a.updated_at DESC`,
+    [req.user.orgId]
+  );
+  sendCsv(res, 'knowledge-base-articles.csv', rows, autoColumns(rows));
+}
+
+module.exports = { getStats, listCategories, createCategory, deleteCategory, listArticles, exportArticles, getArticle, createArticle, updateArticle, deleteArticle };

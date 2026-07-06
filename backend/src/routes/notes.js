@@ -4,6 +4,7 @@ const c = require('../controllers/notesController');
 const r = Router();
 r.use(requireAuth);
 r.get('/',        c.listNotes);
+r.get('/export',  c.exportNotes);
 r.post('/',       c.createNote);
 r.put('/:id',     c.updateNote);
 r.delete('/:id',  c.deleteNote);

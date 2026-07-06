@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function listEvents(req, res) {
   const { start, end } = req.query;
@@ -45,4 +46,9 @@ async function deleteEvent(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { listEvents, createEvent, updateEvent, deleteEvent };
+async function exportEvents(req, res) {
+  const { rows } = await db.query(`SELECT * FROM calendar_events WHERE org_id=$1 ORDER BY start_at`, [req.user.orgId]);
+  sendCsv(res, 'calendar-events.csv', rows, autoColumns(rows));
+}
+
+module.exports = { listEvents, exportEvents, createEvent, updateEvent, deleteEvent };

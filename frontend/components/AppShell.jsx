@@ -63,6 +63,10 @@ function calculateEstimatedStatutory(grossMonthly, allowancesMonthly) {
   };
 }
 
+function exportCsv(path) {
+  window.open(path, '_blank');
+}
+
 function initials(name) {
   return name
     .split(/\s+/)
@@ -9626,6 +9630,7 @@ export default function AppShell() {
                         {!showEmpForm && !editingEmployee && (
                           <Button size="sm" onClick={() => setShowEmpForm(true)}>+ Add Employee</Button>
                         )}
+                        <Button size="sm" variant="secondary" onClick={() => exportCsv('/api/v1/hr/employees/export')}>Export CSV</Button>
                         <SearchInput value={hrEmpSearch} onChange={(e) => setHrEmpSearch(e.target.value)} placeholder="Search by name or email…" />
                       </div>
 
@@ -10997,6 +11002,7 @@ export default function AppShell() {
               <div className="module-area">
                 <div className="module-header">
                   <h2 className="module-title">Recruitment</h2>
+                  <button className="btn-ghost" onClick={() => exportCsv('/api/v1/recruitment/applicants/export')}>Export CSV</button>
                 </div>
 
                 {/* Stats */}
@@ -11776,6 +11782,7 @@ export default function AppShell() {
         <div className="module-area">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>WhatsApp Marketing</h2>
+            <button className="btn-ghost" onClick={() => exportCsv('/api/v1/whatsapp/contacts/export')}>Export CSV</button>
           </div>
           {waStats && (
             <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
@@ -11964,6 +11971,7 @@ export default function AppShell() {
         <div className="module-area">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Affiliate System</h2>
+            {affTab==='affiliates' && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/affiliates/export')}>Export CSV</button>}
             {affTab==='affiliates' && <button className="btn-primary" onClick={() => setAffOpen(true)}>+ Add Affiliate</button>}
             {affTab==='conversions' && <button className="btn-primary" onClick={() => setAffConvOpen(true)}>+ Log Conversion</button>}
           </div>
@@ -12089,6 +12097,7 @@ export default function AppShell() {
         <div className="module-area">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Referral Program</h2>
+            {refTab==='referrals' && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/referrals/referrals/export')}>Export CSV</button>}
             {refTab==='programs' && <button className="btn-primary" onClick={() => setRefPgmOpen(true)}>+ New Program</button>}
             {refTab==='referrals' && <button className="btn-primary" onClick={() => setRefOpen(true)}>+ Log Referral</button>}
           </div>
@@ -12757,7 +12766,12 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title="Task Management"
             description="A kanban board for your team's work — plan, assign, and track tasks through to done. Part of Business."
-            primaryAction={<Button onClick={() => { setEditingTask(null); setTmDraft({ title:'', description:'', status:'todo', priority:'medium', dueDate:'', assignee:'', label:'' }); setTmForm(true); }}>+ New Task</Button>}
+            primaryAction={
+              <div style={{ display:'flex', gap:'0.5rem' }}>
+                <Button variant="secondary" onClick={() => exportCsv('/api/v1/tasks/export')}>Export CSV</Button>
+                <Button onClick={() => { setEditingTask(null); setTmDraft({ title:'', description:'', status:'todo', priority:'medium', dueDate:'', assignee:'', label:'' }); setTmForm(true); }}>+ New Task</Button>
+              </div>
+            }
             stats={tmStats ? [
               { label: 'Total', value: tmStats.total },
               { label: 'In Progress', value: tmStats.in_progress },
@@ -13127,7 +13141,12 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title="Help Desk"
             description="Customer support tickets, replies, and internal notes in one queue. Part of Business."
-            primaryAction={<Button onClick={() => setHdForm(true)}>+ New Ticket</Button>}
+            primaryAction={
+              <div style={{ display:'flex', gap:'0.5rem' }}>
+                <Button variant="secondary" onClick={() => exportCsv('/api/v1/helpdesk/export')}>Export CSV</Button>
+                <Button onClick={() => setHdForm(true)}>+ New Ticket</Button>
+              </div>
+            }
             stats={hdStats ? [
               { label: 'Total Tickets', value: hdStats.total },
               { label: 'Open', value: hdStats.open },
@@ -13224,6 +13243,7 @@ export default function AppShell() {
               {smsTab === 'contacts' && (
                 <>
                   <Button variant="secondary" onClick={() => { setSmsImportOpen(true); setSmsImportText(''); setSmsImportResult(null); }}>⬆ Import CSV</Button>
+                  <Button variant="secondary" onClick={() => exportCsv('/api/v1/sms/contacts/export')}>Export CSV</Button>
                   <Button onClick={() => { setSmsContactDraft({ name:'', phone:'', tags:'' }); setSmsContactForm(true); }}>+ Add Contact</Button>
                 </>
               )}
@@ -13423,7 +13443,12 @@ export default function AppShell() {
             back={{ label: 'Workspace', onClick: goHome }}
             title="Calendar"
             description="Events and schedules for your whole team in one shared calendar. Part of Productivity."
-            primaryAction={<Button onClick={() => { setCalEditingEvent(null); setCalDraft({ title:'', description:'', startAt:'', endAt:'', allDay:false, color:'#2563eb', location:'', url:'' }); setCalEventForm(true); }}>+ New Event</Button>}
+            primaryAction={
+              <div style={{ display:'flex', gap:'0.5rem' }}>
+                <Button variant="secondary" onClick={() => exportCsv('/api/v1/calendar/export')}>Export CSV</Button>
+                <Button onClick={() => { setCalEditingEvent(null); setCalDraft({ title:'', description:'', startAt:'', endAt:'', allDay:false, color:'#2563eb', location:'', url:'' }); setCalEventForm(true); }}>+ New Event</Button>
+              </div>
+            }
             stats={calLoaded ? [
               { label: 'Events This Month', value: calEvents.length },
               { label: 'Upcoming', value: upcomingCount },
@@ -13547,6 +13572,7 @@ export default function AppShell() {
             <h2>Time Tracking</h2>
             <div style={{ display:'flex', gap:'0.5rem' }}>
               {ttTab==='projects' && <button className="btn-primary" onClick={() => setTtProjForm(true)}>+ New Project</button>}
+              {ttTab==='entries'  && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/time-tracking/entries/export')}>Export CSV</button>}
               {ttTab==='entries'  && <button className="btn-ghost" onClick={() => setTtManualForm(true)}>+ Manual Entry</button>}
             </div>
           </div>
@@ -13712,7 +13738,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Notes</h2>
-            <button className="btn-primary" onClick={() => { setEditingNote(null); setNoteDraft({ title:'', content:'', color:'#ffffff', pinned:false, tags:'' }); setNoteForm(true); }}>+ New Note</button>
+            <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/notes/export')}>Export CSV</button>
+              <button className="btn-primary" onClick={() => { setEditingNote(null); setNoteDraft({ title:'', content:'', color:'#ffffff', pinned:false, tags:'' }); setNoteForm(true); }}>+ New Note</button>
+            </div>
           </div>
           <div style={{ display:'flex', gap:'0.5rem', marginBottom:'0.75rem' }}>
             <input className="form-input" placeholder="Search notes…" value={notesSearch} onChange={(e) => setNotesSearch(e.target.value)} style={{ flex:1, maxWidth:300 }} />
@@ -13774,6 +13803,7 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => kbViewingArticle ? (setKbViewingArticle(null), setKbArticleDetail(null)) : setView('home')}>← {kbViewingArticle ? 'Back to Articles' : 'Back'}</button>
             <h2>{kbViewingArticle ? kbArticleDetail?.title || 'Article' : 'Knowledge Base'}</h2>
+            {!kbViewingArticle && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/kb/articles/export')}>Export CSV</button>}
             {!kbViewingArticle && <button className="btn-primary" onClick={() => { setEditingKbArticle(null); setKbDraft({ title:'', content:'', categoryId:'', status:'published' }); setKbForm(true); }}>+ New Article</button>}
           </div>
           {!kbViewingArticle && kbStats && (
@@ -13900,7 +13930,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Coupons</h2>
-            <button className="btn-primary" onClick={() => { setEditingCoupon(null); setCouponDraft({ code:'', description:'', type:'percent', value:'', minOrder:'', maxUses:'', expiresAt:'' }); setCouponForm(true); }}>+ New Coupon</button>
+            <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/coupons/export')}>Export CSV</button>
+              <button className="btn-primary" onClick={() => { setEditingCoupon(null); setCouponDraft({ code:'', description:'', type:'percent', value:'', minOrder:'', maxUses:'', expiresAt:'' }); setCouponForm(true); }}>+ New Coupon</button>
+            </div>
           </div>
           {couponStats && (
             <div className="stats-row">
@@ -13994,7 +14027,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>URL Shortener</h2>
-            <Button onClick={() => { setUrlDraft({ targetUrl:'', title:'', customSlug:'', expiresAt:'' }); setUrlForm(true); }}>+ Shorten URL</Button>
+            <div style={{ display:'flex', gap:'0.5rem' }}>
+              <Button variant="secondary" onClick={() => exportCsv('/api/v1/url-shortener/export')}>Export CSV</Button>
+              <Button onClick={() => { setUrlDraft({ targetUrl:'', title:'', customSlug:'', expiresAt:'' }); setUrlForm(true); }}>+ Shorten URL</Button>
+            </div>
           </div>
           {urlStats && (
             <div className="stat-grid" style={{ marginBottom: '1rem' }}>
@@ -14067,7 +14103,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Asset Management</h2>
-            <button className="btn-primary" onClick={() => { setEditingAsset(null); setAssetDraft({ name:'', assetTag:'', category:'', description:'', serialNumber:'', purchaseDate:'', purchaseCost:'', currentValue:'', status:'available', assignedTo:'', location:'' }); setAssetForm(true); }}>+ Add Asset</button>
+            <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/assets/export')}>Export CSV</button>
+              <button className="btn-primary" onClick={() => { setEditingAsset(null); setAssetDraft({ name:'', assetTag:'', category:'', description:'', serialNumber:'', purchaseDate:'', purchaseCost:'', currentValue:'', status:'available', assignedTo:'', location:'' }); setAssetForm(true); }}>+ Add Asset</button>
+            </div>
           </div>
           {assetStats && (
             <div className="stats-row">
@@ -14154,7 +14193,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => viewingOrder ? setViewingOrder(null) : setView('home')}>← {viewingOrder ? 'Back to Orders' : 'Back'}</button>
             <h2>{viewingOrder ? viewingOrder.order_number : 'Order Management'}</h2>
-            {!viewingOrder && <button className="btn-primary" onClick={() => { setOrderDraft({ customerName:'', customerEmail:'', customerPhone:'', customerAddress:'', items:[{ name:'', qty:1, price:0 }], discount:'0', taxAmount:'0', shipping:'0', paymentMethod:'', notes:'' }); setOrderForm(true); }}>+ New Order</button>}
+            {!viewingOrder && <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/orders/export')}>Export CSV</button>
+              <button className="btn-primary" onClick={() => { setOrderDraft({ customerName:'', customerEmail:'', customerPhone:'', customerAddress:'', items:[{ name:'', qty:1, price:0 }], discount:'0', taxAmount:'0', shipping:'0', paymentMethod:'', notes:'' }); setOrderForm(true); }}>+ New Order</button>
+            </div>}
           </div>
           {!viewingOrder && orderStats && (
             <div className="stats-row">
@@ -14304,6 +14346,7 @@ export default function AppShell() {
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Document Management</h2>
             <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/documents/export')}>Export CSV</button>
               <button className="btn-ghost" onClick={() => setDocFolderForm(true)}>+ Folder</button>
               <button className="btn-primary" onClick={() => { setDocDraft({ name:'', fileType:'', fileSize:'', description:'', tags:'', url:'' }); setDocForm(true); }}>+ Add Document</button>
             </div>
@@ -14417,6 +14460,7 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => payViewRun ? setPayViewRun(null) : setView('home')}>← {payViewRun ? 'Back to Runs' : 'Back'}</button>
             <h2>{payViewRun ? payViewRun.name : 'Payroll'}</h2>
+            {!payViewRun && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/payroll/export')}>Export CSV</button>}
             {!payViewRun && <button className="btn-primary" onClick={() => setPayRunForm(true)}>+ New Run</button>}
             {payViewRun && <button className="btn-ghost" onClick={() => setPayItemForm(true)}>+ Add Employee</button>}
           </div>
@@ -14554,6 +14598,7 @@ export default function AppShell() {
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Subscriptions</h2>
             <div style={{ display:'flex', gap:'0.5rem' }}>
+              {subTab==='subscribers' && <button className="btn-ghost" onClick={() => exportCsv('/api/v1/customer-subs/export')}>Export CSV</button>}
               {subTab==='plans'       && <button className="btn-primary" onClick={() => { setEditingSubPlan(null); setSubPlanDraft({ name:'', description:'', price:'', billingCycle:'monthly', trialDays:'0', features:'' }); setSubPlanForm(true); }}>+ New Plan</button>}
               {subTab==='subscribers' && <button className="btn-primary" onClick={() => { setSubDraft({ planId:'', customerName:'', customerEmail:'', customerPhone:'', amount:'', currentPeriodEnd:'', notes:'' }); setSubForm(true); }}>+ New Subscriber</button>}
             </div>
@@ -14690,7 +14735,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => setView('home')}>← Back</button>
             <h2>Delivery Tracking</h2>
-            <button className="btn-primary" onClick={() => { setDelDraft({ customerName:'', customerPhone:'', deliveryAddress:'', courierName:'', trackingCode:'', priority:'normal', estimatedDate:'', notes:'', orderRef:'' }); setDelForm(true); }}>+ New Delivery</button>
+            <div style={{ display:'flex', gap:'0.5rem' }}>
+              <button className="btn-ghost" onClick={() => exportCsv('/api/v1/delivery/export')}>Export CSV</button>
+              <button className="btn-primary" onClick={() => { setDelDraft({ customerName:'', customerPhone:'', deliveryAddress:'', courierName:'', trackingCode:'', priority:'normal', estimatedDate:'', notes:'', orderRef:'' }); setDelForm(true); }}>+ New Delivery</button>
+            </div>
           </div>
           {delStats && (
             <div className="stats-row">

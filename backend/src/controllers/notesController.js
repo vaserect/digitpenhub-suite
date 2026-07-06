@@ -1,4 +1,5 @@
 const db = require('../db');
+const { sendCsv, autoColumns } = require('../utils/csv');
 
 async function listNotes(req, res) {
   const { search, tag } = req.query;
@@ -44,4 +45,9 @@ async function deleteNote(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { listNotes, createNote, updateNote, deleteNote };
+async function exportNotes(req, res) {
+  const { rows } = await db.query(`SELECT * FROM notes WHERE org_id=$1 ORDER BY pinned DESC, updated_at DESC`, [req.user.orgId]);
+  sendCsv(res, 'notes.csv', rows, autoColumns(rows));
+}
+
+module.exports = { listNotes, exportNotes, createNote, updateNote, deleteNote };

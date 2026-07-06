@@ -3,7 +3,7 @@ const { requireAuth } = require('../middleware/auth');
 const {
   getStats,
   listJobs, createJob, updateJob, deleteJob,
-  listApplicants, createApplicant, updateApplicant, deleteApplicant,
+  listApplicants, exportApplicants, createApplicant, updateApplicant, deleteApplicant,
 } = require('../controllers/recruitmentController');
 
 const router = Router();
@@ -17,6 +17,7 @@ router.put('/jobs/:id', updateJob);
 router.delete('/jobs/:id', deleteJob);
 
 router.get('/applicants', listApplicants);
+router.get('/applicants/export', exportApplicants);
 router.post('/applicants', createApplicant);
 router.put('/applicants/:id', updateApplicant);
 router.delete('/applicants/:id', deleteApplicant);

@@ -38,4 +38,16 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many uploads. Please wait a few minutes and try again.' },
 });
 
-module.exports = { aiGenerationLimiter, bulkSendLimiter, uploadLimiter };
+// Anonymous public-facing endpoints (storefront checkout/cart, appointment
+// booking, etc.) accept unauthenticated input — keyed by IP since there's no
+// org session yet, guarding against scripted checkout/booking spam and stock-
+// zeroing abuse.
+const publicSubmitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+
+module.exports = { aiGenerationLimiter, bulkSendLimiter, uploadLimiter, publicSubmitLimiter };

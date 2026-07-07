@@ -72,11 +72,13 @@ async function deleteTicket(req, res) {
 async function addReply(req, res) {
   const { author, body, isInternal } = req.body || {};
   if (!body?.trim()) return res.status(400).json({ error: 'body required' });
+  const ticketRes = await db.query(`SELECT id FROM helpdesk_tickets WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
+  if (!ticketRes.rows.length) return res.status(404).json({ error: 'Not found.' });
   const { rows } = await db.query(
     `INSERT INTO helpdesk_replies (org_id,ticket_id,author,body,is_internal) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
     [req.user.orgId, req.params.id, author||'Support', body.trim(), !!isInternal]
   );
-  await db.query(`UPDATE helpdesk_tickets SET updated_at=NOW() WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE helpdesk_tickets SET updated_at=NOW() WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.status(201).json({ reply: rows[0] });
 }
 

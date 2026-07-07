@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
+const { publicSubmitLimiter } = require('../middleware/rateLimiters');
 const { sendMail } = require('../utils/mailer');
 const db = require('../db');
 const r = Router();
@@ -40,7 +41,7 @@ r.get('/public/:orgId', async (req, res) => {
   res.json({ settings: settingsRows[0], products: withVariants });
 });
 
-r.post('/public/:orgId/checkout', async (req, res) => {
+r.post('/public/:orgId/checkout', publicSubmitLimiter, async (req, res) => {
   const { orgId } = req.params;
   const { items, couponCode, customerName, customerEmail, customerPhone, customerAddress, paymentMethod } = req.body || {};
 
@@ -199,7 +200,7 @@ r.post('/public/:orgId/checkout', async (req, res) => {
 
 // Public — no auth. Called from the storefront when a shopper has entered an
 // email and cart items but hasn't completed checkout yet, so we can follow up.
-r.post('/public/:orgId/cart-abandon', async (req, res) => {
+r.post('/public/:orgId/cart-abandon', publicSubmitLimiter, async (req, res) => {
   const { orgId } = req.params;
   const { customerEmail, customerName, items, subtotal } = req.body || {};
   if (!customerEmail?.trim() || !Array.isArray(items) || !items.length) {

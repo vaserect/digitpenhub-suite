@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
+const { publicSubmitLimiter } = require('../middleware/rateLimiters');
 const {
   listServices, createService, updateService, deleteService,
   getAvailability, saveAvailability,
@@ -12,7 +13,7 @@ const router = Router();
 
 // Public — no auth
 router.get('/public/:orgId', getPublicBookingInfo);
-router.post('/public/:orgId', createPublicBooking);
+router.post('/public/:orgId', publicSubmitLimiter, createPublicBooking);
 
 // Protected
 router.use(requireAuth);

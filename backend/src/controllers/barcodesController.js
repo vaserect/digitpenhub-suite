@@ -41,7 +41,7 @@ async function deleteBarcode(req, res) {
 }
 
 async function trackScan(req, res) {
-  await db.query(`UPDATE barcodes SET scans=scans+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE barcodes SET scans=scans+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 

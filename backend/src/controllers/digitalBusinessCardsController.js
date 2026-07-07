@@ -44,7 +44,7 @@ async function deleteCard(req, res) {
 }
 
 async function incrementView(req, res) {
-  await db.query(`UPDATE digital_business_cards SET views=views+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE digital_business_cards SET views=views+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 

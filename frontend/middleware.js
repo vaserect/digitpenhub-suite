@@ -17,10 +17,11 @@ export function middleware(request) {
   const isPublicBooking = pathname.startsWith('/book/');
   const isPublicInvite = pathname.startsWith('/invite/');
   const isPublicPortal = pathname.startsWith('/portal/');
+  const isPublicStore = pathname.startsWith('/store/');
   const isPublicSeoFile = pathname === '/robots.txt' || pathname === '/sitemap.xml';
   const hasSessionCookie = request.cookies.has('dph_session');
 
-  if (!hasSessionCookie && !isAuthPage && !isPublicMarketing && !isPublicInvoicePage && !isPublicLeadForm && !isPublicForm && !isPublicPage && !isPublicBooking && !isPublicInvite && !isPublicPortal && !isPublicSeoFile) {
+  if (!hasSessionCookie && !isAuthPage && !isPublicMarketing && !isPublicInvoicePage && !isPublicLeadForm && !isPublicForm && !isPublicPage && !isPublicBooking && !isPublicInvite && !isPublicPortal && !isPublicStore && !isPublicSeoFile) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

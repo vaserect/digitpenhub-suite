@@ -60,12 +60,12 @@ async function deletePopup(req, res) {
 }
 
 async function trackImpression(req, res) {
-  await db.query(`UPDATE popups SET impressions=impressions+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE popups SET impressions=impressions+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 
 async function trackConversion(req, res) {
-  await db.query(`UPDATE popups SET conversions=conversions+1 WHERE id=$1`, [req.params.id]);
+  await db.query(`UPDATE popups SET conversions=conversions+1 WHERE id=$1 AND org_id=$2`, [req.params.id, req.user.orgId]);
   res.json({ ok: true });
 }
 

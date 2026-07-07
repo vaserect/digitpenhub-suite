@@ -6,6 +6,98 @@ go deeper or cover new ground instead.
 
 ---
 
+## Pass 10 — 2026-07-07
+
+### Bridging note: 5 days of real work happened between Pass 9 and this pass without landing in this log
+Pass 9 (2026-07-02) was the last entry here, but `git log` shows 18 more commits
+between then and today (bulk-select rollout, Forms/Website Builder drag-and-drop,
+Creative tools export + the new Fabric.js "Pro Canvas" engine across all three
+Creative tools, Education attendance/grade-book, Online Store variants/checkout,
+CBT randomization, SEO/SEM discoverability, and more) — all real, deployed, and
+tracked instead in `.claude`'s session memory and `pending_audit_fixes.md` under a
+separate "master prompt" workflow the user also runs. Read that memory file's
+"Not yet fixed" section too when starting a future pass — this log alone is no
+longer a complete picture of recent history.
+
+### Full audit + bug sweep (this pass's actual task)
+Ran a real audit rather than trusting either log: checked PM2 health (both
+processes online, 0 unstable restarts — the high restart counts are deliberate
+deploy-restarts, not crash loops), tailed both error logs (quiet since Jul 2-3,
+no live crash pattern), then live-curled the production site and dispatched two
+parallel background agents to read the actual route/controller files and the
+22k-line `AppShell.jsx` rather than re-describing what prior passes already
+claimed. Found and fixed, in order of severity:
+
+1. **Critical — the entire Online Store Builder storefront was unreachable to
+   real customers.** `frontend/middleware.js`'s public-path allowlist (used to
+   decide whether an unauthenticated visitor gets bounced to `/login`) never
+   got a `/store/` entry when the public storefront (Pass-era work between Pass
+   9 and today, see bridging note) shipped — every anonymous visitor to
+   `/store/[orgId]` was silently redirected to `/login` instead of seeing the
+   shop. Confirmed live via `curl` before and after. One-line fix
+   (`isPublicStore = pathname.startsWith('/store/')`), rebuilt, restarted,
+   reverified: `/store/[orgId]` now returns 200 with no cookie, and every other
+   public path (`/forms/`, `/p/`, `/book/`, `/portal/`, `/invite/`) plus the
+   protected app root were regression-checked and still behave correctly.
+
+2. **High — cross-tenant IDOR on Help Desk replies.** `helpdeskController.js`'s
+   `addReply` (actively wired to the UI, unlike the items below) inserted a
+   reply and bumped `updated_at` using only `req.params.id` with no check that
+   the ticket belongs to the caller's org — unlike `getTicket`/`updateTicket`/
+   `deleteTicket` in the same file, which already scope correctly. Any
+   authenticated user from any org could POST a reply onto another org's
+   ticket ID. Fixed by verifying ticket ownership before inserting.
+
+3. **Medium — no rate limiting on 3 public, unauthenticated write endpoints**:
+   storefront checkout, storefront cart-abandon capture, and public appointment
+   booking. All three accept anonymous input and previously had zero abuse
+   protection (checkout decrements real stock; a scripted loop could zero out
+   inventory or flood the orders table). Added a shared `publicSubmitLimiter`
+   (15 min / 30 requests, IP-keyed since there's no session) to
+   `middleware/rateLimiters.js`, following the exact pattern `leads.js`'s
+   `submitLimiter` already established, and wired it into all three routes.
+
+4. **Low — org-scoping consistency on 3 tracking counters.** `barcodesController
+   .trackScan`, `digitalBusinessCardsController.incrementView`, and
+   `popupBuilderController.trackImpression/trackConversion` updated their
+   counter rows by `id` alone, unlike the sibling `qrCodesController.trackScan`
+   which correctly adds `AND org_id=$2`. Brought all three in line for
+   defense-in-depth (low urgency: see the finding below, none of the five are
+   currently wired to any real caller yet).
+
+5. **Low — stray native `alert()` on the public appointment-booking page.**
+   `frontend/app/book/[orgId]/page.jsx` was the one page never touched by any
+   of the 13 prior passes' native-dialog cleanup (that work only ever touched
+   `AppShell.jsx`). Replaced both `alert()` calls with a `bookingError` state +
+   inline error banner, matching the identical pattern already used in
+   `store/[orgId]/StoreClient.jsx`'s checkout flow.
+
+### Found, not fixed — a real gap, bigger than a bug fix
+QR Codes, Barcodes, Digital Business Cards, Popup Builder, and Quiz Builder each
+have a `scan`/`view`/`impression`/`conversion`/`respond` tracking endpoint in
+their controllers, but **none of the five is ever called from the frontend, and
+none of the five modules has any actual public-facing surface for an end
+visitor to hit in the first place** — no redirect/resolver page for a scanned
+QR code or barcode, no public share page for a business card, no embed script +
+public config endpoint for a popup, no public quiz-taking page (Forms got a
+real public link + iframe embed in an earlier pass; these five never did).
+Their `getStats` counts will read zero forever until that's built. This is a
+genuine multi-module feature gap, not a quick fix — each needs its own public
+delivery surface designed and built (closest precedent: Forms' embed-code
+panel, or Store Builder's `/public/:orgId` pattern). Flagging for a dedicated
+future pass rather than rushing five half-built surfaces into this one.
+
+### Verification
+Both `digitpenhub-suite-api` and `digitpenhub-suite-web` rebuilt and restarted
+after the last change (not between each one), then re-verified live: `/api/v1/
+health` 200, storefront 200 with no cookie, all other public paths unchanged,
+billing webhook still correctly rejects an unsigned request (401), the new rate
+limiter's headers present on a real request, and helpdesk replies still 401
+without a session (auth itself untouched by this pass — no login/session
+changes were made, so the full auth smoke-test protocol wasn't re-run).
+
+---
+
 ### Current state (as of end of Pass 7)
 **A real, live production bug was reported and fixed**: a genuine user
 (confirmed in Pass 6, `digitpen3@gmail.com`) signed up, then on a later visit

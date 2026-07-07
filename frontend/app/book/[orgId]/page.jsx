@@ -59,6 +59,7 @@ export default function BookingPage() {
   const [form, setForm] = useState({ clientName: '', clientEmail: '', clientPhone: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [booked, setBooked] = useState(null);
+  const [bookingError, setBookingError] = useState('');
 
   // Calendar state
   const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -90,6 +91,7 @@ export default function BookingPage() {
     e.preventDefault();
     if (!form.clientName.trim()) return;
     setSubmitting(true);
+    setBookingError('');
     try {
       const res = await fetch(`/api/v1/appointments/public/${orgId}`, {
         method: 'POST',
@@ -104,9 +106,9 @@ export default function BookingPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Booking failed.'); setSubmitting(false); return; }
+      if (!res.ok) { setBookingError(data.error || 'Booking failed.'); setSubmitting(false); return; }
       setBooked(data.appointment);
-    } catch { alert('Network error. Please try again.'); }
+    } catch { setBookingError('Network error. Please try again.'); }
     setSubmitting(false);
   }
 
@@ -283,6 +285,7 @@ export default function BookingPage() {
               <input value={form.clientPhone} onChange={(e) => setForm((f) => ({ ...f, clientPhone: e.target.value }))} placeholder="Phone number" style={inputStyle} />
               <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Notes (optional)" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
+            {bookingError && <div style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: 12 }}>{bookingError}</div>}
             <button type="submit" disabled={submitting} style={{ ...btnStyle, width: '100%', opacity: submitting ? 0.7 : 1 }}>
               {submitting ? 'Booking…' : 'Confirm Booking'}
             </button>

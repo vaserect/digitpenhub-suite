@@ -56,4 +56,27 @@ async function trackScan(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listQrCodes, createQrCode, updateQrCode, deleteQrCode, trackScan };
+// Public — no auth, no org_id filter. This is the real delivery surface a
+// scanned QR code lands on: looked up by id alone since an anonymous
+// visitor's phone camera has no session. Powers frontend/app/qr/[id]/page.jsx
+// and, for "url"-type codes, is also embedded directly as the encoded data of
+// the printed/downloaded QR image itself (see qrImageContent in
+// AppShell.jsx), so a plain camera scan gets counted with no app in the
+// middle. "url" codes get a real 302 here so that direct-embed case works
+// with no frontend page involved. Every other type (text/email/phone/sms/
+// wifi/vcard) stays literal in the printed QR image — wrapping those in a
+// redirect would break native camera-app behavior (auto-connect to wifi,
+// auto-dial, etc.) — so those are only trackable via the frontend page link.
+async function resolveQrCode(req, res) {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `UPDATE qr_codes SET scans = scans + 1 WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'QR code not found.' });
+  const qr = rows[0];
+  if (qr.type === 'url') return res.redirect(302, qr.content);
+  res.json({ type: qr.type, title: qr.title, content: qr.content });
+}
+
+module.exports = { getStats, listQrCodes, createQrCode, updateQrCode, deleteQrCode, trackScan, resolveQrCode };

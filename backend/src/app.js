@@ -186,7 +186,10 @@ app.use('/api/v1/brand-kit',       requireAuth, requireModuleAccess('brand-kit')
 app.use('/api/v1/saved-designs',   savedDesignsRoutes);
 app.use('/api/v1/password-manager',requireAuth, requireModuleAccess('password-manager'), passwordMgrRoutes);
 app.use('/api/v1/digital-products',requireAuth, requireModuleAccess('digital-products'), digitalProductsRoutes);
-app.use('/api/v1/qr-codes',        requireAuth, requireModuleAccess('qr-code-generator'), qrCodesRoutes);
+// Auth/module-access gating for qr-codes lives inside qrCodesRoutes itself
+// (after its public /r/:id resolver route), matching the store-builder
+// pattern below, so an anonymous scanner can reach the scan-tracking redirect.
+app.use('/api/v1/qr-codes',        qrCodesRoutes);
 app.use('/api/v1/custom-reports',   requireAuth, requireModuleAccess('custom-reports'), customReportsRoutes);
 // Batch 4
 app.use('/api/v1/sales-dashboard',    requireAuth, requireModuleAccess('sales-dashboard'), salesDashboardRoutes);

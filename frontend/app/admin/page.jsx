@@ -766,7 +766,7 @@ export default function AdminPanel() {
         {/* ── Content (editorial) ── */}
         {tab === 'content' && (
           <div>
-            {['homepage', 'footer'].map((section) => {
+            {['homepage', 'features', 'pricing', 'footer'].map((section) => {
               const rows = content.filter((c) => c.section === section);
               if (!rows.length) return null;
               return (

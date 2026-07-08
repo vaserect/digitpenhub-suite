@@ -7,7 +7,7 @@ const router = Router();
 // copy from here. Scoped to explicit public sections only, never the whole
 // site_content table, so this endpoint can't accidentally expose a section
 // meant for an internal/gated surface later.
-const PUBLIC_SECTIONS = ['homepage', 'footer'];
+const PUBLIC_SECTIONS = ['homepage', 'footer', 'features', 'pricing'];
 
 router.get('/public', async (req, res) => {
   const { rows } = await db.query(

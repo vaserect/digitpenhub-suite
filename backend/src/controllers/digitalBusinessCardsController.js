@@ -48,4 +48,23 @@ async function incrementView(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listCards, createCard, updateCard, deleteCard, incrementView };
+// Public — no auth. Powers the shareable card link at frontend/app/card/[id]/page.jsx —
+// a business card's whole point is being handed to an external contact (e.g. via a QR
+// code or a text/email link), so this has to work without a session. Only ever exposes
+// a card the owner has left active; a deactivated or deleted card 404s exactly like a
+// card that never existed. This is also the flow that finally makes the previously-dead
+// view counter mean something: a public visit here bumps `views` for real, once per
+// page load, instead of the counter only ever existing for an endpoint nothing called.
+async function getPublicCard(req, res) {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `SELECT * FROM digital_business_cards WHERE id=$1 AND status='active'`, [id]);
+  if (!rows.length) return res.status(404).json({ error: 'not_found' });
+  // Fire-and-forget so a slow write never delays the response the visitor is waiting on.
+  db.query(`UPDATE digital_business_cards SET views=views+1 WHERE id=$1`, [id]).catch((err) => {
+    console.error('biz-card public view increment failed', err);
+  });
+  res.json({ card: rows[0] });
+}
+
+module.exports = { getStats, listCards, createCard, updateCard, deleteCard, incrementView, getPublicCard };

@@ -1,5 +1,16 @@
 const db = require('../db');
 
+// pg does not auto-serialize JS objects/arrays for jsonb columns the way it
+// does for a single JSON value — an array param gets sent as a Postgres
+// array literal ({a,b,c}) instead of JSON text, which Postgres then rejects
+// as invalid jsonb. Always JSON.stringify before binding to a jsonb column.
+function toJsonb(value, fallback) {
+  if (value === undefined || value === null) {
+    return fallback === undefined ? null : JSON.stringify(fallback);
+  }
+  return JSON.stringify(value);
+}
+
 const FIELD_TYPES = ['text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'file', 'relation'];
 
 function validateDefinitionInput(body) {
@@ -86,7 +97,7 @@ async function createDefinition(req, res) {
                  sort_order, is_active, created_at, updated_at`,
       [
         req.user.orgId, recordType, key, label, fieldType, description || null,
-        !!required, defaultValue ?? null, validation || {}, options || [],
+        !!required, toJsonb(defaultValue), toJsonb(validation, {}), toJsonb(options, []),
         relationRecordType || null, Number.isFinite(sortOrder) ? sortOrder : 0,
       ]
     );
@@ -123,8 +134,11 @@ async function updateDefinition(req, res) {
                default_value, validation, options, relation_record_type,
                sort_order, is_active, created_at, updated_at`,
     [
-      label ?? null, description ?? null, required ?? null, defaultValue ?? null,
-      validation ?? null, options ?? null, relationRecordType ?? null,
+      label ?? null, description ?? null, required ?? null,
+      defaultValue !== undefined ? JSON.stringify(defaultValue) : null,
+      validation !== undefined ? JSON.stringify(validation) : null,
+      options !== undefined ? JSON.stringify(options) : null,
+      relationRecordType ?? null,
       Number.isFinite(sortOrder) ? sortOrder : null, isActive ?? null,
       id, req.user.orgId, recordType,
     ]

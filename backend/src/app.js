@@ -198,7 +198,11 @@ app.use('/api/v1/barcodes',           requireAuth, requireModuleAccess('barcode-
 app.use('/api/v1/color-palettes',     requireAuth, requireModuleAccess('color-palette-generator'), colorPalettesRoutes);
 // Batch 5
 app.use('/api/v1/quiz-builder',       requireAuth, requireModuleAccess('quiz-builder'), quizBuilderRoutes);
-app.use('/api/v1/popup-builder',      requireAuth, requireModuleAccess('popup-builder'), popupBuilderRoutes);
+// Auth/module-access gating for popup-builder lives inside popupBuilderRoutes
+// itself (after its public embed/tracking routes), matching the
+// store-builder pattern, so the embed script + trackImpression/trackConversion
+// stay reachable from third-party sites without auth.
+app.use('/api/v1/popup-builder',      popupBuilderRoutes);
 app.use('/api/v1/ai-documents', requireAuth, requireAiDocuments, aiDocumentsRoutes);
 app.use('/api/v1/chatbot-builder',    requireAuth, requireModuleAccess('ai-chatbot-builder'), chatbotBuilderRoutes);
 app.use('/api/v1/meeting-notes',      requireAuth, requireModuleAccess('ai-meeting-notes'), meetingNotesRoutes);

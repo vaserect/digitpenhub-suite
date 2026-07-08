@@ -9,3 +9,4 @@ frontend/node_modules/
 backend/backups/
 frontend/backups/
 backend/uploads/
+.claude/worktrees/

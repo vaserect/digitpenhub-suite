@@ -1,6 +1,20 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import MarketingNav from '../../components/marketing/MarketingNav';
 import MarketingFooter from '../../components/marketing/MarketingFooter';
+
+// Falls back to this copy if the CMS fetch fails or a key was never set —
+// so a network hiccup (or a not-yet-applied migration) degrades to "the
+// previous good copy," never a blank or broken-looking hero. These strings
+// match what's seeded as the CMS defaults in
+// backend/db/081_features_pricing_content.sql.
+const DEFAULTS = {
+  'features.hero.eyebrow': 'Features',
+  'features.hero.title': 'Everything a growing business needs, under one roof.',
+  'features.hero.subtitle': "97 modules, grouped by what you're actually trying to do — market, sell, manage, and analyze — not by which team built them.",
+};
 
 const GROUPS = [
   {
@@ -34,15 +48,24 @@ const GROUPS = [
 ];
 
 export default function FeaturesPage() {
+  const [content, setContent] = useState(DEFAULTS);
+
+  useEffect(() => {
+    fetch('/api/v1/content/public')
+      .then((r) => r.json())
+      .then((d) => { if (d.content) setContent((prev) => ({ ...prev, ...d.content })); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="mkt-page">
       <MarketingNav />
 
       <section className="mkt-hero mkt-hero-sm">
         <div className="mkt-hero-inner">
-          <span className="mkt-eyebrow">Features</span>
-          <h1>Everything a growing business needs, under one roof.</h1>
-          <p className="mkt-hero-sub">97 modules, grouped by what you're actually trying to do — market, sell, manage, and analyze — not by which team built them.</p>
+          <span className="mkt-eyebrow">{content['features.hero.eyebrow']}</span>
+          <h1>{content['features.hero.title']}</h1>
+          <p className="mkt-hero-sub">{content['features.hero.subtitle']}</p>
         </div>
       </section>
 

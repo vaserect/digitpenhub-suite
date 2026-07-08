@@ -10,9 +10,21 @@ function formatNaira(amount) {
   return `₦${Number(amount).toLocaleString('en-NG')}`;
 }
 
+// Falls back to this copy if the CMS fetch fails or a key was never set —
+// so a network hiccup (or a not-yet-applied migration) degrades to "the
+// previous good copy," never a blank or broken-looking hero. These strings
+// match what's seeded as the CMS defaults in
+// backend/db/081_features_pricing_content.sql.
+const DEFAULTS = {
+  'pricing.hero.eyebrow': 'Pricing',
+  'pricing.hero.title': "Start on CRM and invoicing for free. Unlock the rest when you're ready.",
+  'pricing.hero.subtitle': "Free gets you a real CRM and invoicing, no card required. Starter and up unlock all 97 modules — the difference between plans is seats and usage limits, not which tools you're allowed to touch.",
+};
+
 export default function PricingPage() {
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState(false);
+  const [content, setContent] = useState(DEFAULTS);
 
   useEffect(() => {
     fetch('/api/v1/billing/plans')
@@ -21,15 +33,22 @@ export default function PricingPage() {
       .catch(() => setError(true));
   }, []);
 
+  useEffect(() => {
+    fetch('/api/v1/content/public')
+      .then((r) => r.json())
+      .then((d) => { if (d.content) setContent((prev) => ({ ...prev, ...d.content })); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="mkt-page">
       <MarketingNav />
 
       <section className="mkt-hero mkt-hero-sm">
         <div className="mkt-hero-inner">
-          <span className="mkt-eyebrow">Pricing</span>
-          <h1>Start on CRM and invoicing for free. Unlock the rest when you're ready.</h1>
-          <p className="mkt-hero-sub">Free gets you a real CRM and invoicing, no card required. Starter and up unlock all 97 modules — the difference between plans is seats and usage limits, not which tools you're allowed to touch.</p>
+          <span className="mkt-eyebrow">{content['pricing.hero.eyebrow']}</span>
+          <h1>{content['pricing.hero.title']}</h1>
+          <p className="mkt-hero-sub">{content['pricing.hero.subtitle']}</p>
         </div>
       </section>
 

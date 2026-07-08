@@ -409,6 +409,7 @@ async function listAuditLog(req, res) {
 }
 
 module.exports = {
+  logAdminAction,
   getMe, getStats,
   listOrgs, getOrg, suspendOrg, overrideSubscription,
   listUsers, updateUser, deleteUser,

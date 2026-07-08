@@ -1,6 +1,5 @@
 const db = require('../db');
 const { getOrgPlan } = require('../utils/planAccess');
-const cloudflare = require('../utils/cloudflare');
 
 // White-label is a Business-plan feature — agencies reselling the whole
 // platform under their own brand is exactly the "highest tier" use case,
@@ -30,24 +29,7 @@ async function getStatus(req, res) {
     getOrgPlan(req.user.orgId),
     db.query(`SELECT * FROM org_branding WHERE org_id = $1`, [req.user.orgId]),
   ]);
-  let branding = brandingRes.rows[0] || null;
-
-  // If a domain is registered with Cloudflare and not yet verified, check
-  // its real current status on every load instead of leaving it stuck on
-  // "pending" until some separate manual re-check happens.
-  if (branding?.custom_hostname_id && !branding.custom_domain_verified && cloudflare.isConfigured()) {
-    const live = await cloudflare.getCustomHostnameStatus(branding.custom_hostname_id);
-    if (live.ok) {
-      const nowVerified = live.status === 'active';
-      const { rows } = await db.query(
-        `UPDATE org_branding SET custom_hostname_status = $2, custom_domain_verified = $3, updated_at = now()
-         WHERE org_id = $1 RETURNING *`,
-        [req.user.orgId, live.status, nowVerified]
-      );
-      branding = rows[0];
-    }
-  }
-
+  const branding = brandingRes.rows[0] || null;
   res.json({
     eligible: plan.slug === ELIGIBLE_PLAN_SLUG,
     planSlug: plan.slug,
@@ -56,7 +38,7 @@ async function getStatus(req, res) {
     // Real blocker, surfaced honestly rather than pretending domain
     // verification works — matches how Step 1f was built (UI/UX complete,
     // live DNS calls gated behind the credential).
-    domainAutomationAvailable: cloudflare.isConfigured(),
+    domainAutomationAvailable: !!process.env.CLOUDFLARE_API_TOKEN,
   });
 }
 
@@ -92,43 +74,24 @@ async function connectDomain(req, res) {
   }
   const { domain } = req.body || {};
   if (!domain?.trim()) return res.status(400).json({ error: 'domain is required.' });
-  const hostname = domain.trim().toLowerCase();
 
-  if (!cloudflare.isConfigured()) {
-    const { rows } = await db.query(
-      `INSERT INTO org_branding (org_id, custom_domain, custom_domain_verified, custom_hostname_status, updated_at)
-       VALUES ($1,$2,false,'error',now())
-       ON CONFLICT (org_id) DO UPDATE SET custom_domain = $2, custom_domain_verified = false, custom_hostname_status = 'error', updated_at = now()
-       RETURNING *`,
-      [req.user.orgId, hostname]
-    );
-    return res.json({
-      branding: rows[0],
-      cloudflareConfigured: false,
-      note: 'Domain automation is not configured on this server yet.',
-    });
-  }
-
-  const created = await cloudflare.createCustomHostname(hostname);
-  if (!created.ok) {
-    return res.status(502).json({ error: `Could not connect domain: ${created.error}` });
-  }
+  // The actual DNS/SSL automation needs a Cloudflare API token — the flow
+  // stays fully navigable and honest about being unverified either way,
+  // rather than faking a "verified" state with no real DNS check behind it.
+  const cloudflareConfigured = !!process.env.CLOUDFLARE_API_TOKEN;
 
   const { rows } = await db.query(
-    `INSERT INTO org_branding (org_id, custom_domain, custom_domain_verified, custom_hostname_id, custom_hostname_status, updated_at)
-     VALUES ($1,$2,false,$3,$4,now())
-     ON CONFLICT (org_id) DO UPDATE SET
-       custom_domain = $2, custom_domain_verified = false,
-       custom_hostname_id = $3, custom_hostname_status = $4, updated_at = now()
+    `INSERT INTO org_branding (org_id, custom_domain, custom_domain_verified, updated_at)
+     VALUES ($1,$2,false,now())
+     ON CONFLICT (org_id) DO UPDATE SET custom_domain = $2, custom_domain_verified = false, updated_at = now()
      RETURNING *`,
-    [req.user.orgId, hostname, created.id, created.status]
+    [req.user.orgId, domain.trim()]
   );
-
   res.json({
     branding: rows[0],
-    dnsInstructions: { type: 'CNAME', name: hostname, value: process.env.CLOUDFLARE_FALLBACK_ORIGIN },
-    cloudflareConfigured: true,
-    note: 'Domain registered — add the CNAME record shown, then check back for verification status.',
+    dnsInstructions: { type: 'CNAME', name: domain.trim(), value: 'branded.digitpenhub.com' },
+    cloudflareConfigured,
+    note: cloudflareConfigured ? 'Verifying automatically…' : 'Automatic DNS verification needs a Cloudflare API token — see NEXT_STEPS_FOR_YOU.md. Add the CNAME record above and check back once it is added.',
   });
 }
 

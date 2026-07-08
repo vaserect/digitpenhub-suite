@@ -8321,14 +8321,14 @@ export default function AppShell() {
 
                   {/* ── Domain ── */}
                   <Card style={{ marginBottom: 18 }}>
-                    <h3 style={{ marginBottom: 10, fontSize: '0.95rem' }}>2. Connect a custom domain</h3>
+                    <h3 style={{ marginBottom: 10, fontSize: '0.95rem' }}>2. Connect a custom domain{wlStatus.branding?.custom_domain_verified && <span style={{ marginLeft: 10, fontSize: 11, padding: '2px 8px', borderRadius: 999, background: '#dcfce7', color: '#166534', fontWeight: 600 }}>Connected</span>}</h3>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <input className="field-input" placeholder="suite.yourbrand.com" value={wlDomainInput} onChange={(e) => setWlDomainInput(e.target.value)} style={{ flex: 1 }} />
-                      <Button onClick={handleConnectDomain} loading={wlDomainSaving} disabled={!wlDomainInput.trim()}>Connect</Button>
+                      <Button onClick={handleConnectDomain} loading={wlDomainSaving} disabled={!wlDomainInput.trim()}>{wlStatus.branding?.custom_domain_verified ? 'Update domain' : 'Connect'}</Button>
                     </div>
                     {wlStatus.branding?.custom_domain && (
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-                        Point a CNAME record for <strong>{wlStatus.branding.custom_domain}</strong> to <code>branded.digitpenhub.com</code>.
+                        Point a CNAME record for <strong>{wlStatus.branding.custom_domain}</strong> to <code>{wlStatus.dnsInstructions?.value || 'suite.digitpenhub.com'}</code>.
                         {!wlStatus.domainAutomationAvailable && (
                           <div style={{ marginTop: 6, color: 'var(--warning,#d97706)' }}>Automatic verification isn't connected yet — this domain will show as "Pending" until that's set up. See Next Steps.</div>
                         )}

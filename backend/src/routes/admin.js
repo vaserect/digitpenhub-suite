@@ -10,6 +10,10 @@ const {
   listAdmins, setAdminRole, findAdminCandidate,
   listAuditLog,
 } = require('../controllers/adminController');
+const {
+  listFlags, createFlag, toggleGlobal, deleteFlag,
+  listOrgOverrides, setOrgOverride, deleteOrgOverride,
+} = require('../controllers/featureFlagsController');
 
 const router = Router();
 
@@ -44,5 +48,13 @@ router.get('/admins/find', findAdminCandidate);
 router.patch('/admins/:id', setAdminRole);
 
 router.get('/audit-log', listAuditLog);
+
+router.get('/feature-flags', listFlags);
+router.post('/feature-flags', createFlag);
+router.patch('/feature-flags/:key', toggleGlobal);
+router.delete('/feature-flags/:key', deleteFlag);
+router.get('/feature-flags/:key/overrides', listOrgOverrides);
+router.post('/feature-flags/:key/overrides', setOrgOverride);
+router.delete('/feature-flags/:key/overrides/:orgId', deleteOrgOverride);
 
 module.exports = router;

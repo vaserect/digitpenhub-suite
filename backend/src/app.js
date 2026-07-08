@@ -194,7 +194,9 @@ app.use('/api/v1/perf-reports',       requireAuth, requireModuleAccess('performa
 app.use('/api/v1/biz-cards',          requireAuth, requireModuleAccess('digital-business-cards'), bizCardsRoutes);
 app.use('/api/v1/link-in-bio',        requireAuth, requireModuleAccess('link-in-bio'), linkInBioRoutes);
 app.use('/api/v1/certificates',       requireAuth, requireModuleAccess('certificate-generator'), certificatesRoutes);
-app.use('/api/v1/barcodes',           requireAuth, requireModuleAccess('barcode-generator'), barcodesRoutes);
+// Auth/module-access gating for barcodes lives inside barcodesRoutes so its
+// public /resolve/:id scan-tracking route can stay reachable without auth.
+app.use('/api/v1/barcodes',           barcodesRoutes);
 app.use('/api/v1/color-palettes',     requireAuth, requireModuleAccess('color-palette-generator'), colorPalettesRoutes);
 // Batch 5
 app.use('/api/v1/quiz-builder',       requireAuth, requireModuleAccess('quiz-builder'), quizBuilderRoutes);

@@ -4787,6 +4787,26 @@ export default function AppShell() {
       showToast('Barcode deleted.');
     } finally { setBcDeleting(false); setBcConfirmDelete(null); }
   }
+  // Public scan-tracking URL: hits the backend resolver (no auth) which
+  // increments the scan counter, then redirects if the encoded content is a
+  // URL or returns it as JSON otherwise. Reachable at window.location.origin
+  // because Next.js proxies /api/* straight to the Express API (next.config.js)
+  // and the auth middleware explicitly excludes /api from its gate.
+  function barcodeScanUrl(bc) { return `${window.location.origin}/api/v1/barcodes/resolve/${bc.id}`; }
+  function handleCopyBarcodeScanLink(bc) {
+    navigator.clipboard.writeText(barcodeScanUrl(bc));
+    showToast('Scan-tracking link copied.');
+  }
+  // QR / Data Matrix are the two formats actually meant to carry a URL, so for
+  // those we encode the tracked resolver link instead of the raw content —
+  // that's what makes a real-world scan increment `scans` server-side. EAN/UPC
+  // are fixed-length numeric product codes and Code128 is typically a literal
+  // SKU/tracking code, so those keep encoding the raw content as before.
+  function barcodeImageSrc(bc) {
+    const trackable = bc.barcode_type === 'qr' || bc.barcode_type === 'datamatrix';
+    const data = trackable ? barcodeScanUrl(bc) : bc.content;
+    return `https://barcodeapi.org/api/${bc.barcode_type}/${encodeURIComponent(data)}`;
+  }
 
   async function loadColorPalettes() {
     try {
@@ -17081,16 +17101,19 @@ export default function AppShell() {
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'0.75rem' }}>
               {barcodes.map((bc) => (
                 <div key={bc.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', textAlign:'center' }}>
-                  <img src={`https://barcodeapi.org/api/${bc.barcode_type}/${encodeURIComponent(bc.content)}`} alt={bc.name} style={{ maxWidth:'100%', height:80, objectFit:'contain', background:'#fff', padding:'4px', borderRadius:4, marginBottom:'0.5rem' }} />
+                  <img src={barcodeImageSrc(bc)} alt={bc.name} style={{ maxWidth:'100%', height:80, objectFit:'contain', background:'#fff', padding:'4px', borderRadius:4, marginBottom:'0.5rem' }} />
                   <div style={{ fontWeight:600, marginBottom:'0.25rem' }}>{bc.name}</div>
                   <div style={{ fontSize:'0.75rem', color:'var(--muted)', fontFamily:'monospace', marginBottom:'0.4rem' }}>{bc.content}</div>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.75rem', color:'var(--muted)', marginBottom:'0.5rem' }}>
                     <span className="ctag">{bc.barcode_type}</span>
                     <span>{bc.scans} scans</span>
                   </div>
-                  <div style={{ display:'flex', gap:'0.25rem', justifyContent:'center' }}>
+                  <div style={{ display:'flex', gap:'0.25rem', justifyContent:'center', flexWrap:'wrap' }}>
                     <Button variant="ghost" size="sm" onClick={() => { setEditingBc(bc); setBcDraft({ name:bc.name, content:bc.content, barcodeType:bc.barcode_type }); setBcForm(true); }}>Edit</Button>
-                    <a href={`https://barcodeapi.org/api/${bc.barcode_type}/${encodeURIComponent(bc.content)}`} download={`${bc.name}.png`} className="btn-ghost" style={{ fontSize:'0.7rem' }} target="_blank" rel="noopener noreferrer">Download</a>
+                    <a href={barcodeImageSrc(bc)} download={`${bc.name}.png`} className="btn-ghost" style={{ fontSize:'0.7rem' }} target="_blank" rel="noopener noreferrer">Download</a>
+                    <Tooltip label="Copy the public link that tracks a scan (redirects if the content is a URL)">
+                      <Button variant="ghost" size="sm" onClick={() => handleCopyBarcodeScanLink(bc)}>Copy scan link</Button>
+                    </Tooltip>
                     <Button variant="ghost" size="sm" style={{ color:'var(--danger)' }} onClick={() => handleDeleteBarcode(bc.id)}>Delete</Button>
                   </div>
                 </div>

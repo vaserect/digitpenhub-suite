@@ -45,4 +45,27 @@ async function trackScan(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listBarcodes, createBarcode, updateBarcode, deleteBarcode, trackScan };
+// Public — no auth, no org_id scoping. This is the real-world destination a
+// printed/shared barcode points at: looked up by id alone since whoever scans
+// it isn't signed in and doesn't know (or need to know) which org it belongs
+// to. Increments the same scan counter getStats/listBarcodes read, then either
+// forwards the scanner to the encoded URL or hands back the raw encoded
+// content as JSON for non-URL payloads (e.g. a product SKU/EAN code).
+async function resolveBarcode(req, res) {
+  const { rows } = await db.query(
+    `UPDATE barcodes SET scans=scans+1 WHERE id=$1 RETURNING *`, [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'not_found' });
+  const bc = rows[0];
+  const isUrl = /^https?:\/\//i.test(bc.content || '');
+  if (isUrl) return res.redirect(302, bc.content);
+  res.json({
+    id: bc.id,
+    name: bc.name,
+    content: bc.content,
+    barcodeType: bc.barcode_type,
+    scans: bc.scans,
+  });
+}
+
+module.exports = { getStats, listBarcodes, createBarcode, updateBarcode, deleteBarcode, trackScan, resolveBarcode };

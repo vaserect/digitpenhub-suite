@@ -60,13 +60,31 @@ async function deleteQuiz(req, res) {
   res.json({ ok: true });
 }
 
+// Public — no auth. Powers the public quiz-taking page at
+// frontend/app/quiz/[id]/page.jsx. Every question's `correct_answer` is
+// stripped before the response goes over the wire — an anonymous respondent
+// must never be able to read the answer key from the API response.
+async function getPublicQuiz(req, res) {
+  const { rows } = await db.query(
+    `SELECT id,title,description,questions,settings FROM quizzes WHERE id=$1 AND published=true`,
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Quiz not found.' });
+  const quiz = rows[0];
+  const questions = (quiz.questions || []).map(({ correct_answer, ...rest }) => rest);
+  res.json({ quiz: { ...quiz, questions } });
+}
+
+// Anonymous respondents have no req.user/session, so the quiz's own org_id
+// (not req.user.orgId) is what scopes grading + the response INSERT.
 async function submitResponse(req, res) {
   const { quizId } = req.params;
   const { answers, respondentName, respondentEmail } = req.body || {};
   const { rows: qRows } = await db.query(
-    `SELECT questions FROM quizzes WHERE id=$1 AND org_id=$2`, [quizId, req.user.orgId]);
+    `SELECT org_id, questions FROM quizzes WHERE id=$1 AND published=true`, [quizId]);
   if (!qRows.length) return res.status(404).json({ error: 'Quiz not found.' });
-  const questions = qRows[0].questions || [];
+  const { org_id: orgId, questions: quizQuestions } = qRows[0];
+  const questions = quizQuestions || [];
   let score = 0; let maxScore = 0;
   (answers||[]).forEach((a, i) => {
     const q = questions[i];
@@ -79,7 +97,7 @@ async function submitResponse(req, res) {
   const { rows } = await db.query(
     `INSERT INTO quiz_responses (quiz_id,org_id,answers,score,max_score,respondent_name,respondent_email)
      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [quizId, req.user.orgId, JSON.stringify(answers||[]), score, maxScore||null,
+    [quizId, orgId, JSON.stringify(answers||[]), score, maxScore||null,
      respondentName||null, respondentEmail||null]
   );
   await db.query(`UPDATE quizzes SET responses_count=responses_count+1 WHERE id=$1`, [quizId]);
@@ -93,4 +111,4 @@ async function listResponses(req, res) {
   res.json({ responses: rows });
 }
 
-module.exports = { getStats, listQuizzes, getQuiz, createQuiz, updateQuiz, deleteQuiz, submitResponse, listResponses };
+module.exports = { getStats, listQuizzes, getQuiz, getPublicQuiz, createQuiz, updateQuiz, deleteQuiz, submitResponse, listResponses };

@@ -201,7 +201,10 @@ app.use('/api/v1/certificates',       requireAuth, requireModuleAccess('certific
 app.use('/api/v1/barcodes',           barcodesRoutes);
 app.use('/api/v1/color-palettes',     requireAuth, requireModuleAccess('color-palette-generator'), colorPalettesRoutes);
 // Batch 5
-app.use('/api/v1/quiz-builder',       requireAuth, requireModuleAccess('quiz-builder'), quizBuilderRoutes);
+// Auth/module-access gating for quiz-builder lives inside quizBuilderRoutes
+// itself (after its public quiz-taking routes), matching the storeBuilder
+// pattern, so anonymous respondents can reach /public/:id and /:quizId/respond.
+app.use('/api/v1/quiz-builder',       quizBuilderRoutes);
 // Auth/module-access gating for popup-builder lives inside popupBuilderRoutes
 // itself (after its public embed/tracking routes), matching the
 // store-builder pattern, so the embed script + trackImpression/trackConversion

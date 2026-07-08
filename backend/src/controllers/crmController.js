@@ -1,11 +1,11 @@
 const db = require('../db');
-const { attachCustomFields } = require('../utils/customFields');
+const { attachCustomFields, validateCustomFieldValues, upsertCustomFieldValues } = require('../utils/customFields');
 
 const STAGES = ['new', 'contacted', 'proposal_sent', 'won', 'lost'];
 
 async function listContacts(req, res) {
   const { rows } = await db.query(
-    `SELECT id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags, custom_fields
+    `SELECT id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags
      FROM contacts WHERE org_id = $1
      ORDER BY last_touch_at DESC`,
     [req.user.orgId]
@@ -14,9 +14,6 @@ async function listContacts(req, res) {
   const counts = { new: 0, contacted: 0, proposal_sent: 0, won: 0, lost: 0 };
   rows.forEach((r) => { counts[r.stage] = (counts[r.stage] || 0) + 1; });
 
-  // Custom Fields Engine values, attached under `customFields` (schema-defined,
-  // per-org). Kept separate from the pre-existing free-form `custom_fields`
-  // column (legacy, no schema) per the side-by-side decision.
   const withEngineFields = await attachCustomFields(rows, 'crm_contact', req.user.orgId);
 
   res.json({ contacts: withEngineFields, counts });
@@ -29,20 +26,41 @@ async function createContact(req, res) {
     return res.status(400).json({ error: `stage must be one of: ${STAGES.join(', ')}` });
   }
 
-  const { rows } = await db.query(
-    `INSERT INTO contacts (org_id, full_name, company, email, phone, stage, value_ngn, created_by, tags, custom_fields)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-     RETURNING id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags, custom_fields`,
-    [req.user.orgId, fullName, company || null, email || null, phone || null, stage || 'new', valueNgn || 0, req.user.id,
-     Array.isArray(tags) ? tags : [], JSON.stringify(customFields || {})]
-  );
+  const { errors, defByKey } = await validateCustomFieldValues(req.user.orgId, 'crm_contact', customFields || {});
+  if (errors.length) return res.status(400).json({ error: errors.join(' ') });
 
-  await db.query(`INSERT INTO audit_log (user_id, action, meta) VALUES ($1,'crm.contact.create',$2)`, [
-    req.user.id,
-    JSON.stringify({ contactId: rows[0].id }),
-  ]);
+  const client = await db.connect();
+  let contact = null;
+  try {
+    await client.query('BEGIN');
 
-  res.status(201).json({ contact: rows[0] });
+    const { rows } = await client.query(
+      `INSERT INTO contacts (org_id, full_name, company, email, phone, stage, value_ngn, created_by, tags)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags`,
+      [req.user.orgId, fullName, company || null, email || null, phone || null, stage || 'new', valueNgn || 0, req.user.id,
+       Array.isArray(tags) ? tags : []]
+    );
+    contact = rows[0];
+
+    if (customFields) {
+      await upsertCustomFieldValues(client, req.user.orgId, 'crm_contact', contact.id, customFields, defByKey);
+    }
+
+    await client.query(`INSERT INTO audit_log (user_id, action, meta) VALUES ($1,'crm.contact.create',$2)`, [
+      req.user.id,
+      JSON.stringify({ contactId: contact.id }),
+    ]);
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.status(201).json({ contact: { ...contact, customFields: customFields || {} } });
 }
 
 // Full edit: any subset of these fields can be sent; whatever's omitted is left unchanged.
@@ -55,28 +73,56 @@ async function updateContact(req, res) {
     return res.status(400).json({ error: `stage must be one of: ${STAGES.join(', ')}` });
   }
 
-  // org_id check in the WHERE clause is the tenant-isolation guard — a user can never
-  // touch another organization's contact even if they guess a valid id.
-  const { rows } = await db.query(
-    `UPDATE contacts
-     SET full_name = COALESCE($1, full_name),
-         company = COALESCE($2, company),
-         email = COALESCE($3, email),
-         phone = COALESCE($4, phone),
-         stage = COALESCE($5, stage),
-         value_ngn = COALESCE($6, value_ngn),
-         tags = COALESCE($7, tags),
-         custom_fields = COALESCE($8, custom_fields),
-         last_touch_at = now(),
-         updated_at = now()
-     WHERE id = $9 AND org_id = $10
-     RETURNING id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags, custom_fields`,
-    [fullName || null, company ?? null, email ?? null, phone ?? null, stage || null, valueNgn ?? null,
-     Array.isArray(tags) ? tags : null, customFields ? JSON.stringify(customFields) : null, id, req.user.orgId]
-  );
+  let defByKey = null;
+  if (customFields !== undefined) {
+    const validation = await validateCustomFieldValues(req.user.orgId, 'crm_contact', customFields || {});
+    if (validation.errors.length) return res.status(400).json({ error: validation.errors.join(' ') });
+    defByKey = validation.defByKey;
+  }
 
-  if (!rows.length) return res.status(404).json({ error: 'Contact not found.' });
-  res.json({ contact: rows[0] });
+  const client = await db.connect();
+  let contact = null;
+  try {
+    await client.query('BEGIN');
+
+    // org_id check in the WHERE clause is the tenant-isolation guard — a user can never
+    // touch another organization's contact even if they guess a valid id.
+    const { rows } = await client.query(
+      `UPDATE contacts
+       SET full_name = COALESCE($1, full_name),
+           company = COALESCE($2, company),
+           email = COALESCE($3, email),
+           phone = COALESCE($4, phone),
+           stage = COALESCE($5, stage),
+           value_ngn = COALESCE($6, value_ngn),
+           tags = COALESCE($7, tags),
+           last_touch_at = now(),
+           updated_at = now()
+       WHERE id = $8 AND org_id = $9
+       RETURNING id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags`,
+      [fullName || null, company ?? null, email ?? null, phone ?? null, stage || null, valueNgn ?? null,
+       Array.isArray(tags) ? tags : null, id, req.user.orgId]
+    );
+
+    if (rows.length) {
+      contact = rows[0];
+      if (customFields !== undefined) {
+        await upsertCustomFieldValues(client, req.user.orgId, 'crm_contact', id, customFields, defByKey);
+      }
+    }
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  if (!contact) return res.status(404).json({ error: 'Contact not found.' });
+
+  const [withFields] = await attachCustomFields([contact], 'crm_contact', req.user.orgId);
+  res.json({ contact: withFields });
 }
 
 async function deleteContact(req, res) {

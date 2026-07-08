@@ -1,17 +1,12 @@
 const db = require('../db');
+const { FIELD_TYPES, validateCustomFieldValues, upsertCustomFieldValues } = require('../utils/customFields');
 
-// pg does not auto-serialize JS objects/arrays for jsonb columns the way it
-// does for a single JSON value — an array param gets sent as a Postgres
-// array literal ({a,b,c}) instead of JSON text, which Postgres then rejects
-// as invalid jsonb. Always JSON.stringify before binding to a jsonb column.
 function toJsonb(value, fallback) {
   if (value === undefined || value === null) {
     return fallback === undefined ? null : JSON.stringify(fallback);
   }
   return JSON.stringify(value);
 }
-
-const FIELD_TYPES = ['text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'file', 'relation'];
 
 function validateDefinitionInput(body) {
   const { key, label, fieldType } = body || {};
@@ -28,36 +23,6 @@ function validateDefinitionInput(body) {
   if (['select', 'multiselect'].includes(fieldType)) {
     const opts = Array.isArray(body.options) ? body.options : [];
     if (!opts.length) return 'options must be a non-empty array for select/multiselect fields.';
-  }
-  return null;
-}
-
-function validateValue(def, value) {
-  if (value === undefined || value === null || value === '') {
-    if (def.required) return `${def.label} is required.`;
-    return null;
-  }
-  switch (def.field_type) {
-    case 'number':
-      if (Number.isNaN(Number(value))) return `${def.label} must be a number.`;
-      break;
-    case 'date':
-      if (Number.isNaN(Date.parse(value))) return `${def.label} must be a valid date.`;
-      break;
-    case 'checkbox':
-      if (typeof value !== 'boolean') return `${def.label} must be true or false.`;
-      break;
-    case 'select':
-      if (!def.options.includes(value)) return `${def.label} must be one of the configured options.`;
-      break;
-    case 'multiselect': {
-      const arr = Array.isArray(value) ? value : [];
-      const invalid = arr.filter((v) => !def.options.includes(v));
-      if (invalid.length) return `${def.label} contains options that are not configured: ${invalid.join(', ')}.`;
-      break;
-    }
-    default:
-      break;
   }
   return null;
 }
@@ -180,42 +145,13 @@ async function setRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const incoming = (req.body && req.body.values) || {};
 
-  const { rows: defs } = await db.query(
-    `SELECT id, key, label, field_type, required, options
-     FROM custom_field_definitions
-     WHERE org_id = $1 AND record_type = $2 AND is_active = true`,
-    [req.user.orgId, recordType]
-  );
-  const defByKey = Object.fromEntries(defs.map((d) => [d.key, d]));
-
-  const errors = [];
-  for (const def of defs) {
-    if (Object.prototype.hasOwnProperty.call(incoming, def.key)) {
-      const err = validateValue(def, incoming[def.key]);
-      if (err) errors.push(err);
-    } else if (def.required) {
-      errors.push(`${def.label} is required.`);
-    }
-  }
-  const unknownKeys = Object.keys(incoming).filter((k) => !defByKey[k]);
-  if (unknownKeys.length) {
-    errors.push(`Unknown custom field key(s): ${unknownKeys.join(', ')}.`);
-  }
+  const { errors, defByKey } = await validateCustomFieldValues(req.user.orgId, recordType, incoming);
   if (errors.length) return res.status(400).json({ error: errors.join(' ') });
 
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    for (const [key, value] of Object.entries(incoming)) {
-      const def = defByKey[key];
-      await client.query(
-        `INSERT INTO custom_field_values (field_id, org_id, record_type, record_id, value)
-         VALUES ($1,$2,$3,$4,$5)
-         ON CONFLICT (field_id, record_id)
-         DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-        [def.id, req.user.orgId, recordType, recordId, value === undefined ? null : JSON.stringify(value)]
-      );
-    }
+    await upsertCustomFieldValues(client, req.user.orgId, recordType, recordId, incoming, defByKey);
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');

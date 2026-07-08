@@ -1,4 +1,5 @@
 const db = require('../db');
+const { attachCustomFields } = require('../utils/customFields');
 
 const STAGES = ['new', 'contacted', 'proposal_sent', 'won', 'lost'];
 
@@ -13,7 +14,12 @@ async function listContacts(req, res) {
   const counts = { new: 0, contacted: 0, proposal_sent: 0, won: 0, lost: 0 };
   rows.forEach((r) => { counts[r.stage] = (counts[r.stage] || 0) + 1; });
 
-  res.json({ contacts: rows, counts });
+  // Custom Fields Engine values, attached under `customFields` (schema-defined,
+  // per-org). Kept separate from the pre-existing free-form `custom_fields`
+  // column (legacy, no schema) per the side-by-side decision.
+  const withEngineFields = await attachCustomFields(rows, 'crm_contact', req.user.orgId);
+
+  res.json({ contacts: withEngineFields, counts });
 }
 
 async function createContact(req, res) {

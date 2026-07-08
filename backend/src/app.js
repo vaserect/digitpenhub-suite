@@ -193,7 +193,10 @@ app.use('/api/v1/sales-dashboard',    requireAuth, requireModuleAccess('sales-da
 app.use('/api/v1/marketing-dashboard',requireAuth, requireModuleAccess('marketing-dashboard'), marketingDashboardRoutes);
 app.use('/api/v1/website-analytics',  requireAuth, requireModuleAccess('website-analytics'), websiteAnalyticsRoutes);
 app.use('/api/v1/perf-reports',       requireAuth, requireModuleAccess('performance-reports'), perfReportsRoutes);
-app.use('/api/v1/biz-cards',          requireAuth, requireModuleAccess('digital-business-cards'), bizCardsRoutes);
+// Auth/module-access gating for biz-cards lives inside bizCardsRoutes itself
+// (after its public /public/:id card route), matching the storeBuilderRoutes
+// pattern, so an anonymous visitor can view a shared business card link.
+app.use('/api/v1/biz-cards',          bizCardsRoutes);
 app.use('/api/v1/link-in-bio',        requireAuth, requireModuleAccess('link-in-bio'), linkInBioRoutes);
 app.use('/api/v1/certificates',       requireAuth, requireModuleAccess('certificate-generator'), certificatesRoutes);
 // Auth/module-access gating for barcodes lives inside barcodesRoutes so its

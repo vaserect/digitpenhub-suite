@@ -101,6 +101,7 @@ const workflowAutomationRoutes = require('./routes/workflowAutomation');
 const marketplaceRoutes       = require('./routes/marketplace');
 // Batch 8 — LMS, School, Store
 const lmsRoutes               = require('./routes/lms');
+const educationUpgradesRoutes = require('./routes/educationUpgrades');
 const schoolRoutes            = require('./routes/school');
 const assignmentsRoutes2      = require('./routes/assignments');
 const cbtRoutes               = require('./routes/cbt');
@@ -268,6 +269,7 @@ app.use('/api/v1/workflows',          requireAuth, requireModuleAccess('workflow
 app.use('/api/v1/marketplace',        requireAuth, requireModuleAccess('marketplace'), marketplaceRoutes);
 // Batch 8
 app.use('/api/v1/lms',                requireAuth, requireModuleAccess('learning-management-system'), lmsRoutes);
+app.use('/api/v1/lms',                requireAuth, requireModuleAccess('learning-management-system'), educationUpgradesRoutes);
 app.use('/api/v1/school',             requireAuth, requireModuleAccess('school-management'), schoolRoutes);
 app.use('/api/v1/school-assignments', requireAuth, requireModuleAccess('assignments'), assignmentsRoutes2);
 app.use('/api/v1/cbt',                requireAuth, requireModuleAccess('cbt-platform'), cbtRoutes);

@@ -7724,7 +7724,7 @@ export default function AppShell() {
               </div>
               <p className="panel-sub">Every {activeCategory.name.toLowerCase()} tool planned for the Suite.</p>
               <div className="tile-grid">
-                {activeCategory.modules.map((m) => (
+                {activeCategory.modules.filter(m => (activeCategory.tier || 1) !== 3).map((m) => (
                   <Tile key={m.slug} {...m} />
                 ))}
               </div>

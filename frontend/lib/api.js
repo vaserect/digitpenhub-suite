@@ -15,7 +15,16 @@ export async function apiFetch(path, options = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (data.upgradeRequired && upgradeHandler) upgradeHandler(data);
-    const err = new Error(data.error || 'Request failed.');
+    // 404 from the Express catch-all router means the route doesn't exist.
+    // Surface a helpful message instead of the raw "Not found." server text.
+    if (res.status === 404) {
+      const err = new Error(data.error === 'Not found.'
+        ? `This endpoint (${path}) isn't ready yet.`
+        : (data.error || `The server returned a ${res.status} error.`));
+      err.status = 404;
+      throw err;
+    }
+    const err = new Error(data.error || `Request failed (${res.status}).`);
     err.upgradeRequired = !!data.upgradeRequired;
     throw err;
   }

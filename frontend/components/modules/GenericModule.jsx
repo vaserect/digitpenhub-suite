@@ -49,6 +49,11 @@ const NO_API_SLUGS = new Set([
   'graphic-design-editor', 'logo-maker', 'image-compression', 'image-converter',
   'file-converter', 'json-formatter', 'password-generator',
   'business-dashboard', 'power-bi-embed-analytics',
+  // Platform Administration (tier 3) — no workspace-facing API exists
+  'super-admin-panel', 'add-on-third-party-integration-marketplace-manager',
+  'impersonation-support-tools', 'agency-reseller-white-label-mode',
+  'vulnerability-scanning-dashboard', 'security-incident-response-runbook-tool',
+  'in-app-feedback-widget', 'changelog-release-notes-automation',
 ]);
 
 function guessApiPath(slug) {
@@ -129,10 +134,16 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
     try {
       const method = editItem ? 'PUT' : 'POST';
       const url = editItem ? `${apiBase}/${editItem.id}` : apiBase;
-      await apiFetch(url, { method, body: JSON.stringify(draft) });
+      const r = await apiFetch(url, { method, body: JSON.stringify(draft) });
+      if (r.error) { toast.error(r.error); return; }
       toast.success(editItem ? 'Updated!' : 'Created!');
       setShowForm(false); setEditItem(null); setDraft({}); load();
-    } catch (err) { toast.error(err.message); }
+    } catch (err) {
+      const msg = err.message === 'Not found.'
+        ? `This module isn't fully built yet — the data table API (${apiBase}) isn't available.`
+        : err.message;
+      toast.error(msg);
+    }
   }
 
   async function handleDelete(id) {

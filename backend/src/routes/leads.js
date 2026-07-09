@@ -28,6 +28,7 @@ router.post('/forms/:id/submit', submitLimiter, submitForm);
 // Protected
 router.use(requireAuth);
 
+router.get('/', (req, res) => res.json({ ok: true, message: 'Use /api/v1/leads/forms for form management' }));
 router.get('/stats', getStats);
 router.get('/export', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM forms WHERE org_id = $1', [req.user.orgId]);

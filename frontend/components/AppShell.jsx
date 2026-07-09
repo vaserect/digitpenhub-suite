@@ -55,6 +55,10 @@ import PlatformCoreModule from './modules/PlatformCoreModule';
 import GenericModule from './modules/GenericModule';
 import { DocumentsModule, ContentCalendarModule, AffiliatesModule } from './modules/AdvancedModules';
 import SettingsModule from './modules/SettingsModule';
+import CRMModule from './modules/CRM';
+import InvoicesModule from './modules/Invoices';
+import EmailMarketingModule from './modules/EmailMarketing';
+import ProjectManagementModule from './modules/ProjectManagement';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -7828,6 +7832,22 @@ export default function AppShell() {
                 <EmptyState icon="🔍" title="No modules match" description={`We couldn't find anything for "${query}". Try a different keyword or browse by category.`} />
               )}
             </div>
+          )}
+
+          {view === 'module' && activeModuleSlug === 'crm' && (
+            <CRMModule goHome={goHome} showToast={showToast} />
+          )}
+
+          {view === 'module' && (activeModuleSlug === 'pm' || activeModuleSlug === 'project-management') && (
+            <ProjectManagementModule goHome={goHome} showToast={showToast} />
+          )}
+
+          {view === 'module' && activeModuleSlug === 'invoices' && (
+            <InvoicesModule goHome={goHome} showToast={showToast} />
+          )}
+
+          {view === 'module' && activeModuleSlug === 'email-marketing' && (
+            <EmailMarketingModule goHome={goHome} showToast={showToast} />
           )}
 
           {view === 'module' && activeModuleSlug === 'crm' && (

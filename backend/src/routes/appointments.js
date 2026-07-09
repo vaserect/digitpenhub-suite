@@ -1,3 +1,6 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
@@ -32,5 +35,8 @@ router.post('/availability', saveAvailability);
 router.get('/', listAppointments);
 router.patch('/:id/status', updateAppointmentStatus);
 router.delete('/:id', deleteAppointment);
+
+router.post("/bulk-delete", bulkDeleteHandler("appointments"));
+router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM appointments WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "appointments.csv", rows, autoColumns(rows)); });
 
 module.exports = router;

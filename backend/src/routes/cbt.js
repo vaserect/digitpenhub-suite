@@ -1,6 +1,8 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
-const db = require('../db');
 const r = Router();
 r.use(requireAuth);
 
@@ -103,5 +105,9 @@ r.post('/quizzes/:id/submit', async (req, res) => {
     [req.params.id, studentName, studentId||null, score, totalMarks, passed, JSON.stringify(answers||{}), switches, flagged]);
   res.status(201).json({ attempt: rows[0], score, totalMarks, pct, passed });
 });
+
+r.post("/bulk-delete", bulkDeleteHandler("cbt_quizzes"));
+r.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM cbt_quizzes WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "cbt_quizzes.csv", rows, autoColumns(rows)); });
+r.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM cbt_quizzes WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = r;

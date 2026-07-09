@@ -1,3 +1,6 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const router = require('express').Router();
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
@@ -22,5 +25,8 @@ router.post('/', c.createQuiz);
 router.put('/:id', c.updateQuiz);
 router.delete('/:id', c.deleteQuiz);
 router.get('/:quizId/responses', c.listResponses);
+
+router.post("/bulk-delete", bulkDeleteHandler("quizzes"));
+router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM quizzes WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "quizzes.csv", rows, autoColumns(rows)); });
 
 module.exports = router;

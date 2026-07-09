@@ -51,6 +51,7 @@ import AiModule from './modules/AiModule';
 import MarketingFormsModule from './modules/MarketingFormsModule';
 import PlatformCoreModule from './modules/PlatformCoreModule';
 import GenericModule from './modules/GenericModule';
+import { DocumentsModule, ContentCalendarModule, AffiliatesModule } from './modules/AdvancedModules';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15142,6 +15143,15 @@ export default function AppShell() {
       )}
       {view === 'module' && (activeModuleSlug === 'help-desk') && (
         <HelpdeskModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'document-management') && (
+        <DocumentsModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'content-calendar' || activeModuleSlug === 'cross-module-activity-feed') && (
+        <ContentCalendarModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'affiliate-system') && (
+        <AffiliatesModule goHome={goHome} />
       )}
       {view === 'module' && (activeModuleSlug === 'ai-chatbot-builder' || activeModuleSlug === 'ai-writer' || activeModuleSlug === 'ai-email-assistant' || activeModuleSlug === 'ai-proposal-generator' || activeModuleSlug === 'ai-blog-generator' || activeModuleSlug === 'ai-translator' || activeModuleSlug === 'ai-customer-support' || activeModuleSlug === 'ai-meeting-notes' || activeModuleSlug === 'ai-knowledge-base' || activeModuleSlug === 'ai-image-generator' || activeModuleSlug === 'ai-voice-transcription-summarization') && (
         <AiModule goHome={goHome} />

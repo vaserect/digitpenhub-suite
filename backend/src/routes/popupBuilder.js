@@ -1,3 +1,6 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const router = require('express').Router();
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
@@ -21,5 +24,8 @@ router.get('/', c.listPopups);
 router.post('/', c.createPopup);
 router.put('/:id', c.updatePopup);
 router.delete('/:id', c.deletePopup);
+
+router.post("/bulk-delete", bulkDeleteHandler("popups"));
+router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM popups WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "popups.csv", rows, autoColumns(rows)); });
 
 module.exports = router;

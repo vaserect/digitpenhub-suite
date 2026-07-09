@@ -1,3 +1,6 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const c = require('../controllers/inventoryController');
@@ -13,4 +16,7 @@ r.put('/products/:id',    c.updateProduct);
 r.delete('/products/:id', c.deleteProduct);
 r.get('/transactions',    c.listTransactions);
 r.post('/transactions',   c.addTransaction);
+r.post("/bulk-delete", bulkDeleteHandler("inventory_items"));
+r.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM inventory_items WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "inventory_items.csv", rows, autoColumns(rows)); });
+
 module.exports = r;

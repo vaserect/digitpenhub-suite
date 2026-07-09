@@ -1,7 +1,9 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const { Router } = require('express');
 const crypto = require('crypto');
 const { requireAuth } = require('../middleware/auth');
-const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
 
 const router = Router();
@@ -115,5 +117,9 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   if (!rowCount) return res.status(404).json({ error: 'Not found.' });
   res.json({ ok: true });
 }));
+
+router.post("/bulk-delete", bulkDeleteHandler("contracts"));
+router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM contracts WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "contracts.csv", rows, autoColumns(rows)); });
+router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM contracts WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = router;

@@ -1,6 +1,8 @@
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+const db = require('../db');
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
-const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
 
 const router = Router();
@@ -159,5 +161,9 @@ router.post('/contacts/:contactId/activity', asyncHandler(async (req, res) => {
   );
   res.status(201).json({ ok: true });
 }));
+
+router.post("/bulk-delete", bulkDeleteHandler("crm_companies"));
+router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM crm_companies WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "crm_companies.csv", rows, autoColumns(rows)); });
+router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM crm_companies WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = router;

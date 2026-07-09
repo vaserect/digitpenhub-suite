@@ -108,6 +108,6 @@ r.post('/quizzes/:id/submit', async (req, res) => {
 
 r.post("/bulk-delete", bulkDeleteHandler("cbt_quizzes"));
 r.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM cbt_quizzes WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "cbt_quizzes.csv", rows, autoColumns(rows)); });
-r.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM cbt_quizzes WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
+r.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM cbt_quizzes WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = r;

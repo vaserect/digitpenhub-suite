@@ -163,39 +163,32 @@ router.get('/export-all', asyncHandler(async (req, res) => {
 }));
 
 // ── Onboarding status (drives home-screen recommendations) ───────────────────
+async function safeQuery(sql, params) {
+  try { return await db.query(sql, params); }
+  catch { return { rows: [] }; }
+}
+
 router.get('/onboarding', asyncHandler(async (req, res) => {
   const orgId = req.user.orgId;
-  const userId = req.user.id;
 
-  const [
-    { rows: contacts },
-    { rows: invoices },
-    { rows: leads },
-    { rows: users },
-    { rows: projects },
-    { rows: wlBranding },
-    { rows: integrations },
-    { rows: emailLists },
-  ] = await Promise.all([
-    db.query('SELECT count(*) AS c FROM contacts WHERE org_id = $1', [orgId]),
-    db.query(`SELECT count(*) AS c, count(*) FILTER (WHERE status = 'sent' OR status = 'paid') AS sent FROM invoices WHERE org_id = $1`, [orgId]),
-    db.query('SELECT count(*) AS c FROM lead_submissions WHERE org_id = $1', [orgId]),
-    db.query('SELECT count(*) AS c FROM users WHERE org_id = $1', [orgId]),
-    db.query('SELECT count(*) AS c FROM projects WHERE org_id = $1', [orgId]),
-    db.query('SELECT custom_domain FROM white_label_branding WHERE org_id = $1', [orgId]),
-    db.query('SELECT count(*) AS c FROM integration_connections WHERE org_id = $1 AND is_connected = true', [orgId]),
-    db.query('SELECT count(*) AS c FROM email_lists WHERE org_id = $1', [orgId]),
-  ]);
+  const contactsR = await safeQuery('SELECT count(*) AS c FROM contacts WHERE org_id = $1', [orgId]);
+  const invoicesR = await safeQuery("SELECT count(*) AS c, count(*) FILTER (WHERE status = 'sent' OR status = 'paid') AS sent FROM invoices WHERE org_id = $1", [orgId]);
+  const leadsR = await safeQuery('SELECT count(*) AS c FROM lead_submissions WHERE org_id = $1', [orgId]);
+  const usersR = await safeQuery('SELECT count(*) AS c FROM users WHERE org_id = $1', [orgId]);
+  const projectsR = await safeQuery('SELECT count(*) AS c FROM projects WHERE org_id = $1', [orgId]);
+  const domainR = await safeQuery('SELECT custom_domain FROM org_branding WHERE org_id = $1', [orgId]);
+  const integR = await safeQuery('SELECT count(*) AS c FROM integration_connections WHERE org_id = $1 AND is_connected = true', [orgId]);
+  const emailListsR = await safeQuery('SELECT count(*) AS c FROM email_lists WHERE org_id = $1', [orgId]);
 
-  const hasContacts = parseInt(contacts[0]?.c || 0) > 0;
-  const hasInvoices = parseInt(invoices[0]?.c || 0) > 0;
-  const hasSentInvoices = parseInt(invoices[0]?.sent || 0) > 0;
-  const hasLeads = parseInt(leads[0]?.c || 0) > 0;
-  const hasProjects = parseInt(projects[0]?.c || 0) > 0;
-  const hasTeam = parseInt(users[0]?.c || 0) > 1;
-  const hasDomain = !!(wlBranding.rows[0]?.custom_domain);
-  const hasIntegrations = parseInt(integrations[0]?.c || 0) > 0;
-  const hasEmailList = parseInt(emailLists[0]?.c || 0) > 0;
+  const hasContacts = parseInt(contactsR.rows[0]?.c || 0) > 0;
+  const hasInvoices = parseInt(invoicesR.rows[0]?.c || 0) > 0;
+  const hasSentInvoices = parseInt(invoicesR.rows[0]?.sent || 0) > 0;
+  const hasLeads = parseInt(leadsR.rows[0]?.c || 0) > 0;
+  const hasProjects = parseInt(projectsR.rows[0]?.c || 0) > 0;
+  const hasTeam = parseInt(usersR.rows[0]?.c || 0) > 1;
+  const hasDomain = !!(domainR.rows[0]?.custom_domain);
+  const hasIntegrations = parseInt(integR.rows[0]?.c || 0) > 0;
+  const hasEmailList = parseInt(emailListsR.rows[0]?.c || 0) > 0;
 
   const steps = [];
 
@@ -222,13 +215,13 @@ router.get('/onboarding', asyncHandler(async (req, res) => {
   }
 
   res.json({
-    steps,
+    steps: steps.sort((a, b) => a.priority - b.priority),
     hasContacts, hasInvoices, hasSentInvoices, hasLeads, hasProjects,
     hasTeam, hasDomain, hasIntegrations, hasEmailList,
-    contactCount: parseInt(contacts[0]?.c || 0),
-    invoiceCount: parseInt(invoices[0]?.c || 0),
-    leadCount: parseInt(leads[0]?.c || 0),
-    teamCount: parseInt(users[0]?.c || 0),
+    contactCount: parseInt(contactsR.rows[0]?.c || 0),
+    invoiceCount: parseInt(invoicesR.rows[0]?.c || 0),
+    leadCount: parseInt(leadsR.rows[0]?.c || 0),
+    teamCount: parseInt(usersR.rows[0]?.c || 0),
   });
 }));
 

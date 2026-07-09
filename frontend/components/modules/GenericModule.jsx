@@ -37,7 +37,15 @@ const API_MAP = {
   'timezone-proposals': '/api/v1/community/timezone-proposals',
 };
 
+const NO_API_SLUGS = new Set([
+  'background-removal', 'basic-video-editor', 'resume-builder', 'flyer-builder',
+  'graphic-design-editor', 'logo-maker', 'image-compression', 'image-converter',
+  'file-converter', 'json-formatter', 'password-generator',
+  'business-dashboard', 'power-bi-embed-analytics',
+]);
+
 function guessApiPath(slug) {
+  if (NO_API_SLUGS.has(slug)) return null;
   if (API_MAP[slug]) return API_MAP[slug];
   return '/api/v1/' + slug;
 }
@@ -82,12 +90,12 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
 
   useEffect(() => {
     const base = guessApiPath(moduleSlug);
-    setApiBase(base);
+    setApiBase(base || '');
     setListKey(moduleSlug.endsWith('s') ? moduleSlug : moduleSlug + 's');
   }, [moduleSlug]);
 
   const load = useCallback(async () => {
-    if (!apiBase) return;
+    if (!apiBase) { setLoading(false); return; }
     setLoading(true);
     try {
       const r = await apiFetch(apiBase);
@@ -235,7 +243,11 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
         </form>
       </Modal>
 
-      {loading ? <SkeletonRows rows={6} /> : data.length === 0 ? (
+      {loading ? <SkeletonRows rows={6} /> : !apiBase ? (
+        <EmptyState icon={cfg.icon} title={cfg.label}
+          description="This module doesn't have a backend API yet — it's coming in a future update."
+        />
+      ) : data.length === 0 ? (
         <EmptyState icon={cfg.icon} title={`No ${cfg.label} yet`}
           description="Create your first record to populate this module."
           action={<Button onClick={() => { setShowForm(true); setDraft({}); }}>+ Create</Button>}

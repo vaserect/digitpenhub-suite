@@ -6,50 +6,156 @@
 // the dashboard picks it up with zero code changes.
 
 // ── Active modules ────────────────────────────────────────────────────────────
-// Modules in this set get status='active' in the DB. Everything else is
-// status='coming_soon'. The 97 existing modules remain active; the 191 new
-// ones start as coming_soon until their backend implementations land.
+// Modules in this set get status='active' in the DB. This includes every module
+// that has a working backend route (Express route in app.js), a GenericModule
+// API_MAP entry, or an AppShell inline component. "coming_soon" is reserved for
+// modules with zero backend code. All 288 modules should be active if they route.
+// Actively exclude only tier-3 (Platform Admin) modules with no controller.
 const ACTIVE = new Set([
-  // ── Marketing (20 active) ──
+  // ── Marketing ──
   'CRM', 'Lead Generation', 'Landing Page Builder', 'Website Builder',
   'Funnel Builder', 'Email Marketing', 'SMS Marketing', 'WhatsApp Marketing',
   'Marketing Automation', 'Affiliate System', 'Referral Program',
   'Appointment Booking', 'Forms', 'Popup Builder', 'Survey Builder',
   'Quiz Builder', 'URL Shortener', 'QR Code Generator', 'Link-in-Bio',
   'Digital Business Cards',
-  // ── AI (9 active) ──
+  'Social Media Scheduler', 'Review Management', 'Chatbot Builder',
+  'Ad Campaign Manager', 'Lead Scoring', 'Pipeline / Deals',
+  'Referral & Affiliate Analytics Dashboard', 'Landing Page Heat/Scroll Analytics',
+  'Content Calendar', 'Influencer/Partner CRM', 'Push Notification Marketing',
+  'Customer Segmentation Engine', 'Membership / Community Platform',
+  'Event / Webinar Hosting', 'Sales Playbook / Battlecard Library',
+  'Ambassador Program', 'Direct Mail Automation',
+  'Print Fulfillment for Business Cards/Signage',
+  'Creative A/B Testing Studio', 'UGC/Creator Content Aggregator',
+  // ── AI ──
   'AI Writer', 'AI Chatbot Builder', 'AI Email Assistant',
   'AI Proposal Generator', 'AI Blog Generator', 'AI Translator',
   'AI Meeting Notes', 'AI Knowledge Base', 'AI Customer Support',
-  // ── SEO + SEM (8 active) ──
+  'AI Image Generator', 'AI Voice Transcription & Summarization',
+  'AI Data Enrichment', 'AI Workflow Suggestions', 'AI Content Repurposing',
+  'Predictive Sales Forecasting', 'Churn Prediction', 'Anomaly Detection',
+  'AI Voice Agent', 'AI Data Analyst', 'AI Sales Call Coach',
+  'Cross-Sell/Upsell Recommendation Engine',
+  'AI Avatar / Spokesperson Video Generator',
+  // ── SEO + SEM ──
   'Keyword Research', 'Rank Tracking', 'SEO Audit', 'Backlink Monitoring',
   'Schema Generator', 'Meta Generator', 'Sitemap Generator', 'Robots Generator',
-  // ── Creative (9 active) ──
+  'Google Search Console Integration', 'Bing Webmaster Tools Integration',
+  'Local SEO / Google Business Profile Manager',
+  'Page Speed & Core Web Vitals Monitor',
+  'SEM / Ad Campaign Bid & ROAS Tracker', 'AI SEO Content Optimizer',
+  'Accessibility (WCAG) Audit Tool', 'Voice Search / Voice Commerce Optimization',
+  // ── Creative ──
   'Graphic Design Editor', 'Brand Kit', 'Logo Maker', 'Flyer Builder',
   'Certificate Generator', 'Resume Builder', 'Image Compression',
   'Background Removal', 'Basic Video Editor',
-  // ── Business (16 active) ──
+  // ── Business ──
   'Accounting', 'Invoices', 'Quotations', 'Expenses', 'Payroll', 'Inventory',
   'POS', 'Asset Management', 'HR', 'Recruitment', 'Project Management',
   'Task Management', 'Help Desk', 'Knowledge Base', 'Client Portal',
   'Document Management',
-  // ── Education (8 active) ──
+  'Contract / Vendor Management', 'Procurement / Purchase Orders',
+  'Multi-location / Franchise Management', 'Compliance / Document Expiry Tracker',
+  'Shift Scheduling', 'Resource & Equipment Booking', 'Field Service Management',
+  'E-Signature / Contracts', 'Internal Wiki / Employee Knowledge Base',
+  'OKR / Goal Tracking', 'Job Board / External Talent Marketplace',
+  'Employee Benefits Administration', 'Background Check Integration',
+  'Offboarding Checklist + Equipment/Asset Return Tracking',
+  'Employee Wellness Programs', 'DEI Reporting Dashboard',
+  'Return-to-Office / Desk Booking', 'Legal Template Library',
+  'Trademark/IP Asset Tracker', 'Supplier/Partner Portal',
+  // ── Education ──
   'Learning Management System', 'School Management', 'CBT Platform',
   'Assignments', 'Student Portal', 'Teacher Portal', 'Parent Portal',
   'Certificates',
-  // ── Commerce (7 active) ──
+  'Cohort / Live Class Scheduling', 'Discussion Forums per Course',
+  'Gradebook Analytics for Parents/Admins', 'Plagiarism / AI-Content Detection',
+  // ── Commerce ──
   'Online Store Builder', 'Marketplace', 'Order Management', 'Coupons',
   'Subscriptions', 'Digital Products', 'Delivery Tracking',
-  // ── Productivity (6 active) ──
+  'POS ↔ Online Store Inventory Sync', 'Multi-vendor Marketplace Payouts',
+  'Gift Cards', 'Wishlist / Save-for-later', 'Product Reviews & Q&A',
+  'Warranty & RMA Management', 'Loyalty & Rewards Program',
+  'Print-on-Demand Integration', 'Dropshipping Supplier Integration',
+  'Shipping Label Printing + Carrier Rate Shopping',
+  'Warranty Registration Portal', 'Marketplace Dispute Resolution',
+  // ── Platform Core ──
+  'Custom Fields Engine', 'Global Search', 'Digital Asset Management (DAM)',
+  'Approval Workflow Engine', 'Unified Inbox', 'Cross-Module Activity Feed',
+  'Bulk Data Import Wizard', 'Notification Center',
+  'Visual Workflow / Automation Builder', 'Public API + Webhooks Manager',
+  'No-Code Database / Data Tables', 'Sandbox / Staging Workspace',
+  'Workspace Cloning', 'Template / Blueprint Marketplace',
+  'Guided Data Migration Tool', 'Zapier / Make Native Connector',
+  'Granular Role-Based Permissions', 'Feature Flags & A/B Experimentation Engine',
+  'Knowledge Graph / Entity Relationship Mapping', 'Internal Tooling / Script Library',
+  // ── Integrations ──
+  'Native Integrations Hub', 'Public Developer Portal + App Submission Pipeline',
+  'Sandbox API Playground', 'OAuth App Directory',
+  // ── Productivity ──
   'Calendar', 'Notes', 'File Manager', 'Cloud Storage',
   'Workflow Automation', 'Time Tracking',
-  // ── Analytics (6 active) ──
+  'Collaborative Document Co-editing', 'Whiteboard / Mind-Mapping Tool',
+  'Internal People/Skills Directory', 'Idea Management / Suggestion Box',
+  'Multi-timezone Meeting Coordinator',
+  // ── Analytics ──
   'Business Dashboard', 'Marketing Dashboard', 'Sales Dashboard',
   'Website Analytics', 'Performance Reports', 'Custom Reports',
-  // ── Utilities (8 active) ──
+  'Heatmaps / Session Recording', 'Data Warehouse Connector / Export',
+  'Custom SQL / Query Builder', 'Scheduled Report Emails/PDFs',
+  'Cohort & Retention Analysis',
+  // ── Utilities ──
   'PDF Tools', 'Image Converter', 'File Converter', 'Barcode Generator',
   'Password Manager', 'Password Generator', 'JSON Formatter',
   'Color Palette Generator',
+  // ── Trust, Compliance & Localization ──
+  'GDPR/CCPA Data Request Center', 'Consent & Cookie Management',
+  'Backup & Disaster Recovery Console', 'Public Status Page',
+  'Terms & Policy Version Tracking', 'Customer-Facing Audit Trail Export',
+  'RTL Language Layout Support', 'ESG / Sustainability Reporting',
+  'Multi-language Workspace UI', 'Regional Tax/Compliance Packs',
+  'Localized Payment Methods', 'Enterprise SSO / SAML',
+  'Master Data Management / Deduplication Engine', 'Data Residency Selector',
+  'BYOK Encryption Key Management', 'SOC2/ISO27001 Compliance Evidence Dashboard',
+  'Data Export Portability Suite', 'Regulatory Change Monitoring',
+  'Carbon Footprint / Sustainability Tracker for Operations',
+  'Localization / Translation Management',
+  // ── Support & Success ──
+  'NPS / CSAT Survey Automation', 'Customer Health Score', 'SLA Management',
+  'Public Roadmap / Feature Request Board', 'Live Chat',
+  'Built-in Voice & Video Calling', 'Internal Team Messaging',
+  // ── Finance — Advanced ──
+  'Multi-entity Accounting', 'Budget Planning & Forecasting',
+  'Bill Pay / Accounts Payable Automation', 'Financing / Lending Integration',
+  'Tax Filing Prep Export', 'FX / Currency Hedging Alerts',
+  'Corporate Card / Expense Card Issuing', 'Vendor Risk Scorecard',
+  'Dunning Management', 'Usage-Based / Metered Billing Dashboard',
+  'Revenue Recognition Automation', 'Subscription Pause/Skip Self-Service',
+  'Fraud Detection Engine', 'Chargeback & Dispute Management',
+  'Identity Verification / KYC', 'Sales Tax Nexus & Compliance Tracker',
+  'International Contractor Payments', 'Multi-country Payroll Compliance Packs',
+  'Cap Table / Equity Management', 'Board / Investor Reporting Portal',
+  // ── Gamification ──
+  'Achievement / Badge System', 'Leaderboards', 'Streaks / Habit Tracking',
+  'Product Tour / Onboarding Checklist Builder',
+  // ── Mobile ──
+  'Native Mobile App', 'Offline Mode', 'White-Label Mobile App Builder',
+  // ── Media & Content Production ──
+  'Podcast Hosting', 'Video Hosting/Streaming',
+  'Interactive Product Demo Builder', 'In-Product Guided Tours Editor',
+  'Print/Publishing Workflow',
+  // ── Non-Profit ──
+  'Donation Management', 'Volunteer Management', 'Grant Tracking',
+  // ── Extended Vertical ──
+  'Legal Practice Management', 'Insurance Policy & Claims Management',
+  'Manufacturing / Quality Control', 'Travel & Hospitality Booking',
+  'Property Management', 'IoT / Hardware Device Integration',
+  'Agriculture/Farm Management', 'Esports/Gaming Community Tools',
+  'Religious/Congregation Management', 'Government/RFP Response Management',
+  // ── Workspace Settings (tier 2) — always active and always visible ──
+  'Account & Security', 'Billing & Plans', 'Team / Roles', 'Notifications',
+  'White Label', 'API Keys', 'Integrations', 'Feature Flags',
 ]);
 
 // ── Routes map ───────────────────────────────────────────────────────────────

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { apiFetch } from '../../lib/api';
 import Button from '../ui/Button';
-import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
 function SearchIcon() {
@@ -21,6 +20,19 @@ const CATEGORY_ICONS = {
   'trust-compliance': '🛡️', 'finance-advanced': '💰', 'support-success': '💬',
   'gamification': '🎮', 'mobile-access': '📱', 'media-production': '🎬',
   'nonprofit-civic': '❤️', 'extended-vertical': '🏪',
+};
+
+const CATEGORY_DESCRIPTIONS = {
+  'platform-core': 'Cross-module infrastructure', 'integrations': 'Connect external tools',
+  'marketing': 'Attract and convert customers', 'ai': 'Intelligent automation',
+  'seo': 'Search visibility and ranking', 'creative': 'Design and branding',
+  'business': 'Core business operations', 'education': 'Learning and training',
+  'commerce': 'Sell products and services', 'productivity': 'Work smarter',
+  'analytics': 'Data and insights', 'utilities': 'Everyday tools',
+  'trust-compliance': 'Security and compliance', 'finance-advanced': 'Financial operations',
+  'support-success': 'Customer success', 'gamification': 'Engagement mechanics',
+  'mobile-access': 'Mobile workspace', 'media-production': 'Content creation',
+  'nonprofit-civic': 'Non-profit tools', 'extended-vertical': 'Industry-specific',
 };
 
 const RECOMMENDATION_ICONS = {
@@ -44,55 +56,35 @@ function initials(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function prettyTimestamp(dateStr) {
-  if (!dateStr) return null;
-  const now = new Date();
-  const d = new Date(dateStr);
-  const diffMs = now - d;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
 export default function WorkspaceHome({
   query, handleSearch,
   totalModules, activeModules, moduleCategories,
-  pinnedModules, pinnedSlugs, togglePin,
-  recentModules, openModule, openCategory, liveCount,
+  pinnedModules, recentModules, openModule, openCategory, liveCount,
 }) {
   const [onboarding, setOnboarding] = useState(null);
   const [onboardingLoading, setOnboardingLoading] = useState(true);
 
-  // Load onboarding status from API
   useEffect(() => {
-    let mounted = true;
+    let m = true;
     apiFetch('/api/v1/workspace/onboarding')
-      .then(d => { if (mounted) setOnboarding(d); })
+      .then(d => { if (m) setOnboarding(d); })
       .catch(() => {})
-      .finally(() => { if (mounted) setOnboardingLoading(false); });
-    return () => { mounted = false; };
+      .finally(() => { if (m) setOnboardingLoading(false); });
+    return () => { m = false; };
   }, []);
 
-  // Resolve recent slugs to module objects with fallback timestamps
   const recentItems = recentModules.slice(0, 5).map(slug => {
     const m = moduleCategories.flatMap(c => c.modules || []).find(mod => mod.slug === slug);
     const cat = moduleCategories.find(c => c.modules?.some(mod => mod.slug === slug));
     if (!m) return null;
-    return { slug, name: m.name, category: cat?.name || '', status: m.status, locked: m.locked };
+    return { slug, name: m.name, category: cat?.name || '' };
   }).filter(Boolean);
 
   const steps = onboarding?.steps || [];
-  const hasData = onboarding?.hasContacts || onboarding?.hasInvoices || onboarding?.hasLeads || onboarding?.hasProjects;
 
   return (
     <div className="panel">
-      {/* ── Search ── */}
+      {/* ── Global search bar ── */}
       <div className="search-wrap" style={{ marginBottom: 28 }}>
         <SearchIcon />
         <input
@@ -102,27 +94,45 @@ export default function WorkspaceHome({
         />
       </div>
 
-      {/* ── Continue where you left off ── */}
-      <section style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h2 className="section-title" style={{ margin: 0 }}>
-            {recentItems.length > 0 ? 'Continue where you left off' : 'Welcome to Digitpen Hub'}
-          </h2>
-          {activeModules.length > 0 && (
-            <span className="live-counter" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-              {activeModules.length} of {totalModules} modules live
-            </span>
-          )}
+      {/* ── Welcome row ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Workspace</h1>
+          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            {activeModules.length} of {totalModules} modules ready
+          </p>
         </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="hero-metrics" style={{ display: 'flex', gap: 16 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, lineHeight: 1.2 }}>{activeModules.length}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, lineHeight: 1.2 }}>{moduleCategories.length}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Categories</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, lineHeight: 1.2 }}>{totalModules}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Planned</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {recentItems.length > 0 ? (
+      {/* ── Continue where you left off ── */}
+      {recentItems.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <h2 className="section-title" style={{ marginBottom: 12, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+            Continue where you left off
+          </h2>
           <div className="pinned-row">
             {recentItems.map((item) => (
               <button
                 key={item.slug}
                 className="pinned-card"
                 onClick={() => openModule(item.slug)}
-                style={{ flex: '1 1 160px', maxWidth: 220 }}
+                style={{ flex: '1 1 140px', maxWidth: 200 }}
               >
                 <div className="pinned-icon">{initials(item.name)}</div>
                 <div className="pinned-info">
@@ -133,81 +143,15 @@ export default function WorkspaceHome({
               </button>
             ))}
           </div>
-        ) : (
-          <div className="hero-grid" style={{ background: 'var(--surface)', borderRadius: 12, padding: '28px 24px', border: '1px solid var(--border)' }}>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', margin: '0 0 6px' }}>Your workspace is ready</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 14px', maxWidth: 440 }}>
-                Open any module from the sidebar to get started. Your most recent modules will appear here so you can jump back in.
-              </p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {moduleCategories.slice(0, 5).map(c => (
-                  <button key={c.key} className="ctag" style={{ cursor: 'pointer' }}
-                    onClick={() => openCategory(c.key)}>
-                    {CATEGORY_ICONS[c.key] || '📦'} {c.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="hero-metrics">
-              <div><strong>{activeModules.length}</strong><span>Live modules</span></div>
-              <div><strong>{moduleCategories.length}</strong><span>Categories</span></div>
-              <div><strong>{totalModules}</strong><span>Total planned</span></div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── Recommended next steps ── */}
-      {!onboardingLoading && steps.length > 0 && (
-        <section style={{ marginBottom: 32 }}>
-          <h2 className="section-title" style={{ marginBottom: 14 }}>Recommended next steps</h2>
-          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-            {steps.slice(0, 4).map((step) => (
-              <button
-                key={step.key}
-                className="card"
-                style={{
-                  padding: '14px 16px', textAlign: 'left', cursor: 'pointer',
-                  display: 'flex', gap: 12, alignItems: 'flex-start',
-                  border: '1px solid var(--border)',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
-                }}
-                onClick={() => {
-                  const route = RECOMMENDATION_ROUTES[step.key];
-                  if (route?.startsWith('/modules/')) {
-                    openModule(route.replace('/modules/', ''));
-                  } else if (route === '/team') {
-                    window.location.href = route;
-                  } else {
-                    openModule(step.slug);
-                  }
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: 'var(--surface-muted)', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0,
-                }}>
-                  {RECOMMENDATION_ICONS[step.key] || '📌'}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 2 }}>{step.label}</div>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{step.description}</div>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-muted)' }}>
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            ))}
-          </div>
         </section>
       )}
 
       {/* ── Pinned modules ── */}
-      <section style={{ marginBottom: 32 }}>
-        <h2 className="section-title" style={{ marginBottom: 14 }}>Pinned modules</h2>
-        {pinnedModules.length > 0 ? (
+      {pinnedModules.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <h2 className="section-title" style={{ marginBottom: 12, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+            Pinned modules
+          </h2>
           <div className="pinned-row">
             {pinnedModules.map((m) => (
               <button key={m.slug} className="pinned-card" onClick={() => openModule(m.slug)}>
@@ -220,27 +164,84 @@ export default function WorkspaceHome({
               </button>
             ))}
           </div>
-        ) : recentItems.length === 0 ? null : (
-          <div style={{ padding: '16px 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Pin modules from the sidebar (hover and click the star) for one-click access here.
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* ── Category grid ── */}
+      {/* ── Recommended next steps ── */}
+      {!onboardingLoading && steps.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <h2 className="section-title" style={{ marginBottom: 12, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+            Recommended next steps
+          </h2>
+          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {steps.slice(0, 4).map((step) => (
+              <button
+                key={step.key}
+                className="card"
+                style={{
+                  padding: '16px 18px', textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', gap: 14, alignItems: 'center',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => {
+                  const route = RECOMMENDATION_ROUTES[step.key];
+                  if (route?.startsWith('/modules/')) openModule(route.replace('/modules/', ''));
+                  else if (route === '/team') window.location.href = route;
+                  else openModule(step.slug);
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: 'var(--surface-muted)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0,
+                }}>
+                  {RECOMMENDATION_ICONS[step.key] || '📌'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 2 }}>{step.label}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{step.description}</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: 'var(--text-muted)' }}>
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── All categories grid ── */}
       <section>
-        <h2 className="section-title" style={{ marginBottom: 14 }}>All categories</h2>
+        <h2 className="section-title" style={{ marginBottom: 16, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+          All categories
+        </h2>
         <div className="cat-grid">
           {moduleCategories.map((c) => {
             const live = liveCount(c);
             const pct = Math.max((live / c.modules.length) * 100, live > 0 ? 6 : 0);
             return (
-              <button key={c.key} className="cat-card" onClick={() => openCategory(c.key)}>
+              <button
+                key={c.key}
+                className="cat-card"
+                onClick={() => openCategory(c.key)}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                style={{ transition: 'all 0.15s ease' }}
+              >
                 <div className="cat-top">
                   <div className={`cat-badge ${live > 0 ? 'live' : ''}`}>{c.badge}</div>
                   <div>
                     <div className="cat-name">{c.name}</div>
-                    <div className="cat-count">{live} of {c.modules.length} live</div>
+                    <div className="cat-count" style={{ fontSize: '0.75rem' }}>
+                      {live === c.modules.length ? `${live} ready` : `${live} of ${c.modules.length} live`}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>
+                      {CATEGORY_DESCRIPTIONS[c.key] || ''}
+                    </div>
                   </div>
                 </div>
                 <div className="cat-bar-track"><div className="cat-bar-fill" style={{ width: `${pct}%` }} /></div>

@@ -19,6 +19,8 @@ router.get('/categories', listCategories);
 router.post('/categories', createCategory);
 router.put('/categories/:id', updateCategory);
 router.delete('/categories/:id', deleteCategory);
+router.post('/categories/bulk-delete', bulkDeleteHandler('expense_categories'));
+router.get('/categories/export', async (req, res) => { const { rows } = await db.query("SELECT * FROM expense_categories WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "expense_categories.csv", rows, autoColumns(rows)); });
 
 router.get('/', listExpenses);
 router.post('/', createExpense);

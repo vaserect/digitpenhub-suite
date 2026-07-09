@@ -19,7 +19,7 @@ const API_MAP = {
   'affiliate-system': '/api/v1/affiliates', 'referral-program': '/api/v1/referrals',
   'coupons': '/api/v1/coupons', 'whatsapp-marketing': '/api/v1/whatsapp',
   'sms-marketing': '/api/v1/sms', 'inventory': '/api/v1/inventory/products',
-  'pos': '/api/v1/pos/sessions', 'recruitment': '/api/v1/recruitment',
+  'pos': '/api/v1/pos/sessions', 'recruitment': '/api/v1/recruitment/jobs',
   'task-management': '/api/v1/tasks', 'forms': '/api/v1/leads/forms',
   'webhooks': '/api/v1/api-keys/webhooks', 'permissions': '/api/v1/permissions/roles',
   'segments': '/api/v1/segments', 'transactions': '/api/v1/billing/payments',

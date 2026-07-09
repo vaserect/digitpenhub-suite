@@ -32,6 +32,32 @@ function NavItemLabel({ name, meta, locked = false }) {
   );
 }
 
+const CATEGORY_ICONS = {
+  'platform-admin': '🛡️',
+  'platform-core': '🔗',
+  'integrations': '🔌',
+  'settings': '⚙️',
+  'marketing': '📣',
+  'ai': '🤖',
+  'seo': '🔍',
+  'creative': '🎨',
+  'hr': '👥',
+  'business': '💼',
+  'education': '🎓',
+  'commerce': '🛒',
+  'productivity': '⚡',
+  'analytics': '📊',
+  'utilities': '🔧',
+  'trust-compliance': '🛡️',
+  'finance-advanced': '💰',
+  'support-success': '💬',
+  'gamification': '🎮',
+  'mobile-access': '📱',
+  'media-production': '🎬',
+  'nonprofit-civic': '❤️',
+  'extended-vertical': '🏪',
+};
+
 export default function Sidebar({
   categories = [], view, activeCategoryKey, activeModuleSlug, onHome, onCategory, onModule, liveCount,
   onBilling, onAccount, onWhiteLabel, pinnedSlugs = [], onTogglePin,
@@ -128,7 +154,7 @@ export default function Sidebar({
                     className={`nav-item ${live > 0 ? 'has-live' : ''} ${view === 'category' && activeCategoryKey === c.key ? 'is-active' : ''}`}
                     onClick={() => onToggleCategory(c.key)}
                   >
-                    <span><ChevronIcon open={isOpen} /><span className="dot" />{c.name}</span>
+                    <span>{CATEGORY_ICONS[c.key] || '📦'} <ChevronIcon open={isOpen} /><span className="dot" />{c.name}</span>
                     <span className="nav-frac">{live}/{c.modules.length}</span>
                   </button>
                   {isOpen && (

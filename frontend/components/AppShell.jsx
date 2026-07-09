@@ -52,6 +52,7 @@ import MarketingFormsModule from './modules/MarketingFormsModule';
 import PlatformCoreModule from './modules/PlatformCoreModule';
 import GenericModule from './modules/GenericModule';
 import { DocumentsModule, ContentCalendarModule, AffiliatesModule } from './modules/AdvancedModules';
+import SettingsModule from './modules/SettingsModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15152,6 +15153,9 @@ export default function AppShell() {
       )}
       {view === 'module' && (activeModuleSlug === 'affiliate-system') && (
         <AffiliatesModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'settings') && (
+        <SettingsModule goHome={goHome} openModule={openModule} />
       )}
       {view === 'module' && (activeModuleSlug === 'ai-chatbot-builder' || activeModuleSlug === 'ai-writer' || activeModuleSlug === 'ai-email-assistant' || activeModuleSlug === 'ai-proposal-generator' || activeModuleSlug === 'ai-blog-generator' || activeModuleSlug === 'ai-translator' || activeModuleSlug === 'ai-customer-support' || activeModuleSlug === 'ai-meeting-notes' || activeModuleSlug === 'ai-knowledge-base' || activeModuleSlug === 'ai-image-generator' || activeModuleSlug === 'ai-voice-transcription-summarization') && (
         <AiModule goHome={goHome} />

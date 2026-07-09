@@ -22,6 +22,21 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ contracts: rows });
 }));
 
+router.get('/export', async (req, res) => { const { rows } = await db.query("SELECT * FROM contracts WHERE org_id = $1 ORDER BY created_at DESC", [req.user.orgId]); const { sendCsv, autoColumns } = require('../utils/csv'); sendCsv(res, "contracts.csv", rows, autoColumns(rows)); });
+router.get('/stats', async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT count(*)::int AS total,
+            count(*) FILTER (WHERE status='draft')::int AS draft,
+            count(*) FILTER (WHERE status='sent')::int AS sent,
+            count(*) FILTER (WHERE status='signed')::int AS signed,
+            count(*) FILTER (WHERE status='expired')::int AS expired
+     FROM contracts WHERE org_id = $1`,
+    [req.user.orgId]
+  );
+  res.json({ stats: rows[0] });
+});
+router.post('/bulk-delete', bulkDeleteHandler("contracts"));
+
 router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
     `SELECT * FROM contracts WHERE id = $1 AND org_id = $2`,
@@ -117,9 +132,5 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   if (!rowCount) return res.status(404).json({ error: 'Not found.' });
   res.json({ ok: true });
 }));
-
-router.post("/bulk-delete", bulkDeleteHandler("contracts"));
-router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM contracts WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "contracts.csv", rows, autoColumns(rows)); });
-router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM contracts WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = router;

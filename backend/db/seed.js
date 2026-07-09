@@ -14,11 +14,11 @@ const { seedEmailTemplates } = require('./seedEmailTemplates');
     for (let ci = 0; ci < CATEGORIES.length; ci++) {
       const cat = CATEGORIES[ci];
       const { rows } = await dbClient.query(
-        `INSERT INTO categories (key, name, badge, sort_order)
-         VALUES ($1,$2,$3,$4)
-         ON CONFLICT (key) DO UPDATE SET name=$2, badge=$3, sort_order=$4
+        `INSERT INTO categories (key, name, badge, sort_order, tier)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (key) DO UPDATE SET name=$2, badge=$3, sort_order=$4, tier=$5
          RETURNING id`,
-        [cat.key, cat.name, cat.badge, ci]
+        [cat.key, cat.name, cat.badge, ci, cat.tier || 1]
       );
       const categoryId = rows[0].id;
 

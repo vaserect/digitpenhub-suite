@@ -1906,6 +1906,11 @@ export default function AppShell() {
       const modulesRes = await apiFetch('/api/v1/modules');
       setCategories(modulesRes.categories || []);
       setOrgPlan(modulesRes.plan || null);
+      // Use server-computed counts that exclude tier 2 (settings) and tier 3 (admin)
+      if (modulesRes.totalModules !== undefined) {
+        setTotalModules(modulesRes.totalModules);
+        setActiveModules(modulesRes.activeModules);
+      }
     } catch (err) {
       setLoadError(err.message || 'Could not load the workspace.');
     } finally {
@@ -1974,19 +1979,24 @@ export default function AppShell() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [view, activeModuleSlug, gdUndo, gdRedo]);
 
-  const totalModules = useMemo(
-    () => categories.reduce((sum, c) => sum + c.modules.length, 0),
+  // Tier 1 categories only — these are what count as "modules"
+  const moduleCategories = useMemo(
+    () => categories.filter(c => (c.tier || 1) === 1),
     [categories]
+  );
+  const totalModules = useMemo(
+    () => moduleCategories.reduce((sum, c) => sum + c.modules.length, 0),
+    [moduleCategories]
   );
   const activeModules = useMemo(() => {
     const list = [];
-    categories.forEach((c) => {
+    moduleCategories.forEach((c) => {
       c.modules.forEach((m) => {
         if (m.status === 'active') list.push({ ...m, categoryName: c.name });
       });
     });
     return list;
-  }, [categories]);
+  }, [moduleCategories]);
 
   const pinnedModules = useMemo(
     () => activeModules.filter((m) => pinnedSlugs.includes(m.slug)),
@@ -7605,7 +7615,7 @@ export default function AppShell() {
     );
   }
 
-  const activeCategory = categories.find((c) => c.key === activeCategoryKey);
+  const activeCategory = moduleCategories.find((c) => c.key === activeCategoryKey);
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -7672,7 +7682,7 @@ export default function AppShell() {
 
       <div className={["app-shell", navOpen ? 'nav-open' : '', sidebarCollapsed ? 'sidebar-collapsed' : ''].filter(Boolean).join(' ')}>
         <Sidebar
-          categories={categories}
+          moduleCategories={moduleCategories}
           view={view}
           activeCategoryKey={activeCategoryKey}
           activeModuleSlug={activeModuleSlug}
@@ -7751,14 +7761,14 @@ export default function AppShell() {
                   <h2 className="section-title">Recently used</h2>
                   <div className="pinned-row" style={{ marginBottom: 28 }}>
                     {recentModules.slice(0, 4).map((slug) => {
-                      const m = categories.flatMap(c => c.modules || []).find(mod => mod.slug === slug);
+                      const m = moduleCategories.flatMap(c => c.modules || []).find(mod => mod.slug === slug);
                       if (!m) return null;
                       return (
                         <button key={slug} className="pinned-card" onClick={() => openModule(slug)}>
                           <div className="pinned-icon">{initials(m.name)}</div>
                           <div className="pinned-info">
                             <div className="ptitle">{m.name}</div>
-                            <div className="ptag">{categories.find(c => c.modules?.some(mod => mod.slug === slug))?.name || ''}</div>
+                            <div className="ptag">{moduleCategories.find(c => c.modules?.some(mod => mod.slug === slug))?.name || ''}</div>
                             <div className="pstatus"><span className="pip" />Open</div>
                           </div>
                         </button>
@@ -7774,7 +7784,7 @@ export default function AppShell() {
 
               <h2 className="section-title">All categories</h2>
               <div className="cat-grid">
-                {categories.map((c) => {
+                {moduleCategories.map((c) => {
                   const live = liveCount(c);
                   const pct = Math.max((live / c.modules.length) * 100, live > 0 ? 6 : 0);
                   return (

@@ -33,15 +33,12 @@ function NavItemLabel({ name, meta, locked = false }) {
 }
 
 const CATEGORY_ICONS = {
-  'platform-admin': '🛡️',
   'platform-core': '🔗',
   'integrations': '🔌',
-  'settings': '⚙️',
   'marketing': '📣',
   'ai': '🤖',
   'seo': '🔍',
   'creative': '🎨',
-  'hr': '👥',
   'business': '💼',
   'education': '🎓',
   'commerce': '🛒',
@@ -58,15 +55,27 @@ const CATEGORY_ICONS = {
   'extended-vertical': '🏪',
 };
 
+const SETTINGS_ICONS = {
+  'account': '👤',
+  'billing': '💳',
+  'team': '👥',
+  'notifications': '🔔',
+  'white-label': '🏷️',
+  'api-keys': '🔑',
+  'integrations': '🔌',
+  'feature-flags': '🚩',
+};
+
 export default function Sidebar({
-  categories = [], view, activeCategoryKey, activeModuleSlug, collapsed, onToggleCollapse, onHome, onCategory, onModule, liveCount,
+  moduleCategories = [], view, activeCategoryKey, activeModuleSlug, collapsed, onToggleCollapse,
+  onHome, onCategory, onModule, liveCount,
   onBilling, onAccount, onWhiteLabel, pinnedSlugs = [], onTogglePin,
   sidebarSearch, onSidebarSearchChange, expandedCats, onToggleCategory,
 }) {
   const q = (sidebarSearch || '').trim().toLowerCase();
 
   const searchResults = q
-    ? categories.flatMap((c) =>
+    ? moduleCategories.flatMap((c) =>
         c.modules
           .filter((m) => m.status === 'active' && m.name.toLowerCase().includes(q))
           .map((m) => ({ ...m, categoryName: c.name }))
@@ -146,7 +155,7 @@ export default function Sidebar({
               <>
                 <div className="nav-section-label">Pinned</div>
                 {pinnedSlugs.map((slug) => {
-                  const mod = categories.flatMap((c) => c.modules.map((m) => ({ ...m, categoryName: c.name }))).find((m) => m.slug === slug);
+                  const mod = moduleCategories.flatMap((c) => c.modules.map((m) => ({ ...m, categoryName: c.name }))).find((m) => m.slug === slug);
                   if (!mod) return null;
                   return (
                     <button key={slug} className={`nav-item nav-item-sub ${activeModuleSlug === slug ? 'is-active' : ''}`} onClick={() => onModule(slug)}>
@@ -160,8 +169,8 @@ export default function Sidebar({
               </>
             )}
 
-            <div className="nav-section-label">Categories</div>
-            {categories.map((c) => {
+            <div className="nav-section-label">Modules</div>
+            {moduleCategories.map((c) => {
               const live = liveCount ? liveCount(c) : 0;
               const isOpen = !!expandedCats[c.key];
               return (
@@ -201,19 +210,34 @@ export default function Sidebar({
         )}
       </div>
 
-      <div className="sidebar-footer">
-        <div className="nav-section-label">Workspace</div>
+      <div className="sidebar-footer sidebar-footer-workspace">
+        <div className="nav-section-label">Workspace Settings</div>
         <Link href="/account" className={`nav-item ${view === 'account' ? 'is-active' : ''}`} onClick={onAccount}>
           <span><span className="dot" />Account &amp; Security</span>
         </Link>
         <Link href="/billing" className={`nav-item ${view === 'billing' ? 'is-active' : ''}`} onClick={onBilling}>
           <span><span className="dot" />Billing &amp; Plans</span>
         </Link>
+        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'team' ? 'is-active' : ''}`} onClick={() => onModule && onModule('team')}>
+          <span><span className="dot" />Team / Roles</span>
+        </button>
+        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'notifications' ? 'is-active' : ''}`} onClick={() => onModule && onModule('notifications')}>
+          <span><span className="dot" />Notifications</span>
+        </button>
         {onWhiteLabel && (
           <button className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`} onClick={onWhiteLabel}>
             <span><span className="dot" />White Label</span>
           </button>
         )}
+        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'api-keys' ? 'is-active' : ''}`} onClick={() => onModule && onModule('api-keys')}>
+          <span><span className="dot" />API Keys</span>
+        </button>
+        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'integrations' ? 'is-active' : ''}`} onClick={() => onModule && onModule('integrations')}>
+          <span><span className="dot" />Integrations</span>
+        </button>
+        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'feature-flags' ? 'is-active' : ''}`} onClick={() => onModule && onModule('feature-flags')}>
+          <span><span className="dot" />Feature Flags</span>
+        </button>
       </div>
     </nav>
   );

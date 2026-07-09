@@ -153,12 +153,18 @@ const ROUTES = {
   'Survey Builder': '/modules/survey-builder',
 };
 
+// ── Tier classification ───────────────────────────────────────────────────────
+//  1 = Workspace Module (customer-facing feature — counts toward module stats)
+//  2 = Workspace Setting (account/config — separate sidebar section)
+//  3 = Platform Administration (Super Admin — isolated route/layout/nav)
+// Never tier 1 or 2 items in the same category — each category is one tier.
+
 // ── Categories ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
-  // 1. PLATFORM ADMINISTRATION (8 modules — super-admin only)
+  // 1. PLATFORM ADMINISTRATION — Tier 3 (8 modules, isolated route, super admin)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'platform-admin', name: 'Platform Administration', badge: 'PA', modules: [
+  { key: 'platform-admin', name: 'Platform Administration', badge: 'PA', tier: 3, modules: [
     'Super Admin Panel',
     'Add-On & Third-Party Integration Marketplace Manager',
     'Impersonation & Support Tools',
@@ -170,9 +176,9 @@ const CATEGORIES = [
   ]},
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 2. PLATFORM CORE (20 modules — workspace-facing infrastructure)
+  // 2. PLATFORM CORE — Tier 1 (20 modules — workspace-facing infrastructure)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'platform-core', name: 'Platform Core', badge: 'PC', modules: [
+  { key: 'platform-core', name: 'Platform Core', badge: 'PC', tier: 1, modules: [
     'Custom Fields Engine',
     'Global Search',
     'Digital Asset Management (DAM)',
@@ -198,7 +204,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 3. INTEGRATIONS & DEVELOPER ECOSYSTEM (4 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'integrations', name: 'Integrations & Developer Ecosystem', badge: 'ID', modules: [
+  { key: 'integrations', name: 'Integrations & Developer Ecosystem', badge: 'ID', tier: 1, modules: [
     'Native Integrations Hub',
     'Public Developer Portal + App Submission Pipeline',
     'Sandbox API Playground',
@@ -208,7 +214,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 4. MARKETING (40 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'marketing', name: 'Marketing', badge: 'MK', modules: [
+  { key: 'marketing', name: 'Marketing', badge: 'MK', tier: 1, modules: [
     'CRM',
     'Lead Generation',
     'Landing Page Builder',
@@ -255,7 +261,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 5. AI (22 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'ai', name: 'AI', badge: 'AI', modules: [
+  { key: 'ai', name: 'AI', badge: 'AI', tier: 1, modules: [
     'AI Writer',
     'AI Chatbot Builder',
     'AI Email Assistant',
@@ -284,7 +290,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 6. SEO + SEM (16 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'seo', name: 'SEO + SEM', badge: 'SE', modules: [
+  { key: 'seo', name: 'SEO + SEM', badge: 'SE', tier: 1, modules: [
     'Keyword Research',
     'SEO Audit',
     'Rank Tracking',
@@ -307,7 +313,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 7. CREATIVE (9 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'creative', name: 'Creative', badge: 'CR', modules: [
+  { key: 'creative', name: 'Creative', badge: 'CR', tier: 1, modules: [
     'Graphic Design Editor',
     'Brand Kit',
     'Logo Maker',
@@ -320,9 +326,9 @@ const CATEGORIES = [
   ]},
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 8. BUSINESS (36 modules)
+  // 8. BUSINESS — Tier 1 (36 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'business', name: 'Business', badge: 'BI', modules: [
+  { key: 'business', name: 'Business', badge: 'BI', tier: 1, modules: [
     'Accounting',
     'Invoices',
     'Quotations',
@@ -365,7 +371,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 9. EDUCATION (12 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'education', name: 'Education', badge: 'ED', modules: [
+  { key: 'education', name: 'Education', badge: 'ED', tier: 1, modules: [
     'Learning Management System',
     'School Management',
     'CBT Platform',
@@ -384,7 +390,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 10. COMMERCE (19 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'commerce', name: 'Commerce', badge: 'CO', modules: [
+  { key: 'commerce', name: 'Commerce', badge: 'CO', tier: 1, modules: [
     'Online Store Builder',
     'Order Management',
     'Marketplace',
@@ -410,7 +416,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 11. PRODUCTIVITY (11 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'productivity', name: 'Productivity', badge: 'PR', modules: [
+  { key: 'productivity', name: 'Productivity', badge: 'PR', tier: 1, modules: [
     'Calendar',
     'Notes',
     'File Manager',
@@ -428,7 +434,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 12. ANALYTICS (11 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'analytics', name: 'Analytics', badge: 'AN', modules: [
+  { key: 'analytics', name: 'Analytics', badge: 'AN', tier: 1, modules: [
     'Business Dashboard',
     'Marketing Dashboard',
     'Sales Dashboard',
@@ -446,7 +452,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 13. UTILITIES (8 modules)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'utilities', name: 'Utilities', badge: 'UT', modules: [
+  { key: 'utilities', name: 'Utilities', badge: 'UT', tier: 1, modules: [
     'PDF Tools',
     'File Converter',
     'Barcode Generator',
@@ -460,7 +466,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 14. TRUST, COMPLIANCE & LOCALIZATION (20 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'trust-compliance', name: 'Trust, Compliance & Localization', badge: 'TC', modules: [
+  { key: 'trust-compliance', name: 'Trust, Compliance & Localization', badge: 'TC', tier: 1, modules: [
     'GDPR/CCPA Data Request Center',
     'Consent & Cookie Management',
     'Backup & Disaster Recovery Console',
@@ -486,7 +492,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 15. SUPPORT & SUCCESS (7 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'support-success', name: 'Support & Success', badge: 'SS', modules: [
+  { key: 'support-success', name: 'Support & Success', badge: 'SS', tier: 1, modules: [
     'NPS / CSAT Survey Automation',
     'Customer Health Score',
     'SLA Management',
@@ -499,7 +505,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 16. FINANCE — ADVANCED (20 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'finance-advanced', name: 'Finance — Advanced', badge: 'FA', modules: [
+  { key: 'finance-advanced', name: 'Finance — Advanced', badge: 'FA', tier: 1, modules: [
     'Multi-entity Accounting',
     'Budget Planning & Forecasting',
     'Bill Pay / Accounts Payable Automation',
@@ -525,7 +531,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 17. GAMIFICATION & ENGAGEMENT (4 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'gamification', name: 'Gamification & Engagement', badge: 'GM', modules: [
+  { key: 'gamification', name: 'Gamification & Engagement', badge: 'GM', tier: 1, modules: [
     'Achievement / Badge System',
     'Leaderboards',
     'Streaks / Habit Tracking',
@@ -535,7 +541,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 18. MOBILE & ACCESS (3 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'mobile-access', name: 'Mobile & Access', badge: 'MA', modules: [
+  { key: 'mobile-access', name: 'Mobile & Access', badge: 'MA', tier: 1, modules: [
     'Native Mobile App',
     'Offline Mode',
     'White-Label Mobile App Builder',
@@ -544,7 +550,7 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 19. MEDIA & CONTENT PRODUCTION (5 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'media-production', name: 'Media & Content Production', badge: 'MP', modules: [
+  { key: 'media-production', name: 'Media & Content Production', badge: 'MP', tier: 1, modules: [
     'Podcast Hosting',
     'Video Hosting/Streaming',
     'Interactive Product Demo Builder',
@@ -555,16 +561,13 @@ const CATEGORIES = [
   // ═══════════════════════════════════════════════════════════════════════════
   // 20. NON-PROFIT & CIVIC (3 modules — NEW category)
   // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'nonprofit-civic', name: 'Non-Profit & Civic', badge: 'NC', modules: [
+  { key: 'nonprofit-civic', name: 'Non-Profit & Civic', badge: 'NC', tier: 1, modules: [
     'Donation Management',
     'Volunteer Management',
     'Grant Tracking',
   ]},
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 21. EXTENDED VERTICAL MODULES (10 modules — NEW category)
-  // ═══════════════════════════════════════════════════════════════════════════
-  { key: 'extended-vertical', name: 'Extended Vertical Modules', badge: 'EV', modules: [
+  { key: 'extended-vertical', name: 'Extended Vertical Modules', badge: 'EV', tier: 1, modules: [
     'Legal Practice Management',
     'Insurance Policy & Claims Management',
     'Manufacturing / Quality Control',
@@ -576,20 +579,50 @@ const CATEGORIES = [
     'Religious/Congregation Management',
     'Government/RFP Response Management',
   ]},
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Tier 1 count: 280 modules across 19 categories (includes Platform Core + Integrations)
+  // Tier 2 count: 8 workspace-facing settings — rendered separately
+  // Tier 3 count: 8 modules in Platform Administration
+  // Total: 288 (280 + 0 + 8)
+  // Note: Tier 2 items are not counted in the 288 total as they are settings, not modules.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WORKSPACE SETTINGS — Tier 2 (separate sidebar section, never in module counts)
+  // These are not modules — they're account/workspace configuration pages.
+  // Rendered in the sidebar footer as a visually distinct "Workspace" section.
+  // ═══════════════════════════════════════════════════════════════════════════
+  { key: 'settings', name: 'Workspace Settings', badge: 'ST', tier: 2, modules: [
+    'Account & Security',
+    'Billing & Plans',
+    'Team / Roles',
+    'Notifications',
+    'White Label',
+    'API Keys',
+    'Integrations',
+    'Feature Flags',
+  ]},
 ];
 
 function slugify(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-// ── Validation — verify the 288 count ─────────────────────────────────────────
-const total = CATEGORIES.reduce((sum, c) => sum + c.modules.length, 0);
+// ── Validation — verify the 288 count (tier 1 + tier 3 only) ────────────────
+// Tier 2 "Workspace Settings" items are not counted as modules — they're
+// workspace configuration pages rendered separately in the sidebar footer.
+const total = CATEGORIES
+  .filter(c => c.tier !== 2)
+  .reduce((sum, c) => sum + c.modules.length, 0);
+const settingsCount = CATEGORIES
+  .filter(c => c.tier === 2)
+  .reduce((sum, c) => sum + c.modules.length, 0);
 const activeCount = [...ACTIVE].length;
 const newCount = total - activeCount;
 if (total !== 288) {
-  console.warn(`WARNING: Expected 288 modules, got ${total} (${activeCount} active + ${newCount} new). Check categories.data.js.`);
+  console.warn(`WARNING: Expected 288 modules (19 categories + Platform Admin), got ${total} (${settingsCount} settings items excluded as tier 2). Check categories.data.js.`);
 } else {
-  // Verified during require — totals are correct.
+  // Verified during require — totals are correct. Settings items (tier 2) are excluded.
 }
 
 module.exports = { CATEGORIES, ACTIVE, ROUTES, slugify };

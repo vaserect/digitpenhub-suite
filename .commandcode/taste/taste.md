@@ -18,3 +18,4 @@ See [workflow/taste.md](workflow/taste.md)
 
 # architecture
 - Build the 10 Platform Core modules as highest priority glue infrastructure: Custom Fields Engine, Global Search, DAM, Approval Workflow, Unified Inbox, Visual Workflow Builder, Public API + Webhooks, No-Code Database, E-Signature, GDPR Data Request Center. Confidence: 0.75
+- Enforce three-tier information architecture: (1) Workspace Modules (customer-facing features count toward module stats), (2) Workspace Settings (account/config — separate sidebar section, never in module counts/search), (3) Platform Administration (Super Admin — isolated route/layout/nav with RBAC, never reachable from regular navigation). Confidence: 0.85

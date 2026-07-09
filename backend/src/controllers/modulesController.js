@@ -2,11 +2,14 @@ const db = require('../db');
 const { getOrgPlan, FREE_TIER_MODULE_SLUGS } = require('../utils/planAccess');
 
 // Returns categories with their modules nested inside, already in display order.
-// This single endpoint is what makes the dashboard "auto-activate" tiles — the frontend
-// has zero hardcoded knowledge of which modules exist or which are live.
+// Tier 1 = workspace-facing feature modules (counted in module stats).
+// Tier 2 = workspace settings (separate section, not counted).
+// Tier 3 = platform administration (isolated route, super admin only).
+// The frontend uses the `tier` field to render each group in the correct
+// sidebar section — the API doesn't decide the UI, it just labels the data.
 async function listModules(req, res) {
   const { rows } = await db.query(
-    `SELECT c.key as category_key, c.name as category_name, c.badge as category_badge,
+    `SELECT c.key as category_key, c.name as category_name, c.badge as category_badge, c.tier,
             m.name as module_name, m.slug, m.status, m.route
      FROM categories c
      JOIN modules m ON m.category_id = c.id
@@ -22,6 +25,7 @@ async function listModules(req, res) {
         key: row.category_key,
         name: row.category_name,
         badge: row.category_badge,
+        tier: row.tier,
         modules: [],
       });
     }
@@ -35,9 +39,18 @@ async function listModules(req, res) {
     });
   }
 
+  // Compute counts from tier 1 categories only — Settings (tier 2) and
+  // Platform Admin (tier 3) are not "modules" in the feature sense.
+  const allCategories = [...byKey.values()];
+  const moduleCategories = allCategories.filter(c => c.tier === 1);
+  const totalModules = moduleCategories.reduce((sum, c) => sum + c.modules.length, 0);
+  const activeModules = moduleCategories.reduce((sum, c) => sum + c.modules.filter(m => m.status === 'active').length, 0);
+
   res.json({
-    categories: [...byKey.values()],
+    categories: allCategories,
     plan: { slug: plan.slug, name: plan.name, allModules: plan.all_modules },
+    totalModules,
+    activeModules,
   });
 }
 

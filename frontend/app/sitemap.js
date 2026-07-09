@@ -14,7 +14,7 @@ async function fetchSitemapEntries(path, key) {
 }
 
 export default async function sitemap() {
-  const [pages, stores, forms] = await Promise.all([
+  const [pages, stores, forms, bookings] = await Promise.all([
     fetchSitemapEntries('/api/v1/pages/public-sitemap', 'pages').then((rows) =>
       rows.map((r) => ({ url: `${SITE_URL}/p/${r.slug}`, updated_at: r.updated_at }))
     ),
@@ -24,9 +24,12 @@ export default async function sitemap() {
     fetchSitemapEntries('/api/v1/forms/public-sitemap', 'forms').then((rows) =>
       rows.map((r) => ({ url: `${SITE_URL}/forms/${r.id}`, updated_at: r.updated_at }))
     ),
+    fetchSitemapEntries('/api/v1/appointments/public-sitemap', 'appointments').then((rows) =>
+      rows.map((r) => ({ url: `${SITE_URL}/book/${r.org_id}`, updated_at: r.updated_at }))
+    ),
   ]);
 
-  const entries = [...pages, ...stores, ...forms];
+  const entries = [...pages, ...stores, ...forms, ...bookings];
 
   return [
     {

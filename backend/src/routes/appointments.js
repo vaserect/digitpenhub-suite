@@ -17,6 +17,10 @@ const router = Router();
 // Public — no auth
 router.get('/public/:orgId', getPublicBookingInfo);
 router.post('/public/:orgId', publicSubmitLimiter, createPublicBooking);
+router.get('/public-sitemap', async (req, res) => {
+  const { rows } = await db.query("SELECT DISTINCT org_id FROM appointments WHERE status != 'cancelled'");
+  res.json({ appointments: rows });
+});
 
 // Protected
 router.use(requireAuth);

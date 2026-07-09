@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
 import Button from '../ui/Button';
@@ -8,6 +8,8 @@ import Modal from '../ui/Modal';
 import EmptyState from '../ui/EmptyState';
 import Badge from '../ui/Badge';
 import { SkeletonRows } from '../ui/Skeleton';
+import SearchInput from '../ui/SearchInput';
+import { useSearchHotkey } from '../../lib/hotkeys';
 
 export default function ApiKeysModule({ goHome }) {
   const [keys, setKeys] = useState([]);
@@ -23,6 +25,8 @@ export default function ApiKeysModule({ goHome }) {
   const [whSecret, setWhSecret] = useState(null);
   const [deliveries, setDeliveries] = useState([]);
   const [viewDeliveriesFor, setViewDeliveriesFor] = useState(null);
+
+  useSearchHotkey();
 
   const load = useCallback(async () => {
     setLoading(true);

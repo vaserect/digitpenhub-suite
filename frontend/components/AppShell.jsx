@@ -1871,6 +1871,7 @@ export default function AppShell() {
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'b') { e.preventDefault(); setView('billing'); return; }
         if (e.key === ',') { e.preventDefault(); setView('account'); return; }
+        if (e.key === 'n' || e.key === 'f' || e.key === 'e') { e.preventDefault(); return; } // consumed by modules
         return;
       }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {

@@ -32,6 +32,7 @@ import FunnelTemplateGallery from './ui/FunnelTemplateGallery';
 import FormTemplateGallery from './ui/FormTemplateGallery';
 import CommandPalette from './ui/CommandPalette';
 import ApprovalModule from './modules/ApprovalWorkflow';
+import UrlShortenerModule from './modules/UrlShortener';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15079,88 +15080,8 @@ export default function AppShell() {
         </div>
       )}
 
-      {/* ── URL Shortener ────────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'url-shortener' && (
-        <div className="module-wrap">
-          <div className="module-head">
-            <button className="back-link" onClick={() => setView('home')}>← Back</button>
-            <h2>URL Shortener</h2>
-            <div style={{ display:'flex', gap:'0.5rem' }}>
-              <Button variant="secondary" onClick={() => exportCsv('/api/v1/url-shortener/export')}>Export CSV</Button>
-              <Button onClick={() => { setUrlDraft({ targetUrl:'', title:'', customSlug:'', expiresAt:'' }); setUrlForm(true); }}>+ Shorten URL</Button>
-            </div>
-          </div>
-          {urlStats && (
-            <div className="stat-grid" style={{ marginBottom: '1rem' }}>
-              <StatCard label="Total Links" value={urlStats.total} />
-              <StatCard label="Active" value={urlStats.active} />
-              <StatCard label="Total Clicks" value={urlStats.total_clicks} />
-            </div>
-          )}
-          {urlForm && (
-            <form onSubmit={handleCreateShortLink} style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'1rem', marginBottom:'0.75rem' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'0.5rem', marginBottom:'0.5rem' }}>
-                <input className="form-input" placeholder="Destination URL *" value={urlDraft.targetUrl} onChange={(e) => setUrlDraft((d)=>({...d,targetUrl:e.target.value}))} required style={{ gridColumn:'1/3' }} />
-                <input className="form-input" placeholder="Custom slug (optional)" value={urlDraft.customSlug} onChange={(e) => setUrlDraft((d)=>({...d,customSlug:e.target.value}))} style={{ fontFamily:'monospace' }} />
-                <input className="form-input" placeholder="Title (optional)" value={urlDraft.title} onChange={(e) => setUrlDraft((d)=>({...d,title:e.target.value}))} />
-                <input className="form-input" type="datetime-local" placeholder="Expires" value={urlDraft.expiresAt} onChange={(e) => setUrlDraft((d)=>({...d,expiresAt:e.target.value}))} />
-              </div>
-              <div style={{ display:'flex', gap:'0.5rem' }}>
-                <Button type="submit">Shorten</Button>
-                <Button variant="ghost" type="button" onClick={() => setUrlForm(false)}>Cancel</Button>
-              </div>
-            </form>
-          )}
-          <Table
-            loading={!urlLoaded}
-            rows={urlLinks}
-            getRowKey={(l) => l.id}
-            selectable
-            selectedKeys={urlSelected}
-            onSelectionChange={setUrlSelected}
-            emptyState={<EmptyState icon="🔗" title="No short links yet" description="Shorten your first URL to start tracking clicks." action={<Button onClick={() => setUrlForm(true)}>+ Shorten URL</Button>} />}
-            columns={[
-              { key: 'title', header: 'Title / Target', render: (l) => (
-                <>
-                  <div style={{ fontWeight:600, fontSize:'0.85rem' }}>{l.title || 'Untitled'}</div>
-                  <div style={{ fontSize:'0.72rem', color:'var(--muted)', maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.target_url}</div>
-                </>
-              ) },
-              { key: 'slug', header: 'Short Link', render: (l) => (
-                <>
-                  <code style={{ fontSize:'0.8rem', background:'var(--surface)', padding:'2px 6px', borderRadius:4 }}>/s/{l.slug}</code>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopyLink(l.slug)}>{urlCopied===l.slug ? '✓ Copied' : 'Copy'}</Button>
-                </>
-              ) },
-              { key: 'clicks', header: 'Clicks', render: (l) => <span style={{ fontWeight:700, color:'var(--accent)' }}>{l.clicks}</span> },
-              { key: 'status', header: 'Status', render: (l) => <StatusBadge status={l.status} /> },
-              { key: 'created_at', header: 'Created', render: (l) => <span style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{new Date(l.created_at).toLocaleDateString()}</span> },
-              { key: 'actions', header: '', render: (l) => (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => apiFetch(`/api/v1/url-shortener/${l.id}`, { method:'PUT', body:JSON.stringify({ status: l.status==='active'?'inactive':'active' }) }).then(() => { const [s,ls] = [apiFetch('/api/v1/url-shortener/stats'), apiFetch('/api/v1/url-shortener/')]; Promise.all([s,ls]).then(([sv,lv]) => { setUrlStats(sv); setUrlLinks(lv.links||[]); }); })}>{l.status==='active'?'Disable':'Enable'}</Button>
-                  <Tooltip label="Delete this link">
-                    <Button variant="ghost" size="sm" style={{ color:'var(--danger)' }} onClick={() => handleDeleteShortLink(l.id)}>Delete</Button>
-                  </Tooltip>
-                </>
-              ) },
-            ]}
-          />
-          <BulkActionBar
-            selectedCount={urlSelected.length}
-            onClearSelection={() => setUrlSelected([])}
-            actions={[{ label:'Delete', variant:'danger', requiresConfirm:true, confirmTitle:`Delete ${urlSelected.length} link(s)?`, confirmDescription:"This can't be undone.", onClick:confirmUrlBulkDelete }]}
-          />
-          <ConfirmDialog
-            isOpen={!!urlConfirmDelete}
-            onClose={() => setUrlConfirmDelete(null)}
-            onConfirm={confirmUrlDelete}
-            title="Delete short link?"
-            description="This link will stop redirecting immediately. This can't be undone."
-            confirmLabel="Delete"
-            danger
-            loading={urlDeleting}
-          />
-        </div>
+        <UrlShortenerModule goHome={goHome} />
       )}
 
       {/* ── Asset Management ─────────────────────────────────────────────── */}

@@ -173,18 +173,17 @@ router.post('/skills', asyncHandler(async (req, res) => {
 // ── Idea Management ───────────────────────────────────────────────────────────
 router.get('/ideas', asyncHandler(async (req, res) => {
   const { status } = req.query;
-  const conditions = ['org_id = $1'];
+  const conditions = ['i.org_id = $1'];
   const params = [req.user.orgId];
   let idx = 2;
-  if (status) { conditions.push(`status = $${idx++}`); params.push(status); }
+  if (status) { conditions.push(`i.status = $${idx++}`); params.push(status); }
   const { rows } = await db.query(
     `SELECT i.*, u.full_name AS author_name,
-       (SELECT count(*) FROM idea_votes WHERE idea_id = i.id) AS votes,
-       EXISTS (SELECT 1 FROM idea_votes WHERE idea_id = i.id AND user_id = $${idx}) AS voted
+       (SELECT count(*) FROM idea_votes WHERE idea_id = i.id) AS votes
      FROM ideas i JOIN users u ON u.id = i.author_id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY votes DESC, i.created_at DESC`,
-    [...params, req.user.id]
+     ORDER BY i.created_at DESC`,
+    params
   );
   res.json({ ideas: rows });
 }));

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
@@ -11,6 +12,7 @@ import Pagination from '../ui/Pagination';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import Modal from '../ui/Modal';
 import Tooltip from '../ui/Tooltip';
+import { useHotkey, useSearchHotkey } from '../../lib/hotkeys';
 
 const CRM_PAGE_SIZE = 10;
 const STAGES = ['new', 'contacted', 'proposal_sent', 'won', 'lost'];
@@ -38,6 +40,9 @@ export default function CRMModule({ goHome, showToast }) {
   const [crmNewTask, setCrmNewTask] = useState({ title: '', dueDate: '' });
   const [crmTagInput, setCrmTagInput] = useState('');
   const [crmImporting, setCrmImporting] = useState(false);
+
+  useSearchHotkey();
+  useHotkey('n', () => { setShowContactForm(true); });
 
   async function loadCrm() {
     const data = await apiFetch('/api/v1/crm/contacts');

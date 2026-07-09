@@ -11,6 +11,11 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ tables: rows });
 }));
 
+router.get('/export', async (req, res) => { const { sendCsv, autoColumns } = require('../utils/csv'); const { rows } = await db.query('SELECT id, name, slug, row_count, created_at FROM data_tables WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]); sendCsv(res, 'data_tables.csv', rows, autoColumns(rows)); });
+router.get('/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total, COALESCE(sum(row_count),0)::int AS total_rows FROM data_tables WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+router.post('/bulk-delete', bulkDeleteHandler('data_tables'));
+
 router.post('/', asyncHandler(async (req, res) => {
   const { name, schema } = req.body || {};
   if (!name?.trim()) return res.status(400).json({ error: 'name is required.' });

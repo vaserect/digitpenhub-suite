@@ -22460,7 +22460,10 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'graphic-design-editor','basic-video-editor','cloud-storage','file-manager',
         'workflow-automation','marketplace','certificates','learning-management-system',
         'school-management','assignments','cbt-platform','student-portal','teacher-portal',
-        'parent-portal','online-store-builder'
+        'parent-portal','online-store-builder',
+        'inbox','notifications','custom-fields','permissions','dedup',
+        'native-integrations','collaborative-editing','master-data-management',
+        'global-search','activity-feed','approval-workflow'
       ].includes(activeModuleSlug) && (
         <GenericModule moduleSlug={activeModuleSlug} goHome={goHome} categories={categories} />
       )}

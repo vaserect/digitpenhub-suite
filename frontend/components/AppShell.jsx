@@ -46,6 +46,10 @@ import QuotationsModule from './modules/QuotationsModule';
 import EducationModule from './modules/EducationModule';
 import CommerceModule from './modules/CommerceModule';
 import SeoModule from './modules/SeoModule';
+import HelpdeskModule from './modules/HelpdeskModule';
+import AiModule from './modules/AiModule';
+import MarketingFormsModule from './modules/MarketingFormsModule';
+import PlatformCoreModule from './modules/PlatformCoreModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15135,6 +15139,18 @@ export default function AppShell() {
       {view === 'module' && (activeModuleSlug.startsWith('seo-') || activeModuleSlug === 'keyword-research' || activeModuleSlug === 'rank-tracking' || activeModuleSlug === 'backlink-monitoring' || activeModuleSlug === 'schema-generator' || activeModuleSlug === 'sitemap-generator' || activeModuleSlug === 'meta-generator' || activeModuleSlug === 'robots-generator' || activeModuleSlug === 'seo-audit' || activeModuleSlug === 'accessibility-wcag-audit-tool' || activeModuleSlug === 'page-speed-core-web-vitals-monitor' || activeModuleSlug === 'sem-ad-campaign-bid-roas-tracker' || activeModuleSlug === 'ai-seo-content-optimizer') && (
         <SeoModule goHome={goHome} />
       )}
+      {view === 'module' && (activeModuleSlug === 'help-desk') && (
+        <HelpdeskModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'ai-chatbot-builder' || activeModuleSlug === 'ai-writer' || activeModuleSlug === 'ai-email-assistant' || activeModuleSlug === 'ai-proposal-generator' || activeModuleSlug === 'ai-blog-generator' || activeModuleSlug === 'ai-translator' || activeModuleSlug === 'ai-customer-support' || activeModuleSlug === 'ai-meeting-notes' || activeModuleSlug === 'ai-knowledge-base' || activeModuleSlug === 'ai-image-generator' || activeModuleSlug === 'ai-voice-transcription-summarization') && (
+        <AiModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'forms' || activeModuleSlug === 'popup-builder' || activeModuleSlug === 'funnel-builder' || activeModuleSlug === 'quiz-builder' || activeModuleSlug === 'survey-builder') && (
+        <MarketingFormsModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'custom-fields' || activeModuleSlug === 'custom-fields-engine' || activeModuleSlug === 'inbox' || activeModuleSlug === 'unified-inbox' || activeModuleSlug === 'notification-center' || activeModuleSlug === 'notifications' || activeModuleSlug === 'permissions') && (
+        <PlatformCoreModule goHome={goHome} />
+      )}
 
       {/* ── Asset Management ─────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'asset-management' && (
@@ -22340,7 +22356,12 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'link-in-bio','certificate-generator','barcode-generator','color-palette-generator',
         'json-formatter','password-generator','quiz-builder','popup-builder',
         'ai-chatbot-builder','ai-meeting-notes','ai-knowledge-base','ai-customer-support',
-        'ai-translator','pdf-tools','image-converter','file-converter','robots-generator',
+        'ai-translator','ai-writer','ai-email-assistant','ai-proposal-generator',
+        'ai-blog-generator','ai-image-generator','ai-voice-transcription-summarization',
+        'help-desk','pdf-tools','image-converter','file-converter',
+        'forms','popup-builder','funnel-builder','quiz-builder','survey-builder',
+        'custom-fields','custom-fields-engine','inbox','unified-inbox',
+        'notification-center','notifications','permissions','robots-generator',
         'schema-generator','meta-generator','sitemap-generator','keyword-research',
         'rank-tracking','seo-audit','backlink-monitoring','background-removal',
         'image-compression','logo-maker','flyer-builder','resume-builder',

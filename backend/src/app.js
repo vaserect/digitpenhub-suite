@@ -50,6 +50,7 @@ const quotationsRoutes  = require('./routes/quotations');
 const tasksRoutes       = require('./routes/tasks');
 const formsRoutes       = require('./routes/forms');
 const helpdeskRoutes    = require('./routes/helpdesk');
+const helpdeskUpgradesRoutes = require('./routes/helpdeskUpgrades');
 const smsRoutes         = require('./routes/sms');
 const calendarRoutes    = require('./routes/calendar');
 const timeTrackingRoutes = require('./routes/timeTracking');
@@ -203,6 +204,7 @@ app.use('/api/v1/pos',           requireAuth, requireModuleAccess('pos'), posRou
 app.use('/api/v1/quotations',    requireAuth, requireModuleAccess('quotations'), quotationsRoutes);
 app.use('/api/v1/tasks',         requireAuth, requireModuleAccess('task-management'), tasksRoutes);
 app.use('/api/v1/forms',         formsRoutes);
+app.use('/api/v1/helpdesk',      requireAuth, requireModuleAccess('help-desk'), helpdeskUpgradesRoutes);
 app.use('/api/v1/helpdesk',      requireAuth, requireModuleAccess('help-desk'), helpdeskRoutes);
 app.use('/api/v1/sms',           requireAuth, requireModuleAccess('sms-marketing'), smsRoutes);
 app.use('/api/v1/calendar',      requireAuth, requireModuleAccess('calendar'), calendarRoutes);

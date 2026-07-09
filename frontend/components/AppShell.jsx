@@ -39,6 +39,10 @@ import ContractsModule from './modules/ContractsModule';
 import FeatureFlagsModule from './modules/FeatureFlagsModule';
 import GdprModule from './modules/GdprModule';
 import DunningModule from './modules/DunningModule';
+import AccountingModule from './modules/AccountingModule';
+import PayrollModule from './modules/PayrollModule';
+import ExpensesModule from './modules/ExpensesModule';
+import QuotationsModule from './modules/QuotationsModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15107,6 +15111,18 @@ export default function AppShell() {
       {view === 'module' && activeModuleSlug === 'dunning' && (
         <DunningModule goHome={goHome} />
       )}
+      {view === 'module' && activeModuleSlug === 'accounting' && (
+        <AccountingModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'payroll' && (
+        <PayrollModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'expenses' && (
+        <ExpensesModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'quotations' && (
+        <QuotationsModule goHome={goHome} />
+      )}
 
       {/* ── Asset Management ─────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'asset-management' && (
@@ -22299,7 +22315,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'payroll','subscriptions','delivery-tracking','brand-kit','password-manager',
         'api-keys','digital-products','qr-code-generator','custom-reports','sales-dashboard',
         'digital-asset-management','dam','contracts','e-signature','feature-flags','experiments',
-        'gdpr','consent-management','dunning',
+        'gdpr','consent-management','dunning','accounting','payroll','expenses','quotations',
         'marketing-dashboard','website-analytics','performance-reports','digital-business-cards',
         'link-in-bio','certificate-generator','barcode-generator','color-palette-generator',
         'json-formatter','password-generator','quiz-builder','popup-builder',

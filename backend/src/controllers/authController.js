@@ -169,7 +169,20 @@ async function verifyMfa(req, res) {
 async function logout(req, res) {
   if (req.sessionId) {
     await db.query(`UPDATE sessions SET revoked_at = now() WHERE id = $1`, [req.sessionId]);
-    await auditLog(req.user.id, 'logout', req.ip);
+    if (req.user) await auditLog(req.user.id, 'logout', req.ip);
+  } else {
+    // Even without a valid session (e.g. revoked/expired cookie), try to
+    // extract the session ID from the cookie and revoke it.
+    try {
+      const token = req.cookies[COOKIE_NAME];
+      if (token) {
+        const { verifySessionToken } = require('../utils/jwt');
+        const payload = verifySessionToken(token);
+        if (payload?.jti) {
+          await db.query(`UPDATE sessions SET revoked_at = now() WHERE id = $1`, [payload.jti]);
+        }
+      }
+    } catch { /* best-effort */ }
   }
   res.clearCookie(COOKIE_NAME);
   res.json({ ok: true });

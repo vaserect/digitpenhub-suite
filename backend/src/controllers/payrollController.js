@@ -14,12 +14,17 @@ async function getStats(req, res) {
   const { rows } = await db.query(
     `SELECT COUNT(*)::int AS total_runs,
        COUNT(*) FILTER(WHERE status='draft')::int AS drafts,
-       COUNT(*) FILTER(WHERE status='paid')::int AS paid_runs,
-       COALESCE(SUM(total_net) FILTER(WHERE status='paid'),0) AS total_paid
+       COUNT(*) FILTER(WHERE status='processed')::int AS processed_runs,
+       COALESCE(SUM(total_gross_ngn) FILTER(WHERE status='processed'),0) AS total_gross,
+       COALESCE(SUM(total_net_ngn) FILTER(WHERE status='processed'),0) AS total_net
      FROM payroll_runs WHERE org_id=$1`,
     [req.user.orgId]
   );
-  res.json({ ...rows[0], totalPaid: Number(rows[0].total_paid) });
+  const { rows: emp } = await db.query(
+    `SELECT COUNT(*)::int AS employees FROM employees WHERE org_id=$1`,
+    [req.user.orgId]
+  );
+  res.json({ stats: { ...rows[0], ...emp[0] } });
 }
 
 async function listRuns(req, res) {

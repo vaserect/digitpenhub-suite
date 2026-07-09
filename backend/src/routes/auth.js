@@ -63,7 +63,7 @@ router.post('/forgot-password', loginLimiter, forgotPassword);
 router.post('/reset-password', loginLimiter, resetPassword);
 
 // Protected
-router.post('/logout', requireAuth, logout);
+router.post('/logout', logout);
 router.get('/me', requireAuth, me);
 router.post('/change-password', requireAuth, loginLimiter, changePassword);
 router.patch('/me', requireAuth, updateProfile);

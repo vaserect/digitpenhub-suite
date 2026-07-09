@@ -16,6 +16,7 @@ const { requireModuleAccess, getOrgPlan, FREE_TIER_MODULE_SLUGS } = require('./u
 const authRoutes = require('./routes/auth');
 const moduleRoutes = require('./routes/modules');
 const crmRoutes = require('./routes/crm');
+const crmUpgradesRoutes = require('./routes/crmUpgrades');
 const pmRoutes = require('./routes/pm');
 const teamRoutes = require('./routes/team');
 const invoicesRoutes = require('./routes/invoices');
@@ -163,6 +164,7 @@ app.use('/api/v1/auth/sso', ssoRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/modules', moduleRoutes);
 app.use('/api/v1/crm', crmRoutes);
+app.use('/api/v1/crm', requireAuth, crmUpgradesRoutes);
 app.use('/api/v1/pm', requireAuth, requireModuleAccess('project-management'), pmRoutes);
 app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/invoices', invoicesRoutes);

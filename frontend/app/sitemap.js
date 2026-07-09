@@ -29,10 +29,29 @@ export default async function sitemap() {
   const entries = [...pages, ...stores, ...forms];
 
   return [
-    { url: SITE_URL, lastModified: new Date() },
+    {
+      url: SITE_URL,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1.0,
+    },
+    {
+      url: `${SITE_URL}/features`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/pricing`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
     ...entries.map((e) => ({
       url: e.url,
       lastModified: e.updated_at ? new Date(e.updated_at) : new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
     })),
   ];
 }

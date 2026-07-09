@@ -1,0 +1,12 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const { requireModuleAccess } = require('../utils/planAccess');
+const c = require('../controllers/funnelTemplatesController');
+const r = Router();
+r.use(requireAuth);
+r.use(requireModuleAccess('funnel-builder'));
+r.get('/', c.listTemplates);
+r.get('/categories', c.listCategories);
+r.get('/:id', c.getTemplate);
+r.post('/:id/use', c.useTemplate);
+module.exports = r;

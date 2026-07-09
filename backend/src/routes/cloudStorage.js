@@ -21,7 +21,24 @@ const storage = multer.diskStorage({
     cb(null, unique + path.extname(file.originalname));
   },
 });
-const upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } });
+const ALLOWED_MIMES = new Set([
+  'image/png','image/jpeg','image/gif','image/webp','image/svg+xml',
+  'application/pdf',
+  'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv','text/plain','text/rtf',
+  'application/json','application/zip',
+]);
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIMES.has(file.mimetype)) {
+      return cb(new Error(`File type ${file.mimetype} is not allowed. Allowed: images, PDFs, documents, spreadsheets, CSVs, JSON, and ZIP archives.`));
+    }
+    cb(null, true);
+  },
+});
 
 const r = Router();
 r.use(requireAuth);

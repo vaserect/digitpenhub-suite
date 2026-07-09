@@ -1,0 +1,12 @@
+# CONTACTS
+full_name,email,company,stage,value_ngn
+"Amara Okafor","amara.okafor@lagosfresh.ng","Lagos Fresh Foods","new","450000.00"
+"Tunde Bakare","tunde@bakarepartners.ng","Bakare & Partners Law","contacted","1200000.00"
+"Ngozi Eze","ngozi@ezeinteriors.ng","Eze Interiors","proposal_sent","850000.00"
+"Chidi Nwosu","chidi.nwosu@nwosulogistics.ng","Nwosu Logistics","won","2300000.00"
+"Folake Adeyemi","folake@adeyemiconsulting.ng","Adeyemi Consulting","lost","600000.00"
+
+# INVOICES
+invoice_number,status,total,created_at
+"INV-0001","paid","483750.00","Thu Jul 09 2026 01:01:35 GMT+0000 (Coordinated Universal Time)"
+"INV-0002","draft","193500.00","Thu Jul 09 2026 01:01:35 GMT+0000 (Coordinated Universal Time)"

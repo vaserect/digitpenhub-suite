@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 export default function TeamPage() {
   const [members, setMembers] = useState([]);
@@ -13,6 +14,7 @@ export default function TeamPage() {
   const [msg, setMsg] = useState('');
   const [orgName, setOrgName] = useState('');
   const [editOrg, setEditOrg] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -51,9 +53,9 @@ export default function TeamPage() {
     load();
   }
 
-  async function removeMember(id, name) {
-    if (!confirm(`Remove ${name} from the team?`)) return;
+  async function removeMember(id) {
     await fetch(`/api/v1/team/members/${id}`, { method: 'DELETE', credentials: 'include' });
+    setConfirmRemove(null);
     load();
   }
 
@@ -162,7 +164,7 @@ export default function TeamPage() {
                   <td style={{ padding: '12px', color: '#6b7280', fontSize: 12 }}>{new Date(m.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '12px' }}>
                     {canManage && m.role !== 'owner' && m.id !== me?.id && (
-                      <button onClick={() => removeMember(m.id, m.full_name)}
+                      <button onClick={() => setConfirmRemove(m)}
                         style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>Remove</button>
                     )}
                   </td>
@@ -211,6 +213,17 @@ export default function TeamPage() {
           <ProfileForm me={me} onSaved={() => { setMsg('Profile updated.'); load(); }} />
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmRemove}
+        onClose={() => setConfirmRemove(null)}
+        onConfirm={() => removeMember(confirmRemove.id)}
+        title={`Remove ${confirmRemove?.full_name}?`}
+        description="This action cannot be undone. The member will lose access to all resources."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        danger
+      />
     </div>
   );
 }

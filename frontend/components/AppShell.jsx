@@ -28,6 +28,9 @@ import FabricCanvasEditor from './creative/FabricCanvasEditor';
 import ModulePage from './ui/ModulePage';
 import PageState from './ui/PageState';
 import StarterTemplateModal from './ui/StarterTemplateModal';
+import FunnelTemplateGallery from './ui/FunnelTemplateGallery';
+import FormTemplateGallery from './ui/FormTemplateGallery';
+import CommandPalette from './ui/CommandPalette';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -235,6 +238,7 @@ export default function AppShell() {
   const [query, setQuery] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [navOpen, setNavOpen] = useState(false);
 
@@ -778,6 +782,7 @@ export default function AppShell() {
   const [fbFormDeleting, setFbFormDeleting] = useState(false);
   const [fbQuery, setFbQuery]               = useState('');
   const [fbTemplateOpen, setFbTemplateOpen] = useState(false);
+  const [fbTplGalleryOpen, setFbTplGalleryOpen] = useState(false);
   const [fbEditShowIfId, setFbEditShowIfId] = useState(null);
   const [fbEditShowIfDraft, setFbEditShowIfDraft] = useState({ showIfFieldId: '', showIfValue: '' });
   const [fbDragFieldId, setFbDragFieldId]   = useState(null);
@@ -1711,6 +1716,8 @@ export default function AppShell() {
   const [newFunnelName, setNewFunnelName] = useState('');
   const [funnelConfirmDelete, setFunnelConfirmDelete] = useState(null);
   const [funnelDeleting, setFunnelDeleting] = useState(false);
+  const [funnelTplGalleryOpen, setFunnelTplGalleryOpen] = useState(false);
+  const [funnelTplList, setFunnelTplList] = useState([]);
   const [showPageForm, setShowPageForm] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [tplGalleryOpen, setTplGalleryOpen] = useState(false);
@@ -1816,6 +1823,18 @@ export default function AppShell() {
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem('dph-theme', theme);
   }, [theme]);
+
+  // Global keyboard shortcut: ? opens help
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        setHelpOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -5725,18 +5744,27 @@ export default function AppShell() {
   async function useEmailTemplate(id) {
     let data;
     try {
-      data = await apiFetch(`/api/v1/email-templates/${id}`);
+      // Create campaign from template on the backend
+      const useRes = await apiFetch(`/api/v1/email-templates/${id}/use`, { method: 'POST' });
+      if (useRes.campaign) {
+        setEditingCampaignId(useRes.campaign.id);
+        setNewCampaign({ subject: useRes.campaign.subject, previewText: useRes.campaign.preview_text || '', bodyHtml: useRes.campaign.body_html || '', listId: '' });
+        setEmailTplGalleryOpen(false);
+        setShowCampaignForm(true);
+        showToast('Campaign created from template!');
+      } else {
+        // Fallback: load template data manually
+        data = await apiFetch(`/api/v1/email-templates/${id}`);
+        const t = data.template;
+        setEditingCampaignId(null);
+        setNewCampaign({ subject: t.subject, previewText: t.preview_text || '', bodyHtml: t.body_html, listId: '' });
+        setEmailTplGalleryOpen(false);
+        setShowCampaignForm(true);
+        showToast('Template applied — customize it below before sending.');
+      }
     } catch (err) {
       showToast(err.message || 'Unable to load that template.');
-      return;
     }
-    const t = data.template;
-    setEditingCampaignId(null);
-    setEmailFormError('');
-    setNewCampaign({ subject: t.subject, previewText: t.preview_text || '', bodyHtml: t.body_html, listId: '' });
-    setEmailTplGalleryOpen(false);
-    setShowCampaignForm(true);
-    showToast('Template applied — customize it below before sending.');
   }
 
   // Plain function returning JSX, same reasoning as renderTemplateGallery / renderPexelsPicker.
@@ -10253,7 +10281,10 @@ export default function AppShell() {
                   <button className="back-link" onClick={goHome}>← Workspace</button>
                   <div className="module-head">
                     <div><h1>Funnel Builder</h1><p className="module-sub">Chain pages into multi-step sales funnels.</p></div>
-                    <button className="primary-btn" onClick={() => setShowFunnelForm((v) => !v)}>+ New funnel</button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn-secondary" onClick={() => setFunnelTplGalleryOpen(true)}>Choose a template</button>
+                      <button className="primary-btn" onClick={() => setShowFunnelForm((v) => !v)}>+ New funnel</button>
+                    </div>
                   </div>
 
                   {showFunnelForm && (
@@ -10302,6 +10333,11 @@ export default function AppShell() {
                 confirmLabel="Delete"
                 danger
                 loading={funnelDeleting}
+              />
+              <FunnelTemplateGallery
+                isOpen={funnelTplGalleryOpen}
+                onClose={() => setFunnelTplGalleryOpen(false)}
+                onUsed={() => { loadFunnels(); }}
               />
             </div>
           )}
@@ -13815,7 +13851,8 @@ export default function AppShell() {
             description="Custom forms with conditional logic — collect structured responses from anyone, no login required. Part of Marketing."
             primaryAction={!fbForm && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Button variant="secondary" onClick={() => setFbTemplateOpen(true)}>Choose a template</Button>
+                <Button variant="secondary" onClick={() => setFbTemplateOpen(true)}>Choose a starter</Button>
+                <Button variant="secondary" onClick={() => setFbTplGalleryOpen(true)}>Choose from library</Button>
                 <Button onClick={startBlankFbForm}>Start from scratch</Button>
               </div>
             )}
@@ -13944,7 +13981,7 @@ export default function AppShell() {
                   action={(
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                       <Button onClick={startBlankFbForm}>Start from scratch</Button>
-                      <Button variant="secondary" onClick={() => setFbTemplateOpen(true)}>Choose a template</Button>
+                      <Button variant="secondary" onClick={() => setFbTplGalleryOpen(true)}>Choose from library</Button>
                     </div>
                   )}
                 />
@@ -14020,6 +14057,11 @@ export default function AppShell() {
               description="Use a structured starting point, then add or remove fields to fit your workflow."
               templates={surveyStarterTemplates}
               onUse={useFbStarterTemplate}
+            />
+            <FormTemplateGallery
+              isOpen={fbTplGalleryOpen}
+              onClose={() => setFbTplGalleryOpen(false)}
+              onUsed={(form) => { if (form) { setFbDraft({ name: form.name, fields: form.fields || [] }); loadForms(); } }}
             />
           </ModulePage>
         );
@@ -22296,6 +22338,47 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
       )}
 
       <Toast message={toastMessage} open={toastVisible} onClose={() => setToastVisible(false)} type="info" />
+
+      <CommandPalette
+        categories={categories}
+        onNavigate={(slug) => { setNavOpen(false); openModule(slug); }}
+        onToggleTheme={() => {
+          const next = theme === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          localStorage.setItem('dph-theme', next);
+          document.documentElement.setAttribute('data-theme', next);
+        }}
+        onShowHelp={() => setHelpOpen(true)}
+      />
+
+      {helpOpen && (
+        <div className="modal-backdrop" onClick={() => setHelpOpen(false)}>
+          <div className="modal-card" style={{ width: 'min(90vw, 520px)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Keyboard shortcuts</div>
+              <button className="modal-close" onClick={() => setHelpOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: 'grid', gap: 10, fontSize: '0.88rem' }}>
+                {[
+                  { keys: '⌘K / Ctrl+K', label: 'Command palette — search anything' },
+                  { keys: '?', label: 'Toggle this shortcuts help overlay' },
+                  { keys: 'Esc', label: 'Close modals, palettes, and overlays' },
+                  { keys: '↑ ↓', label: 'Navigate command palette results' },
+                  { keys: '↵', label: 'Open selected item in command palette' },
+                  { keys: '⌘B', label: 'Open billing & plans (from anywhere)' },
+                  { keys: '⌘,', label: 'Open account settings (from anywhere)' },
+                ].map((s) => (
+                  <div key={s.keys} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--text)' }}>{s.label}</span>
+                    <kbd style={{ background: 'var(--surface-muted)', padding: '3px 8px', borderRadius: 6, fontSize: '0.78rem', fontFamily: 'inherit', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{s.keys}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
         </div>
       </div>
     </div>

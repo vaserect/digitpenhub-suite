@@ -12,7 +12,7 @@ function relTime(dateStr) {
 
 export default function Topbar({ title, subtitle, user, onSignOut, onAccountClick, children,
   notifCount = 0, notifOpen = false, notifList = [], onBellClick, onMarkRead, onMarkAllRead,
-  onToggleSidebar }) {
+  onToggleSidebar, onToggleTheme, theme }) {
 
   const dropRef = useRef(null);
 
@@ -42,6 +42,10 @@ export default function Topbar({ title, subtitle, user, onSignOut, onAccountClic
       </div>
       <div className="topbar-actions">
         {children}
+
+        <button type="button" onClick={onToggleTheme} className="ghost-btn theme-toggle-icon" aria-label="Toggle dark mode" style={{ fontSize: '1rem' }}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
         <div ref={dropRef} className="menu-wrap">
           <button type="button" onClick={onBellClick} className="bell-btn" aria-label="Notifications">

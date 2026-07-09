@@ -90,6 +90,7 @@ const aiCustomerSupportRoutes = require('./routes/aiCustomerSupport');
 const aiTranslatorRoutes      = require('./routes/aiTranslator');
 // Batch 6 — SEO + Utilities
 const seoRoutes               = require('./routes/seo');
+const seoExpansionRoutes       = require('./routes/seoExpansion');
 const pdfToolsRoutes          = require('./routes/pdfTools');
 // Batch 7 — Design, Storage, Marketplace
 const cloudStorageRoutes      = require('./routes/cloudStorage');
@@ -101,12 +102,38 @@ const schoolRoutes            = require('./routes/school');
 const assignmentsRoutes2      = require('./routes/assignments');
 const cbtRoutes               = require('./routes/cbt');
 const storeBuilderRoutes      = require('./routes/storeBuilder');
+const publishingRoutes        = require('./routes/publishing');
+const { router: permRoutes } = require('./routes/permissions');
+const featureFlagRoutes       = require('./routes/featureFlags');
+const damRoutes               = require('./routes/dam');
+const apiKeyRoutes             = require('./routes/apiKeys');
+const approvalRoutes           = require('./routes/approvals');
+const searchRoutes             = require('./routes/search');
+const inboxRoutes              = require('./routes/inbox');
+const dedupRoutes              = require('./routes/dedup');
+const dunningRoutes            = require('./routes/dunning');
+const contractsRoutes          = require('./routes/contracts');
+const segmentsRoutes           = require('./routes/segments');
+const gdprRoutes               = require('./routes/gdpr');
+const ssoRoutes                = require('./routes/sso');
+const importsRoutes            = require('./routes/imports');
+const dataTablesRoutes         = require('./routes/dataTables');
+const heatmapsRoutes           = require('./routes/heatmaps');
+const payoutsRoutes            = require('./routes/payouts');
+const exportsRoutes            = require('./routes/exports');
+const knowledgeGraphRoutes     = require('./routes/knowledgeGraph');
+const platformRoutes           = require('./routes/platform');
+const funnelTemplatesRoutes    = require('./routes/funnelTemplates');
+const formTemplatesRoutes      = require('./routes/formTemplates');
+const remainingYellowRoutes    = require('./routes/remainingYellow');
+const greenModulesRoutes       = require('./routes/greenModules');
+const { ADDON_ROUTER, HEALTH_ROUTER, WORKSPACE_ROUTER } = require('./routes/superAdmin');
 
 const app = express();
 
 app.set('trust proxy', 1); // we sit behind OpenLiteSpeed
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN, credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:4000', credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: '200kb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -132,6 +159,7 @@ const requireAiDocuments = async (req, res, next) => {
 };
 
 app.get('/api/v1/health', (req, res) => res.json({ ok: true }));
+app.use('/api/v1/auth/sso', ssoRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/modules', moduleRoutes);
 app.use('/api/v1/crm', crmRoutes);
@@ -149,6 +177,8 @@ app.use('/api/v1/white-label', whiteLabelRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/pages', pagesRoutes);
 app.use('/api/v1/funnels', requireAuth, requireModuleAccess('funnel-builder'), funnelsRoutes);
+app.use('/api/v1/funnel-templates',   requireAuth, requireModuleAccess('funnel-builder'), funnelTemplatesRoutes);
+app.use('/api/v1/form-templates',     requireAuth, formTemplatesRoutes);
 app.use('/api/v1/hr', requireAuth, requireModuleAccess('hr'), hrRoutes);
 app.use('/api/v1/appointments', appointmentsRoutes);
 app.use('/api/v1/expenses', requireAuth, requireModuleAccess('expenses'), expensesRoutes);
@@ -224,6 +254,7 @@ app.use('/api/v1/ai-support',         requireAuth, requireModuleAccess('ai-custo
 app.use('/api/v1/ai-translator',      requireAuth, requireModuleAccess('ai-translator'), aiTranslatorRoutes);
 // Batch 6
 app.use('/api/v1/seo',                requireAuth, requireModuleAccess('seo-audit'), seoRoutes);
+app.use('/api/v1/seo',                requireAuth, requireModuleAccess('seo-audit'), seoExpansionRoutes);
 app.use('/api/v1/pdf',                requireAuth, requireModuleAccess('pdf-tools'), pdfToolsRoutes);
 // Batch 7
 app.use('/api/v1/storage',            requireAuth, requireModuleAccess('cloud-storage'), cloudStorageRoutes);
@@ -238,6 +269,31 @@ app.use('/api/v1/cbt',                requireAuth, requireModuleAccess('cbt-plat
 // itself (after its public storefront routes), matching the pagesRoutes
 // pattern, so unauthenticated shoppers can reach /public/:orgId and checkout.
 app.use('/api/v1/store-builder',      storeBuilderRoutes);
+app.use('/api/v1/publishing',         requireAuth, publishingRoutes);
+app.use('/api/v1/permissions',        permRoutes);
+app.use('/api/v1/feature-flags',      requireAuth, featureFlagRoutes);
+app.use('/api/v1/dam',                requireAuth, damRoutes);
+app.use('/api/v1/api-keys',           requireAuth, apiKeyRoutes);
+app.use('/api/v1/approvals',          requireAuth, approvalRoutes);
+app.use('/api/v1/search',             requireAuth, searchRoutes);
+app.use('/api/v1/inbox',              requireAuth, inboxRoutes.router);
+app.use('/api/v1/dedup',              requireAuth, dedupRoutes);
+app.use('/api/v1/dunning',            requireAuth, dunningRoutes);
+app.use('/api/v1/contracts',          requireAuth, contractsRoutes);
+app.use('/api/v1/segments',           requireAuth, segmentsRoutes);
+app.use('/api/v1/gdpr',               requireAuth, gdprRoutes);
+app.use('/api/v1/imports',            requireAuth, importsRoutes);
+app.use('/api/v1/data-tables',        requireAuth, dataTablesRoutes);
+app.use('/api/v1/heatmaps',           heatmapsRoutes);
+app.use('/api/v1/payouts',            requireAuth, payoutsRoutes);
+app.use('/api/v1/exports',            requireAuth, exportsRoutes);
+app.use('/api/v1/knowledge-graph',    requireAuth, knowledgeGraphRoutes);
+app.use('/api/v1/platform',           requireAuth, platformRoutes);
+app.use('/api/v1/support',            requireAuth, remainingYellowRoutes);
+app.use('/api/v1/community',          requireAuth, greenModulesRoutes);
+app.use('/api/v1/admin/addons',       ADDON_ROUTER);
+app.use('/api/v1/admin/health',       HEALTH_ROUTER);
+app.use('/api/v1/marketplace',        requireAuth, WORKSPACE_ROUTER);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 
@@ -248,3 +304,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+

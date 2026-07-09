@@ -78,6 +78,50 @@ a{color:inherit;}
 
 body { transition: background-color .2s ease, color .2s ease; }
 
+/* ── Dark mode toggle persistence ───────────────────────────────────────────── */
+html { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }
+
+/* ── Collapsible sidebar ────────────────────────────────────────────────────── */
+.sidebar { transition: width .2s var(--ease), padding .2s var(--ease); }
+.sidebar.is-collapsed { width: 68px; padding: 18px 8px; }
+.sidebar.is-collapsed .sidebar-brand-title,
+.sidebar.is-collapsed .sidebar-brand-subtitle,
+.sidebar.is-collapsed .nav-item-text,
+.sidebar.is-collapsed .nav-item-meta,
+.sidebar.is-collapsed .nav-frac,
+.sidebar.is-collapsed .nav-section-label,
+.sidebar.is-collapsed .nav-lock,
+.sidebar.is-collapsed .sidebar-search input { display: none; }
+.sidebar.is-collapsed .sidebar-brand { padding: 10px 4px 20px; }
+.sidebar.is-collapsed .nav-item { justify-content: center; padding: 10px 4px; }
+.sidebar.is-collapsed .nav-item-sub { padding-left: 4px; }
+.sidebar.is-collapsed .sidebar-search { justify-content: center; padding: 10px; }
+.sidebar.is-collapsed .sidebar-search svg { margin: 0; }
+
+/* ── Page transitions ───────────────────────────────────────────────────────── */
+.page-enter { opacity: 0; transform: translateY(6px); }
+.page-enter-active { opacity: 1; transform: translateY(0); transition: opacity .2s ease, transform .2s ease; }
+
+/* ── Micro-interactions ─────────────────────────────────────────────────────── */
+.btn:active, .btn-primary:active, .btn-secondary:active, .btn-danger:active { transform: scale(0.97); }
+.card-hover { transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+.card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+* { transition-property: background-color, border-color, color; transition-duration: .14s; transition-timing-function: var(--ease); }
+
+/* ── Skeleton loader ────────────────────────────────────────────────────────── */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton { background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%); background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 8px; }
+
+/* ── Upgrade modal backdrop ─────────────────────────────────────────────────── */
+.modal-backdrop { animation: fadeIn .15s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-card { animation: scaleIn .2s ease; }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.95) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+/* ── Toast positioning for sonner ────────────────────────────────────────────── */
+[data-sonner-toaster] { z-index: 100; }
+
 /* Shared UI */
 /* .btn-primary/.btn-secondary/.btn-danger/.btn-ghost are also selected here
    directly (not just as modifiers on top of .btn) because ~450 raw button

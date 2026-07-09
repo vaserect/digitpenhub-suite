@@ -84,8 +84,6 @@ export default async function StorePage({ params }) {
       {jsonLd && (
         <script
           type="application/ld+json"
-          // Escape `<` so a product/store name containing "</script>" can't break
-          // out of this inline script tag on an unauthenticated public page.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
         />
       )}

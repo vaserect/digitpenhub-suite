@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 
 function StarIcon({ filled }) {
   return (
@@ -160,27 +161,14 @@ export default function Sidebar({
 
       <div className="sidebar-footer">
         <div className="nav-section-label">Workspace</div>
-        {onAccount && (
-          <button
-            className={`nav-item ${view === 'account' ? 'is-active' : ''}`}
-            onClick={onAccount}
-          >
-            <span><span className="dot" />Account &amp; Security</span>
-          </button>
-        )}
-        {onBilling && (
-          <button
-            className={`nav-item ${view === 'billing' ? 'is-active' : ''}`}
-            onClick={onBilling}
-          >
-            <span><span className="dot" />Billing &amp; Plans</span>
-          </button>
-        )}
+        <Link href="/account" className={`nav-item ${view === 'account' ? 'is-active' : ''}`} onClick={onAccount}>
+          <span><span className="dot" />Account &amp; Security</span>
+        </Link>
+        <Link href="/billing" className={`nav-item ${view === 'billing' ? 'is-active' : ''}`} onClick={onBilling}>
+          <span><span className="dot" />Billing &amp; Plans</span>
+        </Link>
         {onWhiteLabel && (
-          <button
-            className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`}
-            onClick={onWhiteLabel}
-          >
+          <button className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`} onClick={onWhiteLabel}>
             <span><span className="dot" />White Label</span>
           </button>
         )}

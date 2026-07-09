@@ -15,7 +15,7 @@ async function requireAuth(req, res, next) {
 
     const { rows } = await db.query(
       `SELECT s.id, s.revoked_at, s.expires_at,
-              u.id AS user_id, u.full_name, u.email, u.role, u.org_id, u.is_super_admin, u.is_content_admin, u.totp_enabled, u.avatar_url,
+              u.id AS user_id, u.full_name, u.email, u.role, u.role_id, u.org_id, u.is_super_admin, u.is_content_admin, u.totp_enabled, u.avatar_url,
               o.is_suspended
        FROM sessions s
        JOIN users u ON u.id = s.user_id
@@ -39,6 +39,7 @@ async function requireAuth(req, res, next) {
       fullName: session.full_name,
       email: session.email,
       role: session.role,
+      roleId: session.role_id,
       orgId: session.org_id,
       isSuperAdmin: session.is_super_admin,
       isContentAdmin: session.is_content_admin,

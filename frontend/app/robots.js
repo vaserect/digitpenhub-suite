@@ -13,6 +13,10 @@ export default function robots() {
       { userAgent: '*', allow: '/p/' },
       { userAgent: '*', allow: '/store/' },
       { userAgent: '*', allow: '/forms/' },
+      { userAgent: '*', allow: '/features' },
+      { userAgent: '*', allow: '/features/' },
+      { userAgent: '*', allow: '/pricing' },
+      { userAgent: '*', allow: '/pricing/' },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

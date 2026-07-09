@@ -29,4 +29,17 @@ async function getTemplate(req, res) {
   res.json({ template: rows[0] });
 }
 
-module.exports = { listTemplates, listCategories, getTemplate };
+// Creates a new email campaign pre-populated from a template
+async function useTemplate(req, res) {
+  const { rows: tRows } = await db.query(`SELECT * FROM email_templates WHERE id = $1`, [req.params.id]);
+  if (!tRows.length) return res.status(404).json({ error: 'Template not found.' });
+  const template = tRows[0];
+  const { rows } = await db.query(
+    `INSERT INTO email_campaigns (org_id, subject, body_html, status)
+     VALUES ($1, $2, $3, 'draft') RETURNING *`,
+    [req.user.orgId, template.subject, template.body_html]
+  );
+  res.status(201).json({ campaign: rows[0] });
+}
+
+module.exports = { listTemplates, listCategories, getTemplate, useTemplate };

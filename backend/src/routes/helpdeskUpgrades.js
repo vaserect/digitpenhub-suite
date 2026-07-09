@@ -6,6 +6,19 @@ const asyncHandler = require('../utils/asyncHandler');
 const router = Router();
 router.use(requireAuth);
 
+router.post('/slas/bulk-delete', asyncHandler(async (req, res) => {
+  const { ids } = req.body || {};
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'ids required.' });
+  const { rowCount } = await db.query('DELETE FROM helpdesk_slas WHERE id = ANY($1) AND org_id = $2', [ids, req.user.orgId]);
+  res.json({ deleted: rowCount });
+}));
+
+router.get('/slas/export', asyncHandler(async (req, res) => {
+  const { sendCsv, autoColumns } = require('../utils/csv');
+  const { rows } = await db.query('SELECT * FROM helpdesk_slas WHERE org_id = $1', [req.user.orgId]);
+  sendCsv(res, 'helpdesk_slas.csv', rows, autoColumns(rows));
+}));
+
 // ── SLA Management ────────────────────────────────────────────────────────────
 router.get('/slas', asyncHandler(async (req, res) => {
   const { rows } = await db.query(

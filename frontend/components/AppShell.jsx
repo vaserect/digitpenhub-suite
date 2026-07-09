@@ -31,6 +31,7 @@ import StarterTemplateModal from './ui/StarterTemplateModal';
 import FunnelTemplateGallery from './ui/FunnelTemplateGallery';
 import FormTemplateGallery from './ui/FormTemplateGallery';
 import CommandPalette from './ui/CommandPalette';
+import ApprovalModule from './modules/ApprovalWorkflow';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -7684,6 +7685,10 @@ export default function AppShell() {
                   <p className="panel-sub" style={{ margin: 0 }}>Pin your favorite modules from the sidebar (hover a module and click the star) to see them here for quick access.</p>
                 </Card>
               )}
+
+          {view === 'module' && activeModuleSlug === 'approval-workflow' && (
+            <ApprovalModule goHome={goHome} />
+          )}
 
               <h2 className="section-title">All categories</h2>
               <div className="cat-grid">

@@ -60,6 +60,13 @@ router.get('/consent', asyncHandler(async (req, res) => {
   res.json({ records: rows });
 }));
 
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+router.post('/consent/bulk-delete', bulkDeleteHandler('consent_records'));
+router.get('/consent/export', async (req, res) => { const { rows } = await db.query("SELECT id, subject_type, subject_id, purpose, consented, consented_at FROM consent_records WHERE org_id = $1 ORDER BY consented_at DESC", [req.user.orgId]); sendCsv(res, 'consent_records.csv', rows, autoColumns(rows)); });
+router.get('/requests/export', async (req, res) => { const { rows } = await db.query("SELECT id, requester_email, request_type, status, created_at FROM gdpr_requests WHERE org_id = $1 ORDER BY created_at DESC", [req.user.orgId]); sendCsv(res, 'gdpr_requests.csv', rows, autoColumns(rows)); });
+router.post('/requests/bulk-delete', bulkDeleteHandler('gdpr_requests'));
+
 router.post('/consent', asyncHandler(async (req, res) => {
   const { subjectType, subjectId, purpose, consented, source } = req.body || {};
   if (!subjectType || !subjectId || !purpose) return res.status(400).json({ error: 'subjectType, subjectId, and purpose are required.' });

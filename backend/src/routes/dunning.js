@@ -131,4 +131,13 @@ router.delete('/templates/:id', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+router.post('/templates/bulk-delete', bulkDeleteHandler('dunning_templates'));
+router.get('/templates/export', async (req, res) => { const { rows } = await db.query("SELECT id, name, max_retries, schedule, created_at FROM dunning_templates WHERE org_id = $1 ORDER BY name", [req.user.orgId]); sendCsv(res, 'dunning_templates.csv', rows, autoColumns(rows)); });
+router.get('/templates/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM dunning_templates WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
+router.post('/cycles/bulk-delete', bulkDeleteHandler('dunning_cycles'));
+router.get('/cycles/export', async (req, res) => { const { rows } = await db.query("SELECT id, subscription_id, amount_due, status, started_at FROM dunning_cycles WHERE org_id = $1 ORDER BY started_at DESC", [req.user.orgId]); sendCsv(res, 'dunning_cycles.csv', rows, autoColumns(rows)); });
+router.get('/cycles/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total, count(*) FILTER (WHERE status='active')::int AS active FROM dunning_cycles WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
+
 module.exports = router;

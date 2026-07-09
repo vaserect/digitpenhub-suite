@@ -34,6 +34,7 @@ const notificationsRoutes = require('./routes/notifications');
 const pagesRoutes = require('./routes/pages');
 const funnelsRoutes = require('./routes/funnels');
 const hrRoutes = require('./routes/hr');
+const hrUpgradesRoutes = require('./routes/hrUpgrades');
 const appointmentsRoutes = require('./routes/appointments');
 const expensesRoutes = require('./routes/expenses');
 const recruitmentRoutes = require('./routes/recruitment');
@@ -187,6 +188,7 @@ app.use('/api/v1/funnels', requireAuth, requireModuleAccess('funnel-builder'), f
 app.use('/api/v1/funnel-templates',   requireAuth, requireModuleAccess('funnel-builder'), funnelTemplatesRoutes);
 app.use('/api/v1/form-templates',     requireAuth, formTemplatesRoutes);
 app.use('/api/v1/hr', requireAuth, requireModuleAccess('hr'), hrRoutes);
+app.use('/api/v1/hr', requireAuth, requireModuleAccess('hr'), hrUpgradesRoutes);
 app.use('/api/v1/appointments', appointmentsRoutes);
 app.use('/api/v1/expenses', requireAuth, requireModuleAccess('expenses'), expensesRoutes);
 app.use('/api/v1/recruitment', requireAuth, requireModuleAccess('recruitment'), recruitmentRoutes);

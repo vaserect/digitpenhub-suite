@@ -2,6 +2,8 @@ const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const { notify } = require('../utils/notify');
+const { pushInboxMessage } = require('./inbox');
 
 const router = Router();
 router.use(requireAuth);
@@ -159,6 +161,13 @@ router.post('/requests', asyncHandler(async (req, res) => {
       );
     }
     await client.query('COMMIT');
+    // Notify approvers in the org
+    notify(req.user.orgId, {
+      type: 'approval_request',
+      title: `Approval needed: ${request.title}`,
+      body: `A ${resourceType} requires your approval.`,
+      link: `/approvals/${request.id}`,
+    });
     res.status(201).json({ request });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -213,6 +222,17 @@ router.post('/requests/:id/action', asyncHandler(async (req, res) => {
         `UPDATE approval_requests SET status = 'rejected', resolved_at = now(), resolved_by = $1 WHERE id = $2`,
         [req.user.id, req.params.id]
       );
+      // Notify submitter
+      const r = request[0];
+      await pushInboxMessage(r.org_id, r.submitted_by, 'approval',
+        `Request rejected: ${r.title}`, comment || null,
+        `/approvals/${r.id}`, 'high');
+      notify(r.org_id, {
+        type: 'approval_rejected',
+        title: `Request rejected: ${r.title}`,
+        body: `${req.user.fullName || 'Someone'} rejected your approval request.`,
+        link: `/approvals/${r.id}`,
+      });
     } else {
       // Check if this was the last step
       const { rows: remaining } = await db.query(
@@ -224,6 +244,17 @@ router.post('/requests/:id/action', asyncHandler(async (req, res) => {
           `UPDATE approval_requests SET status = 'approved', resolved_at = now(), resolved_by = $1 WHERE id = $2`,
           [req.user.id, req.params.id]
         );
+        // Notify submitter
+        const r = request[0];
+        await pushInboxMessage(r.org_id, r.submitted_by, 'approval',
+          `Request approved: ${r.title}`, comment || null,
+          `/approvals/${r.id}`, 'high');
+        notify(r.org_id, {
+          type: 'approval_approved',
+          title: `Request approved: ${r.title}`,
+          body: `Your approval request has been approved by ${req.user.fullName || 'someone'}.`,
+          link: `/approvals/${r.id}`,
+        });
       }
     }
   }

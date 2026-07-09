@@ -9,6 +9,7 @@ import { Card, CardHeader } from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 import Toast from './ui/Toast';
+import UndoToast from './ui/UndoToast';
 import EmptyState from './ui/EmptyState';
 import { SkeletonRows } from './ui/Skeleton';
 import ConfirmDialog from './ui/ConfirmDialog';
@@ -264,6 +265,15 @@ export default function AppShell() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [navOpen, setNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dph-sidebar-collapsed') === 'true';
+  });
+  const [recentModules, setRecentModules] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem('dph-recent-modules') || '[]'); }
+    catch { return []; }
+  });
 
   // Milestone 1: real CRM + PM data, loaded lazily the first time each module is opened.
   const [contacts, setContacts] = useState([]);
@@ -1834,6 +1844,14 @@ export default function AppShell() {
     return () => setUpgradeHandler(null);
   }, []);
 
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('dph-sidebar-collapsed', String(next));
+      return next;
+    });
+  }
+
   function togglePin(slug) {
     setPinnedSlugs((prev) => {
       const next = prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug];
@@ -1847,9 +1865,14 @@ export default function AppShell() {
     window.localStorage.setItem('dph-theme', theme);
   }, [theme]);
 
-  // Global keyboard shortcut: ? opens help
+  // Global keyboard shortcuts: ? helps, ⌘B billing, ⌘, account
   useEffect(() => {
     const handler = (e) => {
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key === 'b') { e.preventDefault(); setView('billing'); return; }
+        if (e.key === ',') { e.preventDefault(); setView('account'); return; }
+        return;
+      }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
         setHelpOpen((v) => !v);
@@ -7069,6 +7092,14 @@ export default function AppShell() {
     setView('module');
     setNavOpen(false);
     scrollMainToTop();
+    if (typeof window !== 'undefined') {
+      try {
+        const prev = JSON.parse(localStorage.getItem('dph-recent-modules') || '[]');
+        const next = [slug, ...prev.filter(s => s !== slug)].slice(0, 6);
+        localStorage.setItem('dph-recent-modules', JSON.stringify(next));
+        setRecentModules(next);
+      } catch {}
+    }
     // Fire-and-forget tracking
     apiFetch('/api/v1/analytics/track', { method: 'POST', body: JSON.stringify({ name: 'module.open', properties: { slug } }) }).catch(() => {});
     if (slug === 'crm' && !crmLoaded) loadCrm().catch(() => showToast());
@@ -7634,12 +7665,14 @@ export default function AppShell() {
         </Button>
       </Topbar>
 
-      <div className={["app-shell", navOpen ? 'nav-open' : ''].filter(Boolean).join(' ')}>
+      <div className={["app-shell", navOpen ? 'nav-open' : '', sidebarCollapsed ? 'sidebar-collapsed' : ''].filter(Boolean).join(' ')}>
         <Sidebar
           categories={categories}
           view={view}
           activeCategoryKey={activeCategoryKey}
           activeModuleSlug={activeModuleSlug}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapsed}
           onHome={goHome}
           onCategory={openCategory}
           onModule={openModule}
@@ -7706,6 +7739,28 @@ export default function AppShell() {
                 <Card className="pinned-empty-card">
                   <p className="panel-sub" style={{ margin: 0 }}>Pin your favorite modules from the sidebar (hover a module and click the star) to see them here for quick access.</p>
                 </Card>
+              )}
+
+              {recentModules.length > 0 && (
+                <>
+                  <h2 className="section-title">Recently used</h2>
+                  <div className="pinned-row" style={{ marginBottom: 28 }}>
+                    {recentModules.slice(0, 4).map((slug) => {
+                      const m = categories.flatMap(c => c.modules || []).find(mod => mod.slug === slug);
+                      if (!m) return null;
+                      return (
+                        <button key={slug} className="pinned-card" onClick={() => openModule(slug)}>
+                          <div className="pinned-icon">{initials(m.name)}</div>
+                          <div className="pinned-info">
+                            <div className="ptitle">{m.name}</div>
+                            <div className="ptag">{categories.find(c => c.modules?.some(mod => mod.slug === slug))?.name || ''}</div>
+                            <div className="pstatus"><span className="pip" />Open</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
 
           {view === 'module' && activeModuleSlug === 'approval-workflow' && (
@@ -22391,6 +22446,7 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
 
 
       <Toast message={toastMessage} open={toastVisible} onClose={() => setToastVisible(false)} type="info" />
+      <UndoToast />
 
       <CommandPalette
         categories={categories}

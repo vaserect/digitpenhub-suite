@@ -59,7 +59,7 @@ const CATEGORY_ICONS = {
 };
 
 export default function Sidebar({
-  categories = [], view, activeCategoryKey, activeModuleSlug, onHome, onCategory, onModule, liveCount,
+  categories = [], view, activeCategoryKey, activeModuleSlug, collapsed, onToggleCollapse, onHome, onCategory, onModule, liveCount,
   onBilling, onAccount, onWhiteLabel, pinnedSlugs = [], onTogglePin,
   sidebarSearch, onSidebarSearchChange, expandedCats, onToggleCategory,
 }) {
@@ -74,14 +74,30 @@ export default function Sidebar({
     : [];
 
   return (
-    <nav className="sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
+    <nav className={["sidebar", collapsed ? 'is-collapsed' : ''].filter(Boolean).join(' ')} style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="sidebar-brand">
         <div className="sidebar-brand-mark">D</div>
-        <div>
-          <div className="sidebar-brand-title">Digitpen Hub</div>
-          <div className="sidebar-brand-subtitle">Business Suite</div>
-        </div>
+        {!collapsed && (
+          <div>
+            <div className="sidebar-brand-title">Digitpen Hub</div>
+            <div className="sidebar-brand-subtitle">Business Suite</div>
+          </div>
+        )}
+        {!collapsed && (
+          <button onClick={onToggleCollapse} className="nav-pin" style={{ marginLeft: 'auto' }} aria-label="Collapse sidebar" title="Collapse sidebar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        )}
       </div>
+      {collapsed && (
+        <button onClick={onToggleCollapse} className="sidebar-collapse-btn" style={{ padding: '8px 14px', display: 'flex', justifyContent: 'center', transition: 'none' }} aria-label="Expand sidebar" title="Expand sidebar">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: 'rotate(180deg)' }}>
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+      )}
 
       <div style={{ padding: '0 14px 10px' }}>
         <div className="sidebar-search">

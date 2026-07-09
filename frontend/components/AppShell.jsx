@@ -43,6 +43,9 @@ import AccountingModule from './modules/AccountingModule';
 import PayrollModule from './modules/PayrollModule';
 import ExpensesModule from './modules/ExpensesModule';
 import QuotationsModule from './modules/QuotationsModule';
+import EducationModule from './modules/EducationModule';
+import CommerceModule from './modules/CommerceModule';
+import SeoModule from './modules/SeoModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15123,6 +15126,15 @@ export default function AppShell() {
       {view === 'module' && activeModuleSlug === 'quotations' && (
         <QuotationsModule goHome={goHome} />
       )}
+      {view === 'module' && (activeModuleSlug === 'learning-management-system' || activeModuleSlug === 'school-management' || activeModuleSlug === 'cbt-platform' || activeModuleSlug === 'assignments' || activeModuleSlug === 'student-portal' || activeModuleSlug === 'parent-portal' || activeModuleSlug === 'teacher-portal' || activeModuleSlug === 'certificates') && (
+        <EducationModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'order-management' || activeModuleSlug === 'marketplace' || activeModuleSlug === 'subscriptions' || activeModuleSlug === 'pos' || activeModuleSlug === 'coupons' || activeModuleSlug === 'digital-products' || activeModuleSlug === 'delivery-tracking') && (
+        <CommerceModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug.startsWith('seo-') || activeModuleSlug === 'keyword-research' || activeModuleSlug === 'rank-tracking' || activeModuleSlug === 'backlink-monitoring' || activeModuleSlug === 'schema-generator' || activeModuleSlug === 'sitemap-generator' || activeModuleSlug === 'meta-generator' || activeModuleSlug === 'robots-generator' || activeModuleSlug === 'seo-audit' || activeModuleSlug === 'accessibility-wcag-audit-tool' || activeModuleSlug === 'page-speed-core-web-vitals-monitor' || activeModuleSlug === 'sem-ad-campaign-bid-roas-tracker' || activeModuleSlug === 'ai-seo-content-optimizer') && (
+        <SeoModule goHome={goHome} />
+      )}
 
       {/* ── Asset Management ─────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'asset-management' && (
@@ -22316,6 +22328,14 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'api-keys','digital-products','qr-code-generator','custom-reports','sales-dashboard',
         'digital-asset-management','dam','contracts','e-signature','feature-flags','experiments',
         'gdpr','consent-management','dunning','accounting','payroll','expenses','quotations',
+        'learning-management-system','school-management','cbt-platform','assignments',
+        'student-portal','parent-portal','teacher-portal','certificates',
+        'online-store-builder','order-management','marketplace','subscriptions',
+        'pos','coupons','digital-products','delivery-tracking',
+        'keyword-research','seo-audit','rank-tracking','backlink-monitoring',
+        'schema-generator','sitemap-generator','meta-generator','robots-generator',
+        'accessibility-wcag-audit-tool','page-speed-core-web-vitals-monitor',
+        'sem-ad-campaign-bid-roas-tracker','ai-seo-content-optimizer',
         'marketing-dashboard','website-analytics','performance-reports','digital-business-cards',
         'link-in-bio','certificate-generator','barcode-generator','color-palette-generator',
         'json-formatter','password-generator','quiz-builder','popup-builder',

@@ -9,7 +9,7 @@ router.use(requireAuth);
 // ── Attendance ────────────────────────────────────────────────────────────────
 router.get('/attendance', asyncHandler(async (req, res) => {
   const { classId, date, studentId, from, to } = req.query;
-  const conditions = ['org_id = $1'];
+  const conditions = ['a.org_id = $1'];
   const params = [req.user.orgId]; let idx = 2;
   if (classId) { conditions.push(`class_id = $${idx++}`); params.push(classId); }
   if (studentId) { conditions.push(`student_id = $${idx++}`); params.push(studentId); }
@@ -17,7 +17,7 @@ router.get('/attendance', asyncHandler(async (req, res) => {
   if (from) { conditions.push(`date >= $${idx++}`); params.push(from); }
   if (to) { conditions.push(`date <= $${idx++}`); params.push(to); }
   const { rows } = await db.query(
-    `SELECT a.*, u.full_name AS student_name FROM attendance_records a
+    `SELECT a.id, a.org_id, a.student_id, a.class_id, a.date, a.status, a.marked_by, a.created_at, u.full_name AS student_name FROM attendance_records a
      JOIN users u ON u.id = a.student_id
      WHERE ${conditions.join(' AND ')} ORDER BY a.date DESC, a.created_at DESC`,
     params
@@ -26,37 +26,37 @@ router.get('/attendance', asyncHandler(async (req, res) => {
 }));
 
 router.post('/attendance', asyncHandler(async (req, res) => {
-  const { studentId, classId, date, status, minutesLate, notes } = req.body || {};
+  const { studentId, classId, date, status } = req.body || {};
   if (!studentId || !date || !status) {
     return res.status(400).json({ error: 'studentId, date, and status are required.' });
   }
   const { rows } = await db.query(
-    `INSERT INTO attendance_records (org_id, student_id, class_id, date, status, minutes_late, notes, marked_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    `INSERT INTO attendance_records (org_id, student_id, class_id, date, status, marked_by)
+     VALUES ($1,$2,$3,$4,$5,$6)
      ON CONFLICT ON CONSTRAINT attendance_records_student_id_date_key
-     DO UPDATE SET status=$5, minutes_late=$6, notes=$7, marked_by=$8, class_id=COALESCE($3, attendance_records.class_id)
+     DO UPDATE SET status=$5, marked_by=$6, class_id=COALESCE($3, attendance_records.class_id)
      RETURNING *`,
-    [req.user.orgId, studentId, classId || null, date, status, minutesLate || 0, notes || null, req.user.id]
+    [req.user.orgId, studentId, classId || null, date, status, req.user.id]
   );
   res.status(201).json({ record: rows[0] });
 }));
 
 router.get('/attendance/stats', asyncHandler(async (req, res) => {
   const { studentId, classId, from, to } = req.query;
-  const conditions = ['org_id = $1'];
+  const conditions = ['a.org_id = $1'];
   const params = [req.user.orgId]; let idx = 2;
-  if (studentId) { conditions.push(`student_id = $${idx++}`); params.push(studentId); }
-  if (classId) { conditions.push(`class_id = $${idx++}`); params.push(classId); }
-  if (from) { conditions.push(`date >= $${idx++}`); params.push(from); }
-  if (to) { conditions.push(`date <= $${idx++}`); params.push(to); }
+  if (studentId) { conditions.push(`a.student_id = $${idx++}`); params.push(studentId); }
+  if (classId) { conditions.push(`a.class_id = $${idx++}`); params.push(classId); }
+  if (from) { conditions.push(`a.date >= $${idx++}`); params.push(from); }
+  if (to) { conditions.push(`a.date <= $${idx++}`); params.push(to); }
   const { rows } = await db.query(
     `SELECT
        count(*) AS total,
-       sum(CASE WHEN status='present' THEN 1 ELSE 0 END) AS present,
-       sum(CASE WHEN status='absent' THEN 1 ELSE 0 END) AS absent,
-       sum(CASE WHEN status='late' THEN 1 ELSE 0 END) AS late,
-       sum(CASE WHEN status='excused' THEN 1 ELSE 0 END) AS excused
-     FROM attendance_records WHERE ${conditions.join(' AND ')}`,
+       sum(CASE WHEN a.status='present' THEN 1 ELSE 0 END) AS present,
+       sum(CASE WHEN a.status='absent' THEN 1 ELSE 0 END) AS absent,
+       sum(CASE WHEN a.status='late' THEN 1 ELSE 0 END) AS late,
+       sum(CASE WHEN a.status='excused' THEN 1 ELSE 0 END) AS excused
+     FROM attendance_records a WHERE ${conditions.join(' AND ')}`,
     params
   );
   res.json({ stats: rows[0] });

@@ -13,10 +13,9 @@ async function getBranding(orgId) {
 async function getStats(req, res) {
   const { rows } = await db.query(
     `SELECT COUNT(*)::int AS total_runs,
-       COUNT(*) FILTER(WHERE status='draft')::int AS drafts,
        COUNT(*) FILTER(WHERE status='processed')::int AS processed_runs,
-       COALESCE(SUM(total_gross_ngn) FILTER(WHERE status='processed'),0) AS total_gross,
-       COALESCE(SUM(total_net_ngn) FILTER(WHERE status='processed'),0) AS total_net
+       COALESCE(SUM(total_gross_ngn),0)::int AS total_gross_ngn,
+       COALESCE(SUM(total_net_ngn),0)::int AS total_net_ngn
      FROM payroll_runs WHERE org_id=$1`,
     [req.user.orgId]
   );
@@ -57,11 +56,14 @@ async function getRun(req, res) {
 }
 
 async function createRun(req, res) {
-  const { name, periodStart, periodEnd, notes } = req.body || {};
-  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  const { name, periodMonth, periodYear, periodStart, periodEnd, notes } = req.body || {};
+  const month = parseInt(periodMonth) || (periodStart ? new Date(periodStart).getMonth() + 1 : new Date().getMonth() + 1);
+  const year = parseInt(periodYear) || (periodStart ? new Date(periodStart).getFullYear() : new Date().getFullYear());
+  if (month < 1 || month > 12) return res.status(400).json({ error: 'Invalid period month.' });
+  if (year < 2020 || year > 2100) return res.status(400).json({ error: 'Invalid period year.' });
   const { rows } = await db.query(
-    `INSERT INTO payroll_runs (org_id,name,period_start,period_end,notes) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [req.user.orgId, name.trim(), periodStart, periodEnd, notes||null]
+    `INSERT INTO payroll_runs (org_id,period_month,period_year,notes) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [req.user.orgId, month, year, notes||null]
   );
   res.status(201).json({ run: rows[0] });
 }
@@ -109,8 +111,8 @@ async function addItem(req, res) {
       [req.user.orgId, runId, employeeName.trim(), employeeEmail||null, department||null, gross, allw, t, pen, other, netPay, bankName||null, accountNumber||null]
     );
     await client.query(
-      `UPDATE payroll_runs SET total_gross=total_gross+$1, total_deductions=total_deductions+$2, total_net=total_net+$3, updated_at=NOW() WHERE id=$4`,
-      [gross+allw, t+pen+other, netPay, runId]
+      `UPDATE payroll_runs SET total_gross_ngn=total_gross_ngn+$1, total_net_ngn=total_net_ngn+$2 WHERE id=$3`,
+      [gross+allw, netPay, runId]
     );
     await client.query('COMMIT');
     res.status(201).json({ item: itemRes.rows[0] });
@@ -122,9 +124,9 @@ async function removeItem(req, res) {
   const { rows } = await db.query(`DELETE FROM payroll_items WHERE id=$1 AND run_id=$2 RETURNING *`, [itemId, runId]);
   if (rows.length) {
     const r = rows[0];
-    await db.query(
-      `UPDATE payroll_runs SET total_gross=total_gross-$1, total_deductions=total_deductions-$2, total_net=total_net-$3, updated_at=NOW() WHERE id=$4`,
-      [Number(r.gross_salary)+Number(r.allowances), Number(r.tax)+Number(r.pension)+Number(r.other_deductions), Number(r.net_pay), runId]
+    await client.query(
+      `UPDATE payroll_runs SET total_gross_ngn=total_gross_ngn-$1, total_net_ngn=total_net_ngn-$2 WHERE id=$3`,
+      [Number(r.gross_salary)+Number(r.allowances), Number(r.net_pay), runId]
     );
   }
   res.json({ ok: true });

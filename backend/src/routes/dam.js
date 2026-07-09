@@ -187,6 +187,15 @@ router.get('/stats', asyncHandler(async (req, res) => {
   });
 }));
 
+// ── Bulk ops & export (must precede /:id routes) ──────────────────────────────
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+router.post('/bulk-delete', bulkDeleteHandler('dam_assets'));
+router.get('/export', async (req, res) => {
+  const { rows } = await db.query('SELECT id, filename, mime_type, size_bytes, alt_text, caption, credit, folder_id, created_at FROM dam_assets WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  sendCsv(res, 'dam_assets.csv', rows, autoColumns(rows));
+});
+
 // ── Single asset ops ├É─┬───────────────────────────────────────────────────────
 router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
@@ -306,27 +315,6 @@ router.post('/import-pexels', asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ assets: saved, count: saved.length });
-}));
-
-// ── Stats ├É─┬──────────────────────────────────────────────────────────────────
-router.get('/stats', asyncHandler(async (req, res) => {
-  const raw = await db.query('SELECT count(*) AS c FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
-  const img = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'image/%'", [req.user.orgId]);
-  const vid = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'video/%'", [req.user.orgId]);
-  const aud = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'audio/%'", [req.user.orgId]);
-  const pdf = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type = 'application/pdf'", [req.user.orgId]);
-  const bytes = await db.query('SELECT COALESCE(sum(size_bytes), 0)::bigint AS total FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
-  const folders = await db.query('SELECT count(*) AS c FROM dam_folders WHERE org_id = $1', [req.user.orgId]);
-
-  res.json({
-    totalAssets: parseInt(raw.rows[0].c),
-    images: parseInt(img.rows[0].c),
-    videos: parseInt(vid.rows[0].c),
-    audio: parseInt(aud.rows[0].c),
-    pdfs: parseInt(pdf.rows[0].c),
-    totalBytes: parseInt(bytes.rows[0].total),
-    folders: parseInt(folders.rows[0].c),
-  });
 }));
 
 // ── Serve ├É─┬─────────────────────────────────────────────────────────────────

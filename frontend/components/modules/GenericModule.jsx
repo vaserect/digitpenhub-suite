@@ -10,6 +10,7 @@ import Badge from '../ui/Badge';
 import { SkeletonRows } from '../ui/Skeleton';
 import Pagination from '../ui/Pagination';
 import BulkActionBar from '../ui/BulkActionBar';
+import { useSearchHotkey } from '../../lib/hotkeys';
 
 const $ = (slug) => slug.replace(/-/g, ' ').replace(/\b\w/g, c=>c.toUpperCase());
 
@@ -68,6 +69,8 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
   const [page, setPage] = useState(1);
   const [columns, setColumns] = useState([]);
   const [apiBase, setApiBase] = useState('');
+
+  useSearchHotkey();
   const [listKey, setListKey] = useState('');
   const [showDelete, setShowDelete] = useState(null);
 

@@ -55,10 +55,6 @@ import PlatformCoreModule from './modules/PlatformCoreModule';
 import GenericModule from './modules/GenericModule';
 import { DocumentsModule, ContentCalendarModule, AffiliatesModule } from './modules/AdvancedModules';
 import SettingsModule from './modules/SettingsModule';
-import CRMModule from './modules/CRM';
-import InvoicesModule from './modules/Invoices';
-import EmailMarketingModule from './modules/EmailMarketing';
-import ProjectManagementModule from './modules/ProjectManagement';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,

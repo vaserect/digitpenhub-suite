@@ -16,6 +16,7 @@ export default function robots() {
       { userAgent: '*', allow: '/book/' },
       { userAgent: '*', allow: '/quiz/' },
       { userAgent: '*', allow: '/card/' },
+      { userAgent: '*', allow: '/barcode/' },
       { userAgent: '*', allow: '/features' },
       { userAgent: '*', allow: '/features/' },
       { userAgent: '*', allow: '/pricing' },

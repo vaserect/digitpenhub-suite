@@ -33,6 +33,12 @@ import FormTemplateGallery from './ui/FormTemplateGallery';
 import CommandPalette from './ui/CommandPalette';
 import ApprovalModule from './modules/ApprovalWorkflow';
 import UrlShortenerModule from './modules/UrlShortener';
+import ApiKeysModule from './modules/ApiKeys';
+import DamModule from './modules/DamModule';
+import ContractsModule from './modules/ContractsModule';
+import FeatureFlagsModule from './modules/FeatureFlagsModule';
+import GdprModule from './modules/GdprModule';
+import DunningModule from './modules/DunningModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -15083,6 +15089,24 @@ export default function AppShell() {
       {view === 'module' && activeModuleSlug === 'url-shortener' && (
         <UrlShortenerModule goHome={goHome} />
       )}
+      {view === 'module' && activeModuleSlug === 'api-keys' && (
+        <ApiKeysModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'digital-asset-management' && (
+        <DamModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'contracts' && (
+        <ContractsModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'feature-flags' && (
+        <FeatureFlagsModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'gdpr' && (
+        <GdprModule goHome={goHome} />
+      )}
+      {view === 'module' && activeModuleSlug === 'dunning' && (
+        <DunningModule goHome={goHome} />
+      )}
 
       {/* ── Asset Management ─────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'asset-management' && (
@@ -22273,7 +22297,9 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'help-desk','sms-marketing','calendar','time-tracking','notes','knowledge-base',
         'coupons','url-shortener','asset-management','order-management','document-management',
         'payroll','subscriptions','delivery-tracking','brand-kit','password-manager',
-        'digital-products','qr-code-generator','custom-reports','sales-dashboard',
+        'api-keys','digital-products','qr-code-generator','custom-reports','sales-dashboard',
+        'digital-asset-management','dam','contracts','e-signature','feature-flags','experiments',
+        'gdpr','consent-management','dunning',
         'marketing-dashboard','website-analytics','performance-reports','digital-business-cards',
         'link-in-bio','certificate-generator','barcode-generator','color-palette-generator',
         'json-formatter','password-generator','quiz-builder','popup-builder',

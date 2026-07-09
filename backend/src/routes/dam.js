@@ -116,6 +116,15 @@ router.post('/folders', asyncHandler(async (req, res) => {
   res.status(201).json({ folder: rows[0] });
 }));
 
+router.delete('/folders/:id', asyncHandler(async (req, res) => {
+  const { rowCount } = await db.query(
+    `DELETE FROM dam_folders WHERE id = $1 AND org_id = $2`,
+    [req.params.id, req.user.orgId]
+  );
+  if (!rowCount) return res.status(404).json({ error: 'Folder not found.' });
+  res.json({ ok: true });
+}));
+
 // ── Tags ├É─┬───────────────────────────────────────────────────────────────────
 router.get('/tags', asyncHandler(async (req, res) => {
   const { rows } = await db.query(

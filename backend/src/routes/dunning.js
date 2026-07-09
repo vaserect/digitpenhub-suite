@@ -121,4 +121,14 @@ router.get('/cycles/:id/actions', asyncHandler(async (req, res) => {
   res.json({ actions: rows });
 }));
 
+// Delete template
+router.delete('/templates/:id', asyncHandler(async (req, res) => {
+  const { rowCount } = await db.query(
+    `DELETE FROM dunning_templates WHERE id = $1 AND org_id = $2`,
+    [req.params.id, req.user.orgId]
+  );
+  if (!rowCount) return res.status(404).json({ error: 'Template not found.' });
+  res.json({ ok: true });
+}));
+
 module.exports = router;

@@ -106,4 +106,14 @@ router.post('/:id/cancel', asyncHandler(async (req, res) => {
   res.json({ contract: rows[0] });
 }));
 
+// Delete
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const { rowCount } = await db.query(
+    `DELETE FROM contracts WHERE id = $1 AND org_id = $2`,
+    [req.params.id, req.user.orgId]
+  );
+  if (!rowCount) return res.status(404).json({ error: 'Not found.' });
+  res.json({ ok: true });
+}));
+
 module.exports = router;

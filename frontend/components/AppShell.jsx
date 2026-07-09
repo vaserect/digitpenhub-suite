@@ -50,6 +50,7 @@ import HelpdeskModule from './modules/HelpdeskModule';
 import AiModule from './modules/AiModule';
 import MarketingFormsModule from './modules/MarketingFormsModule';
 import PlatformCoreModule from './modules/PlatformCoreModule';
+import GenericModule from './modules/GenericModule';
 import {
   getInvoiceStarterTemplates,
   getLeadFormStarterTemplates,
@@ -22369,26 +22370,9 @@ ${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform
         'workflow-automation','marketplace','certificates','learning-management-system',
         'school-management','assignments','cbt-platform','student-portal','teacher-portal',
         'parent-portal','online-store-builder'
-      ].includes(activeModuleSlug) && (() => {
-        const mod = categories.flatMap(c => c.modules || []).find(m => m.slug === activeModuleSlug);
-        return (
-          <div className="panel" style={{ textAlign: 'center', paddingTop: '10vh' }}>
-            <button className="back-link" onClick={goHome}>← Workspace</button>
-            <div style={{ fontSize: '3.5rem', marginBottom: '1rem', lineHeight: 1 }}>🧩</div>
-            <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{mod?.name || activeModuleSlug}</h1>
-            {mod && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{mod.name}</p>}
-            <p style={{ color: 'var(--text-muted)', maxWidth: 420, margin: '0 auto 2rem', lineHeight: 1.7 }}>
-              This module is registered and its API endpoints are active. A dedicated frontend UI
-              will be built for it in a future update.
-            </p>
-            <div style={{ display: 'inline-flex', gap: 8, padding: '0.5rem 1rem', borderRadius: 999, background: 'var(--surface-muted)', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-              <span>✅ API ready</span>
-              <span>·</span>
-              <span>Frontend UI coming</span>
-            </div>
-          </div>
-        );
-      })()}
+      ].includes(activeModuleSlug) && (
+        <GenericModule moduleSlug={activeModuleSlug} goHome={goHome} categories={categories} />
+      )}
 
 
       <Toast message={toastMessage} open={toastVisible} onClose={() => setToastVisible(false)} type="info" />

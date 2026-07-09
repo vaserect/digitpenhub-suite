@@ -42,4 +42,10 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   res.json({ payout: rows[0] });
 }));
 
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+router.post('/bulk-delete', bulkDeleteHandler('marketplace_payouts'));
+router.get('/export', async (req, res) => { const { rows } = await db.query('SELECT id, vendor_id, amount, fee, net_amount, status, created_at FROM marketplace_payouts WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]); sendCsv(res, 'marketplace_payouts.csv', rows, autoColumns(rows)); });
+router.get('/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total, COALESCE(sum(amount),0)::numeric AS total_amount, COALESCE(sum(net_amount),0)::numeric AS total_net FROM marketplace_payouts WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
+
 module.exports = router;

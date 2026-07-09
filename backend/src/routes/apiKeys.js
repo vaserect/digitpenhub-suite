@@ -27,6 +27,12 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ keys: rows });
 }));
 
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
+router.post('/bulk-delete', bulkDeleteHandler('api_keys'));
+router.get('/export', async (req, res) => { const { rows } = await db.query('SELECT id, name, key_prefix, scopes, last_used_at, created_at FROM api_keys WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]); sendCsv(res, 'api_keys.csv', rows, autoColumns(rows)); });
+router.get('/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM api_keys WHERE org_id = $1 AND revoked_at IS NULL", [req.user.orgId]); res.json({ stats: rows[0] }); });
+
 router.post('/', asyncHandler(async (req, res) => {
   const { name, scopes } = req.body || {};
   if (!name?.trim()) return res.status(400).json({ error: 'API key name is required.' });
@@ -60,6 +66,10 @@ router.get('/webhooks', asyncHandler(async (req, res) => {
   );
   res.json({ webhooks: rows });
 }));
+
+router.post('/webhooks/bulk-delete', bulkDeleteHandler('webhook_endpoints'));
+router.get('/webhooks/export', async (req, res) => { const { rows } = await db.query('SELECT id, name, url, events, is_active, created_at FROM webhook_endpoints WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]); sendCsv(res, 'webhooks.csv', rows, autoColumns(rows)); });
+router.get('/webhooks/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total, count(*) FILTER (WHERE is_active=true)::int AS active FROM webhook_endpoints WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 router.post('/webhooks', asyncHandler(async (req, res) => {
   const { name, url, events } = req.body || {};

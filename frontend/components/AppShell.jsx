@@ -24,6 +24,7 @@ import StatCard from './ui/StatCard';
 import BulkActionBar from './ui/BulkActionBar';
 import Input from './ui/Input';
 import Modal from './ui/Modal';
+import confetti from 'canvas-confetti';
 import FabricCanvasEditor from './creative/FabricCanvasEditor';
 import ModulePage from './ui/ModulePage';
 import PageState from './ui/PageState';

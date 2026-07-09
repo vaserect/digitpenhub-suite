@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
 import { getInvoiceStarterTemplates } from '../../lib/starterTemplates';
+import confetti from 'canvas-confetti';
 import Button from '../ui/Button';
 import Card, { CardHeader } from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -418,6 +419,9 @@ export default function InvoicesModule({ goHome, showToast }) {
       body: JSON.stringify({ status: 'paid' }),
     });
     await loadInvoices();
+    try {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ['#2563eb', '#38bdf8', '#22c55e'] });
+    } catch {}
   }
 
   async function handleShareInvoice(id) {

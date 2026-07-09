@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const asyncHandler = require('../utils/asyncHandler');
 const { uploadLimiter } = require('../middleware/rateLimiters');
+const { searchImages } = require('../utils/pexels');
 
 const DAM_DIR = path.join(__dirname, '../../uploads/dam');
 if (!fs.existsSync(DAM_DIR)) fs.mkdirSync(DAM_DIR, { recursive: true });
@@ -157,6 +158,26 @@ router.post('/upload', uploadLimiter, upload.array('files', 10), asyncHandler(as
   res.status(201).json({ assets: saved });
 }));
 
+// ── Stats ├É─┬──────────────────────────────────────────────────────────────────
+router.get('/stats', asyncHandler(async (req, res) => {
+  const raw = await db.query('SELECT count(*) AS c FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
+  const img = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'image/%'", [req.user.orgId]);
+  const vid = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'video/%'", [req.user.orgId]);
+  const aud = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'audio/%'", [req.user.orgId]);
+  const pdf = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type = 'application/pdf'", [req.user.orgId]);
+  const bytes = await db.query('SELECT COALESCE(sum(size_bytes), 0)::bigint AS total FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
+  const folders = await db.query('SELECT count(*) AS c FROM dam_folders WHERE org_id = $1', [req.user.orgId]);
+  res.json({
+    totalAssets: parseInt(raw.rows[0].c),
+    images: parseInt(img.rows[0].c),
+    videos: parseInt(vid.rows[0].c),
+    audio: parseInt(aud.rows[0].c),
+    pdfs: parseInt(pdf.rows[0].c),
+    totalBytes: parseInt(bytes.rows[0].total),
+    folders: parseInt(folders.rows[0].c),
+  });
+}));
+
 // ── Single asset ops ├É─┬───────────────────────────────────────────────────────
 router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await db.query(
@@ -208,6 +229,18 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 }));
 
 router.delete('/:id', asyncHandler(async (req, res) => {
+  // Check usage before allowing delete
+  const { rows: usage } = await db.query(
+    `SELECT module_slug, resource_type, resource_id FROM dam_usage WHERE asset_id = $1 LIMIT 5`,
+    [req.params.id]
+  );
+  if (usage.length > 0) {
+    return res.status(409).json({
+      error: `Cannot delete — asset is in use by ${usage.length} resource(s). The first is in ${usage[0].module_slug} (${usage[0].resource_type}: ${usage[0].resource_id}). Remove the references first or force delete.`,
+      inUse: true,
+      usage,
+    });
+  }
   const { rows } = await db.query(
     `DELETE FROM dam_assets WHERE id = $1 AND org_id = $2 RETURNING *`,
     [req.params.id, req.user.orgId]
@@ -217,6 +250,74 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     if (fs.existsSync(full)) fs.unlinkSync(full);
   }
   res.json({ ok: true });
+}));
+
+// ── Force delete (ignores usage) ├É─┬───────────────────────────────────────────
+router.delete('/:id/force', asyncHandler(async (req, res) => {
+  const { rows } = await db.query(
+    `DELETE FROM dam_assets WHERE id = $1 AND org_id = $2 RETURNING *`,
+    [req.params.id, req.user.orgId]
+  );
+  if (rows.length) {
+    await db.query('DELETE FROM dam_usage WHERE asset_id = $1', [req.params.id]);
+    const full = path.join(DAM_DIR, req.user.orgId, rows[0].disk_path);
+    if (fs.existsSync(full)) fs.unlinkSync(full);
+  }
+  res.json({ ok: true });
+}));
+
+// ── Pexels import ├É─┬──────────────────────────────────────────────────────────
+router.post('/import-pexels', asyncHandler(async (req, res) => {
+  const { query, orientation = 'landscape', folderId } = req.body || {};
+  if (!query?.trim()) return res.status(400).json({ error: 'search query is required.' });
+
+  const results = await searchImages(query.trim(), { perPage: 5, orientation });
+  const saved = [];
+
+  for (const img of results.slice(0, 5)) {
+    // Download the image from Pexels
+    const ext = path.extname(new URL(img.url).pathname) || '.jpg';
+    const filename = `pexels-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const filePath = path.join(DAM_DIR, req.user.orgId, filename);
+
+    try {
+      const resp = await fetch(img.url);
+      if (!resp.ok) continue;
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, buffer);
+
+      const { rows } = await db.query(
+        `INSERT INTO dam_assets (org_id, folder_id, filename, disk_path, mime_type, size_bytes, alt_text, credit, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [req.user.orgId, folderId || null, img.alt || query.trim(), filename, 'image/jpeg', buffer.length, img.alt || '', img.photographer || null, req.user.id]
+      );
+      saved.push(rows[0]);
+    } catch { continue; }
+  }
+
+  res.status(201).json({ assets: saved, count: saved.length });
+}));
+
+// ── Stats ├É─┬──────────────────────────────────────────────────────────────────
+router.get('/stats', asyncHandler(async (req, res) => {
+  const raw = await db.query('SELECT count(*) AS c FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
+  const img = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'image/%'", [req.user.orgId]);
+  const vid = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'video/%'", [req.user.orgId]);
+  const aud = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type LIKE 'audio/%'", [req.user.orgId]);
+  const pdf = await db.query("SELECT count(*) AS c FROM dam_assets WHERE org_id = $1 AND mime_type = 'application/pdf'", [req.user.orgId]);
+  const bytes = await db.query('SELECT COALESCE(sum(size_bytes), 0)::bigint AS total FROM dam_assets WHERE org_id = $1', [req.user.orgId]);
+  const folders = await db.query('SELECT count(*) AS c FROM dam_folders WHERE org_id = $1', [req.user.orgId]);
+
+  res.json({
+    totalAssets: parseInt(raw.rows[0].c),
+    images: parseInt(img.rows[0].c),
+    videos: parseInt(vid.rows[0].c),
+    audio: parseInt(aud.rows[0].c),
+    pdfs: parseInt(pdf.rows[0].c),
+    totalBytes: parseInt(bytes.rows[0].total),
+    folders: parseInt(folders.rows[0].c),
+  });
 }));
 
 // ── Serve ├É─┬─────────────────────────────────────────────────────────────────

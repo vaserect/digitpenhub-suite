@@ -56,6 +56,7 @@ const calendarRoutes    = require('./routes/calendar');
 const timeTrackingRoutes = require('./routes/timeTracking');
 const notesRoutes        = require('./routes/notes');
 const knowledgeBaseRoutes = require('./routes/knowledgeBase');
+const kbUpgradesRoutes = require('./routes/kbUpgrades');
 const couponsRoutes      = require('./routes/coupons');
 const urlShortenerRoutes = require('./routes/urlShortener');
 const assetsRoutes       = require('./routes/assets');
@@ -211,6 +212,7 @@ app.use('/api/v1/calendar',      requireAuth, requireModuleAccess('calendar'), c
 app.use('/api/v1/time-tracking', requireAuth, requireModuleAccess('time-tracking'), timeTrackingRoutes);
 app.use('/api/v1/notes',         requireAuth, requireModuleAccess('notes'), notesRoutes);
 app.use('/api/v1/kb',            requireAuth, requireModuleAccess('knowledge-base'), knowledgeBaseRoutes);
+app.use('/api/v1/kb',            requireAuth, requireModuleAccess('knowledge-base'), kbUpgradesRoutes);
 app.use('/api/v1/coupons',       requireAuth, requireModuleAccess('coupons'), couponsRoutes);
 app.use('/api/v1/url-shortener', requireAuth, requireModuleAccess('url-shortener'), urlShortenerRoutes);
 app.use('/api/v1/assets',        requireAuth, requireModuleAccess('asset-management'), assetsRoutes);

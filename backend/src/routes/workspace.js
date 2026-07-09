@@ -162,4 +162,74 @@ router.get('/export-all', asyncHandler(async (req, res) => {
   });
 }));
 
+// ── Onboarding status (drives home-screen recommendations) ───────────────────
+router.get('/onboarding', asyncHandler(async (req, res) => {
+  const orgId = req.user.orgId;
+  const userId = req.user.id;
+
+  const [
+    { rows: contacts },
+    { rows: invoices },
+    { rows: leads },
+    { rows: users },
+    { rows: projects },
+    { rows: wlBranding },
+    { rows: integrations },
+    { rows: emailLists },
+  ] = await Promise.all([
+    db.query('SELECT count(*) AS c FROM contacts WHERE org_id = $1', [orgId]),
+    db.query(`SELECT count(*) AS c, count(*) FILTER (WHERE status = 'sent' OR status = 'paid') AS sent FROM invoices WHERE org_id = $1`, [orgId]),
+    db.query('SELECT count(*) AS c FROM lead_submissions WHERE org_id = $1', [orgId]),
+    db.query('SELECT count(*) AS c FROM users WHERE org_id = $1', [orgId]),
+    db.query('SELECT count(*) AS c FROM projects WHERE org_id = $1', [orgId]),
+    db.query('SELECT custom_domain FROM white_label_branding WHERE org_id = $1', [orgId]),
+    db.query('SELECT count(*) AS c FROM integration_connections WHERE org_id = $1 AND is_connected = true', [orgId]),
+    db.query('SELECT count(*) AS c FROM email_lists WHERE org_id = $1', [orgId]),
+  ]);
+
+  const hasContacts = parseInt(contacts[0]?.c || 0) > 0;
+  const hasInvoices = parseInt(invoices[0]?.c || 0) > 0;
+  const hasSentInvoices = parseInt(invoices[0]?.sent || 0) > 0;
+  const hasLeads = parseInt(leads[0]?.c || 0) > 0;
+  const hasProjects = parseInt(projects[0]?.c || 0) > 0;
+  const hasTeam = parseInt(users[0]?.c || 0) > 1;
+  const hasDomain = !!(wlBranding.rows[0]?.custom_domain);
+  const hasIntegrations = parseInt(integrations[0]?.c || 0) > 0;
+  const hasEmailList = parseInt(emailLists[0]?.c || 0) > 0;
+
+  const steps = [];
+
+  if (!hasTeam) {
+    steps.push({ key: 'invite-team', label: 'Invite your team', description: 'Collaborate with your team by inviting them to your workspace.', slug: 'team', priority: 1 });
+  }
+  if (!hasContacts) {
+    steps.push({ key: 'add-contact', label: 'Add your first contact', description: 'Start building your CRM by adding a contact.', slug: 'crm', priority: 2 });
+  }
+  if (!hasLeads) {
+    steps.push({ key: 'create-form', label: 'Create a lead capture form', description: 'Start collecting leads with an embeddable form.', slug: 'lead-generation', priority: 3 });
+  }
+  if (!hasProjects) {
+    steps.push({ key: 'start-project', label: 'Start your first project', description: 'Track tasks and milestones from day one.', slug: 'project-management', priority: 4 });
+  }
+  if (!hasDomain && !hasIntegrations) {
+    steps.push({ key: 'connect-integration', label: 'Connect an integration', description: 'Link Slack, Google, or other tools to automate your workflow.', slug: 'integrations', priority: 5 });
+  }
+  if (!hasEmailList) {
+    steps.push({ key: 'create-list', label: 'Build an email list', description: 'Import subscribers and start email marketing.', slug: 'email-marketing', priority: 6 });
+  }
+  if (!hasInvoices) {
+    steps.push({ key: 'create-invoice', label: 'Send your first invoice', description: 'Create a professional invoice and get paid.', slug: 'invoices', priority: 7 });
+  }
+
+  res.json({
+    steps,
+    hasContacts, hasInvoices, hasSentInvoices, hasLeads, hasProjects,
+    hasTeam, hasDomain, hasIntegrations, hasEmailList,
+    contactCount: parseInt(contacts[0]?.c || 0),
+    invoiceCount: parseInt(invoices[0]?.c || 0),
+    leadCount: parseInt(leads[0]?.c || 0),
+    teamCount: parseInt(users[0]?.c || 0),
+  });
+}));
+
 module.exports = router;

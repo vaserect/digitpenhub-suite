@@ -55,6 +55,7 @@ import PlatformCoreModule from './modules/PlatformCoreModule';
 import GenericModule from './modules/GenericModule';
 import { DocumentsModule, ContentCalendarModule, AffiliatesModule } from './modules/AdvancedModules';
 import SettingsModule from './modules/SettingsModule';
+import WorkspaceHome from './home/WorkspaceHome';
 import CRMModule from './modules/CRM';
 import InvoicesModule from './modules/Invoices';
 import EmailMarketingModule from './modules/EmailMarketing';
@@ -7705,104 +7706,14 @@ export default function AppShell() {
         <div className={["sidebar-backdrop", navOpen ? 'show' : ''].filter(Boolean).join(' ')} onClick={() => setNavOpen(false)} />
 
         <div className="main" ref={mainRef}>
-          {view === 'home' && (
-            <div className="panel">
-              <div className="search-wrap">
-                <SearchIcon />
-                <input
-                  placeholder={`Search all ${totalModules} modules…`}
-                  value={query}
-                  onChange={(e) => handleSearch(e.target.value)}
-                />
-              </div>
-              <div className="panel-head">
-                <h1>Workspace</h1>
-                <span className="live-counter">{activeModules.length} of {totalModules} modules live</span>
-              </div>
-              <p className="panel-sub">Everything Digitpen Hub will eventually run from one login. Modules switch on the moment they ship.</p>
-
-              <Card className="hero-card">
-                <CardHeader title="Premium operations center" subtitle="A consistent foundation for CRM, PM, invoices, and every future module." action={<Badge variant="active">Design system live</Badge>} />
-                <div className="hero-grid">
-                  <div>
-                    <p className="hero-copy">The new UI system brings dark/light themes, polished cards, premium form controls, and reusable components to every module in the Suite.</p>
-                    <Button onClick={() => openCategory('marketing')}>Explore modules</Button>
-                  </div>
-                  <div className="hero-metrics">
-                    <div><strong>{activeModules.length}</strong><span>Live modules</span></div>
-                    <div><strong>{categories.length}</strong><span>Categories</span></div>
-                    <div><strong>{totalModules}</strong><span>Planned modules</span></div>
-                  </div>
-                </div>
-              </Card>
-
-              <h2 className="section-title">Pinned modules</h2>
-              {pinnedModules.length > 0 ? (
-                <div className="pinned-row">
-                  {pinnedModules.map((m) => (
-                    <button key={m.slug} className="pinned-card" onClick={() => openModule(m.slug)}>
-                      <div className="pinned-icon">{initials(m.name)}</div>
-                      <div className="pinned-info">
-                        <div className="ptitle">{m.name}</div>
-                        <div className="ptag">{m.categoryName}</div>
-                        <div className="pstatus"><span className="pip" />Live now</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <Card className="pinned-empty-card">
-                  <p className="panel-sub" style={{ margin: 0 }}>Pin your favorite modules from the sidebar (hover a module and click the star) to see them here for quick access.</p>
-                </Card>
-              )}
-
-              {recentModules.length > 0 && (
-                <>
-                  <h2 className="section-title">Recently used</h2>
-                  <div className="pinned-row" style={{ marginBottom: 28 }}>
-                    {recentModules.slice(0, 4).map((slug) => {
-                      const m = moduleCategories.flatMap(c => c.modules || []).find(mod => mod.slug === slug);
-                      if (!m) return null;
-                      return (
-                        <button key={slug} className="pinned-card" onClick={() => openModule(slug)}>
-                          <div className="pinned-icon">{initials(m.name)}</div>
-                          <div className="pinned-info">
-                            <div className="ptitle">{m.name}</div>
-                            <div className="ptag">{moduleCategories.find(c => c.modules?.some(mod => mod.slug === slug))?.name || ''}</div>
-                            <div className="pstatus"><span className="pip" />Open</div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-          {view === 'module' && activeModuleSlug === 'approval-workflow' && (
-            <ApprovalModule goHome={goHome} />
-          )}
-
-              <h2 className="section-title">All categories</h2>
-              <div className="cat-grid">
-                {moduleCategories.map((c) => {
-                  const live = liveCount(c);
-                  const pct = Math.max((live / c.modules.length) * 100, live > 0 ? 6 : 0);
-                  return (
-                    <button key={c.key} className="cat-card" onClick={() => openCategory(c.key)}>
-                      <div className="cat-top">
-                        <div className={`cat-badge ${live > 0 ? 'live' : ''}`}>{c.badge}</div>
-                        <div>
-                          <div className="cat-name">{c.name}</div>
-                          <div className="cat-count">{live} of {c.modules.length} live</div>
-                        </div>
-                      </div>
-                      <div className="cat-bar-track"><div className="cat-bar-fill" style={{ width: `${pct}%` }} /></div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {view === 'home' && <WorkspaceHome
+            query={query} handleSearch={handleSearch}
+            totalModules={totalModules} activeModules={activeModules}
+            moduleCategories={moduleCategories}
+            pinnedModules={pinnedModules} pinnedSlugs={pinnedSlugs} togglePin={togglePin}
+            recentModules={recentModules} openModule={openModule}
+            openCategory={openCategory} liveCount={liveCount}
+          />}
 
           {view === 'category' && activeCategory && (
             <div className="panel">

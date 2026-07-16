@@ -38,6 +38,7 @@ export default function CRMModule({ goHome, showToast }) {
   const [crmDetailLoaded, setCrmDetailLoaded] = useState(false);
   const [crmNewNote, setCrmNewNote] = useState('');
   const [crmNewTask, setCrmNewTask] = useState({ title: '', dueDate: '' });
+  const [crmFieldDefs, setCrmFieldDefs] = useState([]);
   const [crmTagInput, setCrmTagInput] = useState('');
   const [crmImporting, setCrmImporting] = useState(false);
 
@@ -177,6 +178,13 @@ export default function CRMModule({ goHome, showToast }) {
   }
 
   async function openCrmDetail(contact) {
+  async function loadFieldDefs() {
+    try {
+      const data = await apiFetch("/api/v1/crm/custom-fields?recordType=crm_contact");
+      setCrmFieldDefs(data.fields || []);
+    } catch (err) { console.error("Failed to load custom fields:", err); }
+  }
+    loadFieldDefs();
     setCrmDetailContact(contact);
     setCrmDetailLoaded(false);
     const [n, t] = await Promise.all([
@@ -507,6 +515,17 @@ export default function CRMModule({ goHome, showToast }) {
               </div>
 
               <h4 style={{ marginBottom: 8 }}>Tasks</h4>
+          <div style={{ marginTop: 24 }}>
+            <CustomFieldValues
+              recordType="crm_contact"
+              orgId={crmDetailContact.org_id}
+              contactId={crmDetailContact.id}
+              fieldDefs={crmFieldDefs}
+              values={crmDetailContact.customFields || {}}
+              onValuesChange={(newValues) => setCrmDetailContact((prev) => ({ ...prev, customFields: newValues }))}
+              readOnly={false}
+            />
+          </div>
               <form onSubmit={handleAddCrmTask} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <input className="field-input" placeholder="New task…" value={crmNewTask.title} onChange={(e) => setCrmNewTask((t) => ({ ...t, title: e.target.value }))} style={{ flex: '1 1 140px' }} />
                 <input className="field-input" type="date" value={crmNewTask.dueDate} onChange={(e) => setCrmNewTask((t) => ({ ...t, dueDate: e.target.value }))} style={{ flex: '0 1 140px' }} />

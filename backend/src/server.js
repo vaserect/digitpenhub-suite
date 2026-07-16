@@ -5,6 +5,7 @@ const { startAutomationScheduler } = require('./utils/automationScheduler');
 const { startAppointmentReminderScheduler } = require('./utils/appointmentReminderScheduler');
 const { startAbandonedCartRecoveryScheduler } = require('./utils/abandonedCartRecoveryScheduler');
 const { startBillingScheduler } = require('./utils/billingScheduler');
+const { start: startSocialMediaScheduler } = require('./utils/socialMediaScheduler');
 
 // Safety net: on Node 15+ an unhandled promise rejection (e.g. a rejected
 // async route handler that lacks a try/catch) terminates the process by
@@ -64,6 +65,7 @@ app.listen(port, '127.0.0.1', () => {
   
   try {
     startBillingScheduler();
+    startSocialMediaScheduler();
     logger.info('Billing scheduler started');
   } catch (err) {
     logger.error('Failed to start billing scheduler', { error: err.message });

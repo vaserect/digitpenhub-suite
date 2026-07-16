@@ -84,6 +84,7 @@ const customReportsRoutes = require('./routes/customReports');
 // Batch 4
 const salesDashboardRoutes    = require('./routes/salesDashboard');
 const marketingDashboardRoutes = require('./routes/marketingDashboard');
+const socialMediaRoutes = require('./routes/socialMedia');
 const websiteAnalyticsRoutes  = require('./routes/websiteAnalytics');
 const perfReportsRoutes       = require('./routes/performanceReports');
 const bizCardsRoutes          = require('./routes/digitalBusinessCards');
@@ -287,6 +288,7 @@ app.use('/api/v1/custom-reports',   requireAuth, requireModuleAccess('custom-rep
 // Batch 4
 app.use('/api/v1/sales-dashboard',    requireAuth, requireModuleAccess('sales-dashboard'), salesDashboardRoutes);
 app.use('/api/v1/marketing-dashboard',requireAuth, requireModuleAccess('marketing-dashboard'), marketingDashboardRoutes);
+app.use('/api/v1/social-media', requireAuth, requireModuleAccess('social-media-scheduler'), socialMediaRoutes);
 app.use('/api/v1/website-analytics',  requireAuth, requireModuleAccess('website-analytics'), websiteAnalyticsRoutes);
 app.use('/api/v1/perf-reports',       requireAuth, requireModuleAccess('performance-reports'), perfReportsRoutes);
 // Auth/module-access gating for biz-cards lives inside bizCardsRoutes itself

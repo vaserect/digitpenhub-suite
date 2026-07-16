@@ -1,4 +1,5 @@
-'use client';
+'use client'
+import KanbanBoard from "../../components/ui/KanbanBoard";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ export default function CRMModule({ goHome, showToast }) {
   const [crmNewNote, setCrmNewNote] = useState('');
   const [crmNewTask, setCrmNewTask] = useState({ title: '', dueDate: '' });
   const [crmFieldDefs, setCrmFieldDefs] = useState([]);
+  const [viewMode, setViewMode] = useState("list");
   const [crmTagInput, setCrmTagInput] = useState('');
   const [crmImporting, setCrmImporting] = useState(false);
 
@@ -343,6 +345,11 @@ export default function CRMModule({ goHome, showToast }) {
             <Button variant="secondary" size="sm" onClick={() => exportCrmCsv(crmFilteredSorted)}>Export CSV</Button>
           </Tooltip>
           <Tooltip label="Import contacts from a CSV file (columns: fullName, email, phone, company)">
+          <Tooltip label="Switch between list and kanban view">
+            <Button variant="secondary" size="sm" onClick={() => setViewMode(viewMode === "list" ? "kanban" : "list")}>
+              {viewMode === "list" ? "Kanban Board" : "List View"}
+            </Button>
+          </Tooltip>
             <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
               {crmImporting ? 'Importing…' : 'Import CSV'}
               <input type="file" accept=".csv,text/csv" onChange={handleCrmImportFile} disabled={crmImporting} style={{ display: 'none' }} />
@@ -381,10 +388,12 @@ export default function CRMModule({ goHome, showToast }) {
             action={<Button variant="secondary" onClick={() => { setCrmQuery(''); setCrmStageFilter('all'); }}>Clear filters</Button>}
           />
         </Card>
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard contacts={crmFilteredSorted} onRefresh={loadCrm} showToast={showToast} />
       ) : (
         <>
-          <div className="table-wrap">
-            <table className="contacts">
+        <div className="table-wrap">
+          <table className="contacts">
               <thead>
                 <tr>
                   <th style={{ width: 32 }}>

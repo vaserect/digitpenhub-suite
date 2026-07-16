@@ -54,5 +54,13 @@ module.exports = {
       public: false,
       moduleSlug: 'marketing-dashboard',
     },
+    {
+      path: '/api/v1/social-media',
+      router: require('../socialMedia'),
+      middleware: [],
+      description: 'Social Media Scheduler - publish, schedule, and manage social accounts',
+      public: false,
+      moduleSlug: 'social-media-scheduler',
+    },
   ],
 };

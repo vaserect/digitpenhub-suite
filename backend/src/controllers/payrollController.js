@@ -80,7 +80,9 @@ async function updateRun(req, res) {
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   updates.push('updated_at=NOW()');
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE payroll_runs SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE payroll_runs SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ run: rows[0] });
 }
@@ -124,10 +126,14 @@ async function removeItem(req, res) {
   const { rows } = await db.query(`DELETE FROM payroll_items WHERE id=$1 AND run_id=$2 RETURNING *`, [itemId, runId]);
   if (rows.length) {
     const r = rows[0];
-    await client.query(
-      `UPDATE payroll_runs SET total_gross_ngn=total_gross_ngn-$1, total_net_ngn=total_net_ngn-$2 WHERE id=$3`,
-      [Number(r.gross_salary)+Number(r.allowances), Number(r.net_pay), runId]
-    );
+    const conn = await db.connect();
+    try {
+      await conn.query(`UPDATE payroll_runs SET total_gross_ngn=total_gross_ngn-$1, total_net_ngn=total_net_ngn-$2 WHERE id=$3`,
+        [Number(r.gross_salary)+Number(r.allowances), Number(r.net_pay), runId]
+      );
+    } finally {
+      conn.release();
+    }
   }
   res.json({ ok: true });
 }

@@ -1,5 +1,5 @@
 const db = require('../db');
-const { whatsappProviderConfigured } = require('../utils/messagingProviders');
+const { whatsappProviderConfigured, sendWhatsAppBroadcast } = require('../utils/messagingProviders');
 const { sendCsv, autoColumns } = require('../utils/csv');
 const { bulkDeleteHandler } = require('../utils/bulkDelete');
 const bulkDeleteWhatsappContacts = bulkDeleteHandler('whatsapp_contacts');
@@ -52,7 +52,9 @@ async function updateContact(req, res) {
   if (status !==undefined){updates.push(`status=$${i++}`);vals.push(status);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE whatsapp_contacts SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE whatsapp_contacts SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Contact not found.' });
   res.json({ contact: rows[0] });
 }
@@ -90,7 +92,9 @@ async function updateTemplate(req, res) {
   if (status  !==undefined){updates.push(`status=$${i++}`);  vals.push(status);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE whatsapp_templates SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE whatsapp_templates SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Template not found.' });
   res.json({ template: rows[0] });
 }
@@ -140,7 +144,9 @@ async function updateBroadcast(req, res) {
   if (status        !==undefined){updates.push(`status=$${i++}`);         vals.push(status);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE whatsapp_broadcasts SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE whatsapp_broadcasts SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Broadcast not found.' });
   res.json({ broadcast: rows[0] });
 }
@@ -156,16 +162,30 @@ async function sendBroadcast(req, res) {
   if (!existing.rows.length) return res.status(404).json({ error: 'Broadcast not found.' });
   if (existing.rows[0].status === 'sent') return res.status(400).json({ error: 'Already sent.' });
 
-  // No WhatsApp Business API credentials configured for this deployment —
-  // simulate the send rather than claiming a real dispatch. See
-  // utils/messagingProviders.js for how to wire a real provider.
-  const simulated = !whatsappProviderConfigured();
+  const configured = whatsappProviderConfigured();
+  let sentCount = 0;
+  let errorCount = 0;
+
+  if (configured) {
+    // Fetch active contacts
+    const { rows: contacts } = await db.query(
+      `SELECT phone FROM whatsapp_contacts WHERE org_id=$1 AND status='active'`,
+      [req.user.orgId]
+    );
+    const recipients = contacts.map((c) => c.phone).filter(Boolean);
+
+    if (recipients.length) {
+      const result = await sendWhatsAppBroadcast({ recipients, message: existing.rows[0].notes || ' ' });
+      sentCount = result.results.filter((r) => r.ok).length;
+      errorCount = result.results.filter((r) => !r.ok).length;
+    }
+  }
 
   const { rows } = await db.query(
     `UPDATE whatsapp_broadcasts SET status='sent', sent_at=NOW(), simulated=$1 WHERE id=$2 AND org_id=$3 RETURNING *`,
-    [simulated, id, req.user.orgId]
+    [!configured, id, req.user.orgId]
   );
-  res.json({ broadcast: rows[0], simulated });
+  res.json({ broadcast: rows[0], simulated: !configured, sentCount, errorCount });
 }
 
 async function exportContacts(req, res) {

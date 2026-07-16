@@ -23,6 +23,7 @@ export default function Button({
 
   return (
     <button
+      type="button"
       className={["btn", variantClass, sizeClass, loading ? 'is-loading' : '', className].filter(Boolean).join(' ')}
       disabled={loading || props.disabled}
       aria-busy={loading}

@@ -51,3 +51,32 @@ router.get('/contacts/stats', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+
+// ============================================================
+// Activity Timeline Routes
+// ============================================================
+const { getTimelineForContact, getGlobalTimeline } = require('../utils/activityTracker');
+
+// Get timeline for a specific contact
+router.get('/contacts/:contactId/timeline', requireAuth, async (req, res) => {
+  const { contactId } = req.params;
+  const { limit, offset, types } = req.query;
+  const timeline = await getTimelineForContact(contactId, req.user.orgId, {
+    limit: parseInt(limit) || 50,
+    offset: parseInt(offset) || 0,
+    types: types ? types.split(',') : [],
+  });
+  res.json({ timeline });
+});
+
+// Get global activity feed
+router.get('/timeline', requireAuth, async (req, res) => {
+  const { limit, offset, types, contactId } = req.query;
+  const timeline = await getGlobalTimeline(req.user.orgId, {
+    limit: parseInt(limit) || 50,
+    offset: parseInt(offset) || 0,
+    types: types ? types.split(',') : [],
+    contactId: contactId || null,
+  });
+  res.json({ timeline });
+});

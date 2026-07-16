@@ -15,6 +15,6 @@ router.post('/mark-all-read', markAllRead);
 
 router.post("/bulk-delete", bulkDeleteHandler("notifications"));
 router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM notifications WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "notifications.csv", rows, autoColumns(rows)); });
-router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM notifications WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
+router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM notifications WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = router;

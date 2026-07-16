@@ -36,6 +36,6 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
 router.post("/bulk-delete", bulkDeleteHandler("segments"));
 router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM segments WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "segments.csv", rows, autoColumns(rows)); });
-router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM segments WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
+router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM segments WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = router;

@@ -1,22 +1,39 @@
 const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const contentController = require('../controllers/contentController');
+const { bulkDeleteHandler } = require('../utils/bulkDelete');
+const { sendCsv, autoColumns } = require('../utils/csv');
 const db = require('../db');
 
 const router = Router();
+router.use(requireAuth);
 
-// Public, no auth — the marketing homepage and footer read their editable
-// copy from here. Scoped to explicit public sections only, never the whole
-// site_content table, so this endpoint can't accidentally expose a section
-// meant for an internal/gated surface later.
-const PUBLIC_SECTIONS = ['homepage', 'footer', 'features', 'pricing'];
+// CRUD operations
+router.get('/', contentController.getAll);
+router.get('/:id', contentController.getById);
+router.post('/', contentController.create);
+router.put('/:id', contentController.update);
+router.delete('/:id', contentController.delete);
 
-router.get('/public', async (req, res) => {
+// Bulk operations
+router.post('/bulk-delete', bulkDeleteHandler('content'));
+
+// Export
+router.get('/export', async (req, res) => {
   const { rows } = await db.query(
-    `SELECT content_key, content_value, content_type FROM site_content WHERE section = ANY($1)`,
-    [PUBLIC_SECTIONS]
+    'SELECT * FROM content WHERE org_id = $1 ORDER BY created_at DESC',
+    [req.user.orgId]
   );
-  const content = {};
-  for (const row of rows) content[row.content_key] = row.content_value;
-  res.json({ content });
+  sendCsv(res, 'content.csv', rows, autoColumns(rows));
+});
+
+// Stats
+router.get('/stats', async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT count(*)::int AS total FROM content WHERE org_id = $1',
+    [req.user.orgId]
+  );
+  res.json({ stats: rows[0] });
 });
 
 module.exports = router;

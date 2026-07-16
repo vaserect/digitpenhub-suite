@@ -58,14 +58,20 @@ async function resolveBarcode(req, res) {
   if (!rows.length) return res.status(404).json({ error: 'not_found' });
   const bc = rows[0];
   const isUrl = /^https?:\/\//i.test(bc.content || '');
+
+  if (req.xhr || req.headers.accept?.includes('json')) {
+    return res.json({
+      id: bc.id,
+      name: bc.name,
+      content: bc.content,
+      barcodeType: bc.barcode_type,
+      scans: bc.scans,
+      redirectUrl: isUrl ? bc.content : undefined
+    });
+  }
+
   if (isUrl) return res.redirect(302, bc.content);
-  res.json({
-    id: bc.id,
-    name: bc.name,
-    content: bc.content,
-    barcodeType: bc.barcode_type,
-    scans: bc.scans,
-  });
+  return res.redirect(302, `/barcode/${bc.id}`);
 }
 
 module.exports = { getStats, listBarcodes, createBarcode, updateBarcode, deleteBarcode, trackScan, resolveBarcode };

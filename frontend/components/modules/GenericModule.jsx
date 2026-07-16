@@ -27,7 +27,6 @@ const API_MAP = {
   'forms': '/api/v1/leads/forms', 'webhooks': '/api/v1/api-keys/webhooks',
   'permissions': '/api/v1/permissions/roles', 'segments': '/api/v1/segments',
   'subscriptions': '/api/v1/customer-subs', 'sso': '/api/v1/auth/sso/providers',
-  'inventory': '/api/v1/inventory/products',
   'content-calendar': '/api/v1/platform/calendar',
   'cross-module-activity-feed': '/api/v1/platform/activity',
   'legal-templates': '/api/v1/platform/legal-templates',

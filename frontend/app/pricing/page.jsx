@@ -37,7 +37,7 @@ export default function PricingPage() {
     fetch('/api/v1/content/public')
       .then((r) => r.json())
       .then((d) => { if (d.content) setContent((prev) => ({ ...prev, ...d.content })); })
-      .catch(() => {});
+      .catch(() => { console.error('Failed to load content'); });
   }, []);
 
   return (

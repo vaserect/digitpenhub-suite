@@ -57,4 +57,10 @@ function generateBackupCodes() {
   return Array.from({ length: 8 }, () => crypto.randomBytes(5).toString('hex').toUpperCase());
 }
 
-module.exports = { generateSecret, otpauthUri, verifyTotp, generateBackupCodes };
+/** Hash a backup code with SHA-256 before storage, so a DB leak doesn't
+ *  expose single-use full-access keys. */
+function hashBackupCode(code) {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+module.exports = { generateSecret, otpauthUri, verifyTotp, generateBackupCodes, hashBackupCode };

@@ -45,6 +45,7 @@ async function useTemplate(req, res) {
   let finalSlug = baseSlug;
   let suffix = 1;
   // Ensure slug uniqueness within the org by appending a numeric suffix if needed.
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { rows: exists } = await db.query(
       `SELECT 1 FROM pages WHERE org_id = $1 AND slug = $2`,

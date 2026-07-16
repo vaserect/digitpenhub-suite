@@ -1,9 +1,9 @@
 -- Module Category Reclassification Migration
 -- 21 categories → 23 categories, 40+ modules reclassified
 
--- Step 1: Create new categories with key + badge
-INSERT INTO categories (key, name, badge, sort_order) VALUES ('settings', 'Settings', 'ST', 12);
-INSERT INTO categories (key, name, badge, sort_order) VALUES ('hr', 'HR', 'HR', 7.5);
+-- Step 1: Create new categories with key + badge (skip if already exists)
+INSERT INTO categories (key, name, badge, sort_order) VALUES ('settings', 'Settings', 'ST', 12) ON CONFLICT (key) DO NOTHING;
+INSERT INTO categories (key, name, badge, sort_order) VALUES ('hr', 'HR', 'HR', 7.5) ON CONFLICT (key) DO NOTHING;
 
 -- Renumber existing sort_orders to accommodate new categories
 UPDATE categories SET sort_order = 1 WHERE key = 'platform-core';

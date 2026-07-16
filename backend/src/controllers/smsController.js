@@ -1,5 +1,5 @@
 const db = require('../db');
-const { smsProviderConfigured } = require('../utils/messagingProviders');
+const { smsProviderConfigured, sendBulkSms } = require('../utils/messagingProviders');
 const { sendCsv, autoColumns } = require('../utils/csv');
 const { bulkDeleteHandler } = require('../utils/bulkDelete');
 const bulkDeleteSmsContacts = bulkDeleteHandler('sms_contacts');
@@ -42,7 +42,10 @@ async function updateContact(req, res) {
   if (status !== undefined) { updates.push(`status=$${i++}`); vals.push(status); }
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE sms_contacts SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  // Use actual parameter count instead of template literal evaluation
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE sms_contacts SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ contact: rows[0] });
 }
@@ -113,18 +116,31 @@ async function sendCampaign(req, res) {
   const camp = await db.query(`SELECT * FROM sms_campaigns WHERE id=$1 AND org_id=$2`, [id, req.user.orgId]);
   if (!camp.rows.length)           return res.status(404).json({ error: 'Not found.' });
   if (camp.rows[0].status === 'sent') return res.status(400).json({ error: 'Already sent.' });
-  const count = contactIds?.length || 0;
 
-  // No SMS gateway is configured for this deployment — simulate the send
-  // (record it, don't claim delivery) rather than lying about a real send.
-  // See utils/messagingProviders.js for how to wire a real provider.
-  const simulated = !smsProviderConfigured();
+  const configured = smsProviderConfigured();
+  let sentCount = 0;
+  let errorCount = 0;
+
+  if (configured && contactIds?.length) {
+    // Fetch recipient phone numbers
+    const { rows: contacts } = await db.query(
+      `SELECT phone FROM sms_contacts WHERE id = ANY($1) AND org_id = $2`,
+      [contactIds, req.user.orgId]
+    );
+    const recipients = contacts.map((c) => c.phone).filter(Boolean);
+
+    if (recipients.length) {
+      const result = await sendBulkSms({ recipients, message: camp.rows[0].message });
+      sentCount = result.results.filter((r) => r.ok).length;
+      errorCount = result.results.filter((r) => !r.ok).length;
+    }
+  }
 
   const { rows } = await db.query(
-    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$1,simulated=$2 WHERE id=$3 AND org_id=$4 RETURNING *`,
-    [count, simulated, id, req.user.orgId]
+    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$2,simulated=$3 WHERE id=$4 AND org_id=$5 RETURNING *`,
+    [contactIds?.length || 0, sentCount, !configured || (configured && !contactIds?.length), id, req.user.orgId]
   );
-  res.json({ campaign: rows[0], simulated });
+  res.json({ campaign: rows[0], simulated: !configured || !contactIds?.length, sentCount, errorCount });
 }
 
 async function deleteCampaign(req, res) {

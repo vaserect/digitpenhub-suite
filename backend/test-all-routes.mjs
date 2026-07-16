@@ -1,5 +1,8 @@
 // End-to-end API test — hits every major route with a real authenticated session
 import http from 'http';
+import dotenv from 'dotenv';
+import pg from 'pg';
+dotenv.config();
 
 const BASE = 'http://127.0.0.1:4001';
 const email = `test-e2e-${Date.now()}@test.com`;
@@ -28,7 +31,7 @@ async function api(method, path, body) {
 async function testAll() {
   const results = [];
   const pass = (name) => { results.push(`✅ ${name}`); };
-  const fail = (name, err) => { results.push(`❌ ${name}: ${err}`); };
+  const fail = (name, err) => { results.push(`❌ ${name}: ${typeof err === 'object' ? JSON.stringify(err) : err}`); };
 
   // 1. Health
   const h = await api('GET', '/api/v1/health');
@@ -37,6 +40,22 @@ async function testAll() {
   // 2. Register
   const r = await api('POST', '/api/v1/auth/register', { orgName: 'E2E Org', fullName: 'E2E User', email, password: 'Password123!' });
   if (r.ok) pass('register'); else fail('register', r.body?.error || r.body);
+
+  // Upgrade the registered org's plan to business so it can access all modules
+  if (r.ok) {
+    try {
+      const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      await client.query(
+        `UPDATE subscriptions SET plan_id = (SELECT id FROM plans WHERE slug = 'business')
+         WHERE org_id = (SELECT org_id FROM users WHERE email = $1)`,
+        [email]
+      );
+      await client.end();
+    } catch (e) {
+      console.error('Failed to upgrade org plan in database:', e.message);
+    }
+  }
 
   // 3. Login
   const l = await api('POST', '/api/v1/auth/login', { email, password: 'Password123!' });
@@ -93,7 +112,7 @@ async function testAll() {
   if (pay.ok) pass('payroll'); else fail('payroll', pay.body);
   const quo = await api('GET', '/api/v1/quotations');
   if (quo.ok) pass('quotations'); else fail('quotations', quo.body);
-  const acc = await api('GET', '/api/v1/accounting');
+  const acc = await api('GET', '/api/v1/accounting/accounts');
   if (acc.ok) pass('accounting'); else fail('accounting', acc.body);
 
   // 13. HR
@@ -167,7 +186,7 @@ async function testAll() {
   if (inv.ok) pass('inventory/products'); else fail('inventory/products', inv.body);
 
   // 26. Tasks, PM
-  const pm = await api('GET', '/api/v1/pm');
+  const pm = await api('GET', '/api/v1/pm/projects');
   if (pm.ok) pass('pm'); else fail('pm', pm.body);
   const tasks = await api('GET', '/api/v1/tasks');
   if (tasks.ok) pass('tasks'); else fail('tasks', tasks.body);
@@ -183,7 +202,7 @@ async function testAll() {
   // 29. Calendar, Time tracking, Notes
   const cal2 = await api('GET', '/api/v1/calendar');
   if (cal2.ok) pass('calendar'); else fail('calendar', cal2.body);
-  const tt = await api('GET', '/api/v1/time-tracking');
+  const tt = await api('GET', '/api/v1/time-tracking/projects');
   if (tt.ok) pass('time-tracking'); else fail('time-tracking', tt.body);
   const notes = await api('GET', '/api/v1/notes');
   if (notes.ok) pass('notes'); else fail('notes', notes.body);
@@ -191,7 +210,7 @@ async function testAll() {
   // 30. Affiliates, Referrals, Coupons
   const aff = await api('GET', '/api/v1/affiliates');
   if (aff.ok) pass('affiliates'); else fail('affiliates', aff.body);
-  const ref = await api('GET', '/api/v1/referrals');
+  const ref = await api('GET', '/api/v1/referrals/programs');
   if (ref.ok) pass('referrals'); else fail('referrals', ref.body);
   const coup = await api('GET', '/api/v1/coupons');
   if (coup.ok) pass('coupons'); else fail('coupons', coup.body);

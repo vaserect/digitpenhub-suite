@@ -10,12 +10,14 @@ const {
   listSubscribers, addSubscriber, importSubscribers, removeSubscriber, unsubscribe,
   listCampaigns, createCampaign, getCampaign, updateCampaign, deleteCampaign, sendCampaign,
   getStats,
+  confirmSubscription,
 } = require('../controllers/emailController');
 
 const router = Router();
 
 // Public — no auth
 router.get('/unsubscribe/:id', unsubscribe);
+router.get('/confirm/:token', confirmSubscription); // CRITICAL FIX: Double opt-in confirmation endpoint
 
 // Protected
 router.use(requireAuth);

@@ -50,7 +50,9 @@ async function updatePlan(req, res) {
   if (status       !==undefined){updates.push(`status=$${i++}`);        vals.push(status);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE subscription_plans SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE subscription_plans SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ plan: rows[0] });
 }
@@ -108,7 +110,9 @@ async function updateSubscription(req, res) {
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   updates.push('updated_at=NOW()');
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE customer_subscriptions SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE customer_subscriptions SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ subscription: rows[0] });
 }

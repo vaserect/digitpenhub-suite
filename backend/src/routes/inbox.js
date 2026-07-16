@@ -136,6 +136,6 @@ async function pushInboxMessage(orgId, userId, source, title, body, link, priori
 
 router.post("/bulk-delete", bulkDeleteHandler("inbox_messages"));
 router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM inbox_messages WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "inbox_messages.csv", rows, autoColumns(rows)); });
-router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM inbox_messages WHERE org_id = module.exports =", [req.user.orgId]); res.json({ stats: rows[0] }); });
+router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM inbox_messages WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
 
 module.exports = { router, pushInboxMessage };

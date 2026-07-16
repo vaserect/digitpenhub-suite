@@ -1,5 +1,6 @@
 const db = require('../db');
 const { verifySessionToken } = require('../utils/jwt');
+const { setSentryUser } = require('../utils/sentry');
 
 const COOKIE_NAME = 'dph_session';
 
@@ -47,6 +48,10 @@ async function requireAuth(req, res, next) {
       avatarUrl: session.avatar_url,
     };
     req.sessionId = session.id;
+    
+    // Set Sentry user context for error tracking
+    setSentryUser(req.user);
+    
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Not signed in.' });

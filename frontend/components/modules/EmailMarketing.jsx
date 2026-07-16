@@ -263,7 +263,7 @@ export default function EmailMarketingModule({ goHome, showToast }) {
     } finally { setEmailTplLoading(false); }
   }
 
-  async function useEmailTemplate(id) {
+  async function handleUseEmailTemplate(id) {
     let data;
     try {
       data = await apiFetch(`/api/v1/email-templates/${id}`);
@@ -315,7 +315,7 @@ export default function EmailMarketingModule({ goHome, showToast }) {
                 <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.name}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.description}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--muted)', fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 6 }}>&quot;{t.subject}&quot;</div>
-                <Button size="sm" onClick={() => useEmailTemplate(t.id)}>Use this template</Button>
+                <Button size="sm" onClick={() => handleUseEmailTemplate(t.id)}>Use this template</Button>
               </div>
             ))}
           </div>

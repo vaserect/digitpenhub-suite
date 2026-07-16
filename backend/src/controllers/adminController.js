@@ -1,4 +1,5 @@
 const db = require('../db');
+const crypto = require('crypto');
 
 // Every meaningful admin write goes through this so there's a real audit
 // trail of who changed what, reusing the same audit_log table auth actions
@@ -392,6 +393,39 @@ async function findAdminCandidate(req, res) {
   res.json({ user: rows[0] });
 }
 
+// ── 2FA recovery (super_admin only) ─────────────────────────────────────────
+// Allows a super admin to disable 2FA on a user's account if they've lost
+// access to their authenticator app and all backup codes.
+
+async function disableUser2fa(req, res) {
+  const { id } = req.params;
+
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'Use your own 2FA settings page to disable your own 2FA.' });
+  }
+
+  const userRes = await db.query(
+    `SELECT id, full_name, email, is_super_admin FROM users WHERE id = $1`,
+    [id]
+  );
+  if (!userRes.rows.length) return res.status(404).json({ error: 'User not found.' });
+  if (userRes.rows[0].is_super_admin) {
+    return res.status(400).json({ error: 'Cannot disable another super admin\'s 2FA. They must do it themselves.' });
+  }
+
+  await db.query(
+    `UPDATE users SET totp_secret = NULL, totp_enabled = false, totp_backup_codes = NULL WHERE id = $1`,
+    [id]
+  );
+
+  await logAdminAction(req, 'admin.2fa_disabled', {
+    targetUserId: id,
+    targetEmail: userRes.rows[0].email,
+  });
+
+  res.json({ ok: true, message: `2FA disabled for ${userRes.rows[0].full_name}. They can re-enable it from their account settings.` });
+}
+
 // ── Audit log ────────────────────────────────────────────────────────────────
 
 async function listAuditLog(req, res) {
@@ -416,5 +450,5 @@ module.exports = {
   listPayments,
   listContent, updateContent,
   listAdmins, setAdminRole, findAdminCandidate,
-  listAuditLog,
+  listAuditLog, disableUser2fa,
 };

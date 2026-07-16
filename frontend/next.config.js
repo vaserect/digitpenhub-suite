@@ -1,4 +1,4 @@
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4001';
+const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:5000';
 
 /** @type {import('next').NextConfig} */
 module.exports = {

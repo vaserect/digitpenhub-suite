@@ -29,15 +29,20 @@ export default function AccountPage() {
 
   useEffect(() => {
     apiFetch('/api/v1/auth/me')
-      .then((d) => { setUser(d.user); setNameDraft(d.user.fullName); })
+      .then((d) => {
+        setUser(d.user);
+        setNameDraft(d.user.fullName);
+        const currentSession = (d.sessions || []).find((s) => s.is_current);
+        if (currentSession) setSessions([currentSession, ...(d.sessions || []).filter((s) => !s.is_current)]);
+      })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));
     apiFetch('/api/v1/auth/sessions')
       .then((d) => setSessions(d.sessions || []))
-      .catch(() => {});
+      .catch(() => { console.error('Failed to load sessions'); });
     apiFetch('/api/v1/auth/audit-log')
       .then((d) => setAuditLog(d.log || []))
-      .catch(() => {});
+      .catch(() => { console.error('Failed to load audit log'); });
   }, []);
 
   async function saveProfile(e) {
@@ -232,13 +237,27 @@ export default function AccountPage() {
           {auditLog.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No activity recorded yet.</div>
           ) : (
-            <div style={{ display: 'grid', gap: 6 }}>
-              {auditLog.map((a) => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--surface-muted)', borderRadius: 8, fontSize: 12 }}>
-                  <span>{a.action.replace(/_/g, ' ')}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{new Date(a.created_at).toLocaleString()}</span>
-                </div>
-              ))}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Action</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>IP</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Details</th>
+                    <th style={{ textAlign: 'left', padding: '6px 10px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLog.map((a) => (
+                    <tr key={a.id}>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>{a.action.replace(/_/g, ' ')}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }}>{a.ip_address || '—'}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--text-muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.meta ? JSON.stringify(a.meta) : '—'}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

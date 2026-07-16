@@ -64,6 +64,7 @@ async function useSiteTemplate(req, res) {
     // page's final slug (home = base, others = base-suffix) is collision-free.
     let finalBase = baseSlug;
     let suffix = 1;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const { rows: exists } = await client.query(
         `SELECT 1 FROM pages WHERE org_id = $1 AND (slug = $2 OR slug LIKE $2 || '-%')`,

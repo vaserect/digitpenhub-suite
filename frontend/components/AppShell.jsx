@@ -16257,17 +16257,21 @@ export default function AppShell() {
             <EmptyState icon="▦" title="No QR codes yet" description="Create your first QR code to start tracking scans." action={<Button onClick={() => setQrForm(true)}>+ New QR Code</Button>} />
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:'0.75rem' }}>
-              {qrCodes.map((q) => (
-                <div key={q.id} style={{ border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem', background:'var(--bg)', textAlign:'center' }}>
-                  <img src={buildQrUrl(q.content, 160, q.color, q.bg_color)} alt={q.title} style={{ width:160, height:160, border:'1px solid var(--border)', borderRadius:4, marginBottom:'0.5rem' }} />
-                  <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.2rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</div>
-                  <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginBottom:'0.4rem' }}><span className="ctag" style={{ marginRight:4 }}>{q.type}</span>{q.scans} scans</div>
-                  <div style={{ display:'flex', gap:'0.25rem', justifyContent:'center' }}>
-                    <a href={buildQrUrl(q.content, 400, q.color, q.bg_color)} download={`${q.title}.png`} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize:'0.7rem' }}>Download</a>
-                    <Button variant="ghost" size="sm" style={{ color:'var(--danger)' }} onClick={() => handleDeleteQrCode(q.id)}>Delete</Button>
+              {qrCodes.map((q) => {
+                const trackableContent = q.type === 'url' ? `${window.location.origin}/api/v1/qr-codes/r/${q.id}` : q.content;
+                return (
+                  <div key={q.id} style={{ border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem', background:'var(--bg)', textAlign:'center' }}>
+                    <img src={buildQrUrl(trackableContent, 160, q.color, q.bg_color)} alt={q.title} style={{ width:160, height:160, border:'1px solid var(--border)', borderRadius:4, marginBottom:'0.5rem' }} />
+                    <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'0.2rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</div>
+                    <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginBottom:'0.4rem' }}><span className="ctag" style={{ marginRight:4 }}>{q.type}</span>{q.scans} scans</div>
+                    <div style={{ display:'flex', gap:'0.25rem', justifyContent:'center', flexWrap:'wrap' }}>
+                      <a href={buildQrUrl(trackableContent, 400, q.color, q.bg_color)} download={`${q.title}.png`} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize:'0.7rem' }}>Download</a>
+                      <Button variant="ghost" size="sm" style={{ fontSize:'0.7rem' }} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/qr/${q.id}`); showToast('QR code link copied.'); }}>Copy link</Button>
+                      <Button variant="ghost" size="sm" style={{ color:'var(--danger)', fontSize:'0.7rem' }} onClick={() => handleDeleteQrCode(q.id)}>Delete</Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <ConfirmDialog
@@ -17344,9 +17348,10 @@ export default function AppShell() {
           <div className="module-head">
             <button className="back-link" onClick={() => qbViewQuiz ? (setQbViewQuiz(null), setQbTab('list')) : setView('home')}>← {qbViewQuiz ? 'Back to Quizzes' : 'Back'}</button>
             <h2>{qbViewQuiz ? qbViewQuiz.title : 'Quiz Builder'}</h2>
-            {!qbViewQuiz && <button className="btn-primary" onClick={() => { setEditingQuiz(null); setQbDraft({ title:'', description:'', questions:[], settings:{ showScore:true, shuffleQuestions:false, timeLimit:0 } }); setQbForm(true); setQbTab('build'); }}>+ New Quiz</button>}
+            {!qbViewQuiz && <button className="btn-primary" onClick={() => { setEditingQuiz(null); setQbDraft({ title:'', description:'', questions:[], published:false, settings:{ showScore:true, shuffleQuestions:false, timeLimit:0 } }); setQbForm(true); setQbTab('build'); }}>+ New Quiz</button>}
             {qbViewQuiz && <div style={{ display:'flex', gap:'0.5rem' }}>
-              <button className="btn-ghost" onClick={() => { setEditingQuiz(qbViewQuiz); setQbDraft({ title:qbViewQuiz.title, description:qbViewQuiz.description||'', questions:qbViewQuiz.questions||[], settings:qbViewQuiz.settings||{} }); setQbForm(true); setQbTab('build'); }}>Edit</button>
+              {qbViewQuiz.published && <button className="btn-ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/quiz/${qbViewQuiz.id}`); showToast('Quiz link copied!'); }}>Copy link</button>}
+              <button className="btn-ghost" onClick={() => { setEditingQuiz(qbViewQuiz); setQbDraft({ title:qbViewQuiz.title, description:qbViewQuiz.description||'', questions:qbViewQuiz.questions||[], published:qbViewQuiz.published||false, settings:qbViewQuiz.settings||{} }); setQbForm(true); setQbTab('build'); }}>Edit</button>
               <button className="btn-ghost" style={{ color:'var(--danger)' }} onClick={() => { handleDeleteQuiz(qbViewQuiz.id); setQbViewQuiz(null); }}>Delete</button>
             </div>}
           </div>
@@ -17361,7 +17366,7 @@ export default function AppShell() {
             <>
               <div className="tab-bar">
                 <button className={`tab-btn${qbTab==='list'?' active':''}`} onClick={() => setQbTab('list')}>All Quizzes</button>
-                <button className={`tab-btn${qbTab==='build'?' active':''}`} onClick={() => { setEditingQuiz(null); setQbDraft({ title:'', description:'', questions:[], settings:{ showScore:true, shuffleQuestions:false, timeLimit:0 } }); setQbTab('build'); }}>+ Build New</button>
+                <button className={`tab-btn${qbTab==='build'?' active':''}`} onClick={() => { setEditingQuiz(null); setQbDraft({ title:'', description:'', questions:[], published:false, settings:{ showScore:true, shuffleQuestions:false, timeLimit:0 } }); setQbTab('build'); }}>+ Build New</button>
               </div>
               {qbTab === 'list' && (
                 !qbLoaded ? <p className="muted">Loading…</p> :
@@ -17376,9 +17381,10 @@ export default function AppShell() {
                           <span className="ctag">{q.responses_count} responses</span>
                           <span className="ctag" style={{ color: q.published ? 'var(--success)' : 'var(--muted)' }}>{q.published ? '● Published' : '○ Draft'}</span>
                         </div>
-                        <div style={{ display:'flex', gap:'0.5rem' }}>
+                        <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
                           <button className="btn-ghost" style={{ fontSize:'0.8rem' }} onClick={async () => { const d = await apiFetch(`/api/v1/quiz-builder/${q.id}`); setQbViewQuiz(d.quiz); loadQuizResponses(q.id); }}>View</button>
-                          <button className="btn-ghost" style={{ fontSize:'0.8rem' }} onClick={() => { setEditingQuiz(q); setQbDraft({ title:q.title, description:q.description||'', questions:q.questions||[], settings:q.settings||{} }); setQbTab('build'); }}>Edit</button>
+                          <button className="btn-ghost" style={{ fontSize:'0.8rem' }} onClick={() => { setEditingQuiz(q); setQbDraft({ title:q.title, description:q.description||'', questions:q.questions||[], published:q.published||false, settings:q.settings||{} }); setQbTab('build'); }}>Edit</button>
+                          {q.published && <button className="btn-ghost" style={{ fontSize:'0.8rem' }} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/quiz/${q.id}`); showToast('Quiz link copied!'); }}>Copy link</button>}
                           <button className="btn-ghost" style={{ fontSize:'0.8rem', color:'var(--danger)' }} onClick={() => handleDeleteQuiz(q.id)}>Delete</button>
                         </div>
                       </div>
@@ -17426,6 +17432,7 @@ export default function AppShell() {
                     <div>
                       <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'0.75rem' }}>
                         <h4 style={{ marginBottom:'0.75rem' }}>Settings</h4>
+                        <label style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem', fontSize:'0.85rem' }}><input type="checkbox" checked={qbDraft.published} onChange={(e) => setQbDraft((d)=>({...d,published:e.target.checked}))} /> Published (Publicly accessible)</label>
                         <label style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem', fontSize:'0.85rem' }}><input type="checkbox" checked={qbDraft.settings.showScore} onChange={(e) => setQbDraft((d)=>({...d,settings:{...d.settings,showScore:e.target.checked}}))} /> Show score after submit</label>
                         <label style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem', fontSize:'0.85rem' }}><input type="checkbox" checked={qbDraft.settings.shuffleQuestions} onChange={(e) => setQbDraft((d)=>({...d,settings:{...d.settings,shuffleQuestions:e.target.checked}}))} /> Shuffle questions</label>
                         <label style={{ display:'block', fontSize:'0.85rem', marginBottom:'0.25rem' }}>Time limit (mins, 0=none)</label>
@@ -17580,9 +17587,10 @@ export default function AppShell() {
                       <span>📍 {p.position}</span>
                       <span>👁 {p.impressions} | ✓ {p.conversions}</span>
                     </div>
-                    <div style={{ display:'flex', gap:'0.5rem' }}>
+                    <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
                       <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => setPbPreview(p)}>Preview</button>
                       <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { setEditingPopup(p); setPbDraft({ name:p.name, trigger_type:p.trigger_type, trigger_delay:p.trigger_delay, trigger_scroll:p.trigger_scroll, headline:p.headline||'', body_text:p.body_text||'', cta_text:p.cta_text||'', cta_url:p.cta_url||'', image_url:p.image_url||'', bg_color:p.bg_color, text_color:p.text_color, accent_color:p.accent_color, position:p.position, size:p.size, status:p.status }); setPbForm(true); }}>Edit</button>
+                      <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { navigator.clipboard.writeText(`<script src="${window.location.origin}/api/v1/popup-builder/embed/${p.id}.js" async></script>`); showToast('Popup embed script copied.'); }}>Copy embed code</button>
                       <button className="btn-ghost" style={{ fontSize:'0.75rem', color:'var(--danger)' }} onClick={() => handleDeletePopup(p.id)}>Delete</button>
                     </div>
                   </div>
@@ -19780,20 +19788,31 @@ ${smUrls.filter(u=>u.url).map(u => `  <url>
 
       {/* ── Resume Builder ──────────────────────────────────────────────────────── */}
       {view === 'module' && activeModuleSlug === 'resume-builder' && (() => {
+        // XSS Protection: Sanitize all user inputs before rendering
+        const escapeHtml = (str) => {
+          if (!str) return '';
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        };
+        
         const cvHtml = `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:2rem;color:#111">
-<div style="border-bottom:3px solid ${resumeColor};padding-bottom:1rem;margin-bottom:1.25rem">
-<h1 style="margin:0 0 0.2rem;font-size:1.8rem;color:${resumeColor}">${resumeName||'Your Name'}</h1>
-<div style="font-size:1rem;color:#555;margin-bottom:0.4rem">${resumeTitle||'Professional Title'}</div>
+<div style="border-bottom:3px solid ${escapeHtml(resumeColor)};padding-bottom:1rem;margin-bottom:1.25rem">
+<h1 style="margin:0 0 0.2rem;font-size:1.8rem;color:${escapeHtml(resumeColor)}">${escapeHtml(resumeName)||'Your Name'}</h1>
+<div style="font-size:1rem;color:#555;margin-bottom:0.4rem">${escapeHtml(resumeTitle)||'Professional Title'}</div>
 <div style="font-size:0.82rem;color:#777;display:flex;gap:1rem;flex-wrap:wrap">
-${resumeEmail?`<span>✉ ${resumeEmail}</span>`:''}${resumePhone?`<span>📞 ${resumePhone}</span>`:''}${resumeLocation?`<span>📍 ${resumeLocation}</span>`:''}
+${resumeEmail?`<span>✉ ${escapeHtml(resumeEmail)}</span>`:''}${resumePhone?`<span>📞 ${escapeHtml(resumePhone)}</span>`:''}${resumeLocation?`<span>📍 ${escapeHtml(resumeLocation)}</span>`:''}
 </div></div>
-${resumeSummary?`<p style="font-size:0.88rem;color:#333;line-height:1.6;margin:0 0 1.25rem">${resumeSummary}</p>`:''}
-${resumeExp.some(e=>e.title||e.company)?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Experience</h3>
-${resumeExp.filter(e=>e.title||e.company).map(e=>`<div style="margin-bottom:0.75rem"><div style="display:flex;justify-content:space-between"><strong>${e.title||''}</strong><span style="font-size:0.8rem;color:#777">${e.period||''}</span></div><div style="color:#555;font-size:0.85rem">${e.company||''}</div>${e.description?`<p style="font-size:0.82rem;color:#666;margin:0.25rem 0 0;line-height:1.5">${e.description}</p>`:''}</div>`).join('')}`:''}
-${resumeEdu.some(e=>e.degree||e.school)?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0.75rem 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Education</h3>
-${resumeEdu.filter(e=>e.degree||e.school).map(e=>`<div style="margin-bottom:0.5rem;display:flex;justify-content:space-between"><div><strong>${e.degree||''}</strong><div style="color:#555;font-size:0.85rem">${e.school||''}</div></div><span style="font-size:0.8rem;color:#777">${e.year||''}</span></div>`).join('')}`:''}
-${resumeSkills?`<h3 style="color:${resumeColor};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0.75rem 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Skills</h3>
-<div style="display:flex;flex-wrap:wrap;gap:0.4rem">${resumeSkills.split(',').map(s=>`<span style="background:${resumeColor}1a;color:${resumeColor};padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600">${s.trim()}</span>`).join('')}</div>`:''}
+${resumeSummary?`<p style="font-size:0.88rem;color:#333;line-height:1.6;margin:0 0 1.25rem">${escapeHtml(resumeSummary)}</p>`:''}
+${resumeExp.some(e=>e.title||e.company)?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Experience</h3>
+${resumeExp.filter(e=>e.title||e.company).map(e=>`<div style="margin-bottom:0.75rem"><div style="display:flex;justify-content:space-between"><strong>${escapeHtml(e.title)||''}</strong><span style="font-size:0.8rem;color:#777">${escapeHtml(e.period)||''}</span></div><div style="color:#555;font-size:0.85rem">${escapeHtml(e.company)||''}</div>${e.description?`<p style="font-size:0.82rem;color:#666;margin:0.25rem 0 0;line-height:1.5">${escapeHtml(e.description)}</p>`:''}</div>`).join('')}`:''}
+${resumeEdu.some(e=>e.degree||e.school)?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0.75rem 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Education</h3>
+${resumeEdu.filter(e=>e.degree||e.school).map(e=>`<div style="margin-bottom:0.5rem;display:flex;justify-content:space-between"><div><strong>${escapeHtml(e.degree)||''}</strong><div style="color:#555;font-size:0.85rem">${escapeHtml(e.school)||''}</div></div><span style="font-size:0.8rem;color:#777">${escapeHtml(e.year)||''}</span></div>`).join('')}`:''}
+${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;text-transform:uppercase;letter-spacing:0.08em;margin:0.75rem 0 0.6rem;border-bottom:1px solid #ddd;padding-bottom:0.3rem">Skills</h3>
+<div style="display:flex;flex-wrap:wrap;gap:0.4rem">${resumeSkills.split(',').map(s=>`<span style="background:${escapeHtml(resumeColor)}1a;color:${escapeHtml(resumeColor)};padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600">${escapeHtml(s.trim())}</span>`).join('')}</div>`:''}
 </div>`;
         return (
           <div className="module-wrap">

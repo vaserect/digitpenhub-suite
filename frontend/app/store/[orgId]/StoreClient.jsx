@@ -46,7 +46,7 @@ export default function StoreClient() {
         items: cart.map((c) => ({ name: c.name, qty: c.qty })),
         subtotal: cartTotal,
       }),
-    }).catch(() => {});
+    }).catch(() => { console.error('Failed to store settings'); });
   }
 
   function addToCart(product, variant) {

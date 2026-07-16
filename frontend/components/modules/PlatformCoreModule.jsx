@@ -83,19 +83,19 @@ export default function PlatformCoreModule({ goHome }) {
     setLoading(true);
     try {
       const [f, i, n, a, at, ac, atot, cal, lt, ak, vs, inc, rb] = await Promise.all([
-        apiFetch('/api/v1/custom-fields/contact').catch(()=>null),
-        apiFetch('/api/v1/inbox').catch(()=>null),
-        apiFetch('/api/v1/notifications').catch(()=>null),
-        apiFetch('/api/v1/approvals/requests').catch(()=>null),
-        apiFetch('/api/v1/approvals/templates').catch(()=>null),
-        apiFetch('/api/v1/platform/activity?limit=30').catch(()=>null),
-        apiFetch('/api/v1/platform/activity?limit=1').catch(()=>null),
-        apiFetch('/api/v1/platform/calendar').catch(()=>null),
-        apiFetch('/api/v1/platform/legal-templates').catch(()=>null),
-        apiFetch('/api/v1/api-keys').catch(()=>null),
-        apiFetch('/api/v1/platform/vuln-scans').catch(()=>null),
-        apiFetch('/api/v1/platform/incidents').catch(()=>null),
-        apiFetch('/api/v1/platform/runbooks').catch(()=>null),
+        apiFetch('/api/v1/custom-fields/contact').catch(() => { console.error('Failed to load custom fields'); return null; }),
+        apiFetch('/api/v1/inbox').catch(() => { console.error('Failed to load inbox'); return null; }),
+        apiFetch('/api/v1/notifications').catch(() => { console.error('Failed to load notifications'); return null; }),
+        apiFetch('/api/v1/approvals/requests').catch(() => { console.error('Failed to load approval requests'); return null; }),
+        apiFetch('/api/v1/approvals/templates').catch(() => { console.error('Failed to load approval templates'); return null; }),
+        apiFetch('/api/v1/platform/activity?limit=30').catch(() => { console.error('Failed to load activity feed'); return null; }),
+        apiFetch('/api/v1/platform/activity?limit=1').catch(() => { console.error('Failed to load activity feed (compact)'); return null; }),
+        apiFetch('/api/v1/platform/calendar').catch(() => { console.error('Failed to load calendar'); return null; }),
+        apiFetch('/api/v1/platform/legal-templates').catch(() => { console.error('Failed to load legal templates'); return null; }),
+        apiFetch('/api/v1/api-keys').catch(() => { console.error('Failed to load API keys'); return null; }),
+        apiFetch('/api/v1/platform/vuln-scans').catch(() => { console.error('Failed to load vulnerability scans'); return null; }),
+        apiFetch('/api/v1/platform/incidents').catch(() => { console.error('Failed to load incidents'); return null; }),
+        apiFetch('/api/v1/platform/runbooks').catch(() => { console.error('Failed to load runbooks'); return null; }),
       ]);
       setFields(f?.fields || []);
       setInbox(i?.messages || i?.conversations || i?.inbox || []);
@@ -235,7 +235,7 @@ export default function PlatformCoreModule({ goHome }) {
           {tab === 'inbox' && <InboxTab inbox={inbox} showInboxDetail={showInboxDetail} setShowInboxDetail={setShowInboxDetail} loadAll={loadAll} />}
 
           {/* ═══ NOTIFICATIONS ═══ */}
-          {tab === 'notifs' && <NotificationsTab notifications={notifications} />}
+          {tab === 'notifs' && <NotificationsTab notifications={notifications} setNotifications={setNotifications} />}
 
           {/* ═══ APPROVALS ═══ */}
           {tab === 'approvals' && <ApprovalsTab approvals={approvals} templates={approvalTemplates}
@@ -317,16 +317,147 @@ function InboxTab({ inbox, showInboxDetail, setShowInboxDetail, loadAll }) {
     ))}</div>;
 }
 
-function NotificationsTab({ notifications }) {
-  return notifications.length === 0
-    ? <EmptyState icon="🔔" title="No notifications yet" />
-    : <div style={{display:'grid',gap:6}}>{notifications.map((n,i) => (
-      <div key={n.id||i} className="card" style={{padding:10,display:'flex',gap:8,alignItems:'center'}}>
-        <div style={{width:8,height:8,borderRadius:'50%',background:n.read_at?'var(--border)':'var(--primary)'}} />
-        <div style={{flex:1,fontSize:'0.85rem'}}>{n.title||n.message}</div>
-        <span style={{fontSize:'0.72rem',color:'var(--text-muted)'}}>{n.created_at?new Date(n.created_at).toLocaleDateString():''}</span>
+function NotificationsTab({ notifications, setNotifications }) {
+  const [preferences, setPreferences] = useState({ notifyEmail: true, notifyInapp: true, digestFreq: 'realtime' });
+  const [loadingPrefs, setLoadingPrefs] = useState(true);
+
+  useEffect(() => {
+    apiFetch('/api/v1/inbox/preferences')
+      .then((data) => {
+        setPreferences({
+          notifyEmail: data.preferences?.notify_email !== false,
+          notifyInapp: data.preferences?.notify_inapp !== false,
+          digestFreq: data.preferences?.digest_freq || 'realtime',
+        });
+      })
+      .catch((e) => console.error(e))
+      .finally(() => setLoadingPrefs(false));
+  }, []);
+
+  async function handleSavePref(key, val) {
+    const nextPrefs = { ...preferences, [key]: val };
+    setPreferences(nextPrefs);
+    try {
+      await apiFetch('/api/v1/inbox/preferences', {
+        method: 'PUT',
+        body: JSON.stringify({
+          notifyEmail: nextPrefs.notifyEmail,
+          notifyInapp: nextPrefs.notifyInapp,
+          digestFreq: nextPrefs.digestFreq
+        }),
+      });
+      toast.success('Notification preferences updated.');
+    } catch (err) {
+      toast.error('Failed to save preference');
+    }
+  }
+
+  async function handleMarkRead(id) {
+    try {
+      await apiFetch(`/api/v1/notifications/${id}/read`, { method: 'PATCH' });
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+      toast.success('Notification marked as read.');
+    } catch {
+      toast.error('Failed to mark as read');
+    }
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      await apiFetch('/api/v1/notifications/mark-all-read', { method: 'POST' });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
+      toast.success('All notifications marked as read.');
+    } catch {
+      toast.error('Failed to mark all as read');
+    }
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, alignItems: 'start' }}>
+      {/* Settings Panel */}
+      <div className="card" style={{ padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700 }}>Notification Settings</h3>
+        {loadingPrefs ? (
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading preferences…</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={preferences.notifyEmail}
+                onChange={(e) => handleSavePref('notifyEmail', e.target.checked)}
+              />
+              Send email alerts
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={preferences.notifyInapp}
+                onChange={(e) => handleSavePref('notifyInapp', e.target.checked)}
+              />
+              Show in-app notifications
+            </label>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label className="field-label" style={{ fontSize: 12 }}>Email Digest Frequency</label>
+              <select
+                className="field-input"
+                style={{ fontSize: 12.5 }}
+                value={preferences.digestFreq}
+                onChange={(e) => handleSavePref('digestFreq', e.target.value)}
+              >
+                <option value="realtime">Realtime</option>
+                <option value="daily">Daily digest</option>
+                <option value="weekly">Weekly digest</option>
+                <option value="never">Never send</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
-    ))}</div>;
+
+      {/* History Panel */}
+      <div style={{ gridColumn: 'span 2' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Alerts & History ({notifications.length})</h3>
+          {notifications.some(n => !n.read_at) && (
+            <button className="ctag" onClick={handleMarkAllRead}>Mark all as read</button>
+          )}
+        </div>
+
+        {notifications.length === 0 ? (
+          <EmptyState icon="🔔" title="No notifications yet" description="Any system warnings, billing status updates, or portal messages will show up here." />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {notifications.map((n, i) => (
+              <div key={n.id || i} className="card" style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: n.read_at ? 'transparent' : 'var(--primary)',
+                    border: n.read_at ? '1px solid var(--border)' : 'none',
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: n.read_at ? 400 : 600, color: 'var(--text)' }}>
+                    {n.title || n.message}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                    {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
+                  </div>
+                </div>
+                {!n.read_at && (
+                  <button className="ctag" onClick={() => handleMarkRead(n.id)}>Mark read</button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ApprovalsTab({ approvals, templates, showApprovalForm, setShowApprovalForm, approvalDraft, setApprovalDraft, onSubmit, showTemplateForm, setShowTemplateForm, templateDraft, setTemplateDraft, onCreateTemplate, onAction, selectedApproval, setSelectedApproval }) {

@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function Select({ label, error, helper, className = '', id, children, ...props }) {
-  const inputId = id || React.useId();
+  const autoId = React.useId();
+  const inputId = id || autoId;
   return (
     <div className={["field", error ? 'field-error' : '', className].filter(Boolean).join(' ')}>
       {label ? <label className="field-label" htmlFor={inputId}>{label}</label> : null}

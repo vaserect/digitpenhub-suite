@@ -44,6 +44,8 @@ export default function CRMModule({ goHome, showToast }) {
   useSearchHotkey();
   useHotkey('n', () => { setShowContactForm(true); });
 
+  useEffect(() => { if (!crmLoaded) loadCrm().catch((e) => console.error(e)); }, []);
+
   async function loadCrm() {
     const data = await apiFetch('/api/v1/crm/contacts');
     setContacts(data.contacts);

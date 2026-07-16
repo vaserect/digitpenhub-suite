@@ -7,7 +7,7 @@ const {
   listPlans, createPlan, updatePlan,
   listPayments,
   listContent, updateContent,
-  listAdmins, setAdminRole, findAdminCandidate,
+  listAdmins, setAdminRole, findAdminCandidate, disableUser2fa,
   listAuditLog,
 } = require('../controllers/adminController');
 
@@ -42,6 +42,7 @@ router.get('/payments', listPayments);
 router.get('/admins', listAdmins);
 router.get('/admins/find', findAdminCandidate);
 router.patch('/admins/:id', setAdminRole);
+router.post('/users/:id/disable-2fa', disableUser2fa);
 
 router.get('/audit-log', listAuditLog);
 

@@ -1,5 +1,6 @@
 const db = require('../db');
 const { getOrgPlan } = require('../utils/planAccess');
+const { registerCloudflareCustomHostname, checkCloudflareCustomHostnameStatus, checkDnsCname } = require('../utils/cloudflare');
 
 // White-label is a Business-plan feature — agencies reselling the whole
 // platform under their own brand is exactly the "highest tier" use case,
@@ -75,9 +76,11 @@ async function connectDomain(req, res) {
   const { domain } = req.body || {};
   if (!domain?.trim()) return res.status(400).json({ error: 'domain is required.' });
 
-  // The actual DNS/SSL automation needs a Cloudflare API token — the flow
-  // stays fully navigable and honest about being unverified either way,
-  // rather than faking a "verified" state with no real DNS check behind it.
+  const cleanDomain = domain.trim().toLowerCase();
+
+  // Try to register in Cloudflare Zone
+  await registerCloudflareCustomHostname(cleanDomain);
+
   const cloudflareConfigured = !!process.env.CLOUDFLARE_API_TOKEN;
 
   const { rows } = await db.query(
@@ -85,13 +88,59 @@ async function connectDomain(req, res) {
      VALUES ($1,$2,false,now())
      ON CONFLICT (org_id) DO UPDATE SET custom_domain = $2, custom_domain_verified = false, updated_at = now()
      RETURNING *`,
-    [req.user.orgId, domain.trim()]
+    [req.user.orgId, cleanDomain]
   );
   res.json({
     branding: rows[0],
-    dnsInstructions: { type: 'CNAME', name: domain.trim(), value: 'branded.digitpenhub.com' },
+    dnsInstructions: { type: 'CNAME', name: cleanDomain, value: 'branded.digitpenhub.com' },
     cloudflareConfigured,
-    note: cloudflareConfigured ? 'Verifying automatically…' : 'Automatic DNS verification needs a Cloudflare API token — see NEXT_STEPS_FOR_YOU.md. Add the CNAME record above and check back once it is added.',
+    note: cloudflareConfigured ? 'Connecting to SSL automation…' : 'Automatic DNS verification needs a Cloudflare API token — see NEXT_STEPS_FOR_YOU.md. Add the CNAME record above and check back once it is added.',
+  });
+}
+
+async function verifyDomain(req, res) {
+  const brandingRes = await db.query(`SELECT * FROM org_branding WHERE org_id = $1`, [req.user.orgId]);
+  const branding = brandingRes.rows[0];
+  if (!branding || !branding.custom_domain) {
+    return res.status(400).json({ error: 'No custom domain is connected. Connect one first.' });
+  }
+
+  const hostname = branding.custom_domain;
+  let verified = false;
+  let details = {};
+
+  // 1. Check direct DNS CNAME
+  const dnsVerified = await checkDnsCname(hostname);
+  if (dnsVerified) {
+    verified = true;
+    details.method = 'dns_cname';
+  }
+
+  // 2. Check Cloudflare hostname status if token configured
+  const cloudflareConfigured = !!process.env.CLOUDFLARE_API_TOKEN;
+  if (cloudflareConfigured) {
+    const cfStatus = await checkCloudflareCustomHostnameStatus(hostname);
+    details.cloudflare = cfStatus;
+    if (cfStatus && cfStatus.status === 'active') {
+      verified = true;
+      details.method = 'cloudflare_api';
+    }
+  }
+
+  // 3. Update DB on success
+  if (verified) {
+    await db.query(
+      `UPDATE org_branding SET custom_domain_verified = true, updated_at = now() WHERE org_id = $1`,
+      [req.user.orgId]
+    );
+  }
+
+  res.json({
+    verified,
+    domain: hostname,
+    dnsInstructions: { type: 'CNAME', name: hostname, value: 'branded.digitpenhub.com' },
+    cloudflareConfigured,
+    details
   });
 }
 
@@ -119,4 +168,4 @@ async function deactivate(req, res) {
   res.json({ branding: rows[0] || null });
 }
 
-module.exports = { getStatus, upsertBranding, connectDomain, activate, deactivate };
+module.exports = { getStatus, upsertBranding, connectDomain, verifyDomain, activate, deactivate };

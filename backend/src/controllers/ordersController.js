@@ -68,7 +68,9 @@ async function updateOrder(req, res) {
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   updates.push('updated_at=NOW()');
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE orders SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE orders SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ order: rows[0] });
 }

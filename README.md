@@ -280,3 +280,72 @@ No migration step needed this time — only application code changed.
 - [ ] Rename a project → new name persists after refresh
 - [ ] Delete a project → it and all its tasks are gone after refresh (confirms the cascade)
 - [ ] Rename a task, delete a task → both persist after refresh
+
+---
+
+## Billing & Flutterwave Integration
+
+The platform uses **Flutterwave** as its payment gateway for processing subscription upgrades.
+
+### How it works
+
+1. **Frontend** (`/billing` page): User clicks "Upgrade to {Plan}" → calls `POST /api/v1/billing/initiate`
+2. **Backend** (`billingController.initiate`): Creates a `pending` payment record, returns `txRef`, `amount`, `publicKey`, and customer info to the frontend
+3. **Client-side**: Flutterwave Checkout modal opens — user enters card details on Flutterwave's hosted iframe
+4. **On success**: Flutterwave triggers a client-side `callback` → frontend calls `POST /api/v1/billing/verify` with the `txId` and `txRef`
+5. **Backend** (`billingController.verify`): Verifies the transaction via Flutterwave's API (`GET /v3/transactions/{txId}/verify`), validates amount + currency, then calls `activateSubscription()` which:
+   - Marks the payment `successful`
+   - Upserts the org's subscription row to the new plan with a 1-month period
+6. **Webhook** (redundant/async path): Flutterwave sends `POST /api/v1/billing/webhook` with a `charge.completed` event. Backend verifies the `verif-hash` header, looks up the pending payment by `tx_ref`, and activates the subscription. This handles payments that complete but whose client-side callback doesn't fire (e.g., user closes the browser).
+
+### Environment variables (`.env`)
+
+```
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK-...-X
+FLUTTERWAVE_SECRET_KEY=FLWSECK-...-X
+FLUTTERWAVE_WEBHOOK_HASH=16c919c1ebb5766d4de41807cb58bbf06119592807f369caaacfaf2ccedc5196
+```
+
+### Webhook registration
+
+The webhook URL must be registered in the Flutterwave dashboard:
+
+1. Log in to [Flutterwave Dashboard](https://dashboard.flutterwave.com/)
+2. Navigate to **Settings** → **Webhooks**
+3. Add a new webhook URL: `https://suite.digitpenhub.com/api/v1/billing/webhook`
+4. Set the **Secret Hash** to the value of `FLUTTERWAVE_WEBHOOK_HASH`
+5. Save
+
+Without this registration, payments that use the webhook path (e.g., user closes browser before callback) will stay `pending` and the subscription won't activate.
+
+### Testing billing locally
+
+The backend test setup can verify the flow:
+```bash
+# Start the API
+pm2 start ecosystem.config.js --update-env
+
+# Test plans listing (public, no auth needed)
+curl http://127.0.0.1:4001/api/v1/billing/plans
+
+# Test webhook auth (should get 401 without valid hash)
+curl -X POST http://127.0.0.1:4001/api/v1/billing/webhook \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+### Audit events
+
+All billing actions are logged to the `audit_log` table:
+
+| Action | Triggered by | Description |
+|--------|-------------|-------------|
+| `billing.initiate` | User clicks Upgrade | Payment initiation with planId, txRef, amount |
+| `billing.verify_success` | Client callback | Successful verification, subscription activated |
+| `billing.verify_failed` | Client callback | Failed verification (amount mismatch or Flutterwave rejected) |
+| `billing.webhook_processed` | Flutterwave webhook | Subscription activated via webhook path |
+
+### Known limitations
+
+- Recurring billing is not yet implemented — subscriptions are one-month-at-a-time. The `flw_subscription_ref` column exists on the `subscriptions` table but is not populated.
+- No subscription expiry cron job — expired subscriptions are not automatically downgraded to Free.
+- The `/plans` endpoint is public (no auth required) — plan data is not sensitive, but this means plan details are publicly enumerable.

@@ -148,13 +148,21 @@ async function updateAppointmentStatus(req, res) {
   const allowed = ['pending','confirmed','cancelled','completed'];
   if (!allowed.includes(status)) return res.status(400).json({ error: 'Invalid status.' });
 
-  const updates = [`status = $1`];
+  // Build parameterized query safely - column names are hardcoded, not from user input
+  const updates = ['status = $1'];
   const values = [status];
-  if (notes !== undefined) { updates.push(`notes = $2`); values.push(notes); }
+  let paramIndex = 2;
+  
+  if (notes !== undefined) {
+    updates.push(`notes = $${paramIndex}`);
+    values.push(notes);
+    paramIndex++;
+  }
+  
   values.push(id, req.user.orgId);
 
   const { rows } = await db.query(
-    `UPDATE appointments SET ${updates.join(', ')} WHERE id = $${values.length - 1} AND org_id = $${values.length} RETURNING *`,
+    `UPDATE appointments SET ${updates.join(', ')} WHERE id = $${paramIndex} AND org_id = $${paramIndex + 1} RETURNING *`,
     values
   );
   if (!rows.length) return res.status(404).json({ error: 'Appointment not found.' });

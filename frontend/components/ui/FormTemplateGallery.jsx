@@ -31,7 +31,7 @@ export default function FormTemplateGallery({ isOpen, onClose, onUsed }) {
     .finally(() => setLoading(false));
   }, [isOpen]);
 
-  async function useTemplate(id) {
+  async function handleUseTemplate(id) {
     setUsingId(id);
     try {
       const d = await apiFetch(`/api/v1/form-templates/${id}/use`, { method: 'POST' });
@@ -71,7 +71,7 @@ export default function FormTemplateGallery({ isOpen, onClose, onUsed }) {
               <Badge variant="neutral">{t.category}</Badge>
               <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{t.name}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flex: 1 }}>{t.description}</div>
-              <Button size="sm" loading={usingId === t.id} onClick={() => useTemplate(t.id)}>Create form</Button>
+              <Button size="sm" loading={usingId === t.id} onClick={() => handleUseTemplate(t.id)}>Create form</Button>
             </div>
           ))}
         </div>

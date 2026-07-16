@@ -10,9 +10,14 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const logger = require('./utils/logger');
+const { Sentry, initSentry, setSentryUser } = require('./utils/sentry');
+const { requestIdMiddleware, addUserContext } = require('./middleware/requestId');
 const { requireAuth } = require('./middleware/auth');
+const { csrfProtection } = require('./middleware/csrf');
 const { requireModuleAccess, getOrgPlan, FREE_TIER_MODULE_SLUGS } = require('./utils/planAccess');
 
+const healthRoutes = require('./routes/health');
 const authRoutes = require('./routes/auth');
 const moduleRoutes = require('./routes/modules');
 const crmRoutes = require('./routes/crm');
@@ -26,6 +31,7 @@ const emailRoutes = require('./routes/email');
 const emailUpgradesRoutes = require('./routes/emailUpgrades');
 const leadsRoutes = require('./routes/leads');
 const analyticsRoutes = require('./routes/analytics');
+// marketplace analytics reuses the analytics route module below
 const billingRoutes = require('./routes/billing');
 const adminRoutes = require('./routes/admin');
 const contentRoutes = require('./routes/content');
@@ -102,6 +108,8 @@ const pdfToolsRoutes          = require('./routes/pdfTools');
 const cloudStorageRoutes      = require('./routes/cloudStorage');
 const workflowAutomationRoutes = require('./routes/workflowAutomation');
 const marketplaceRoutes       = require('./routes/marketplace');
+const marketplaceAdminRoutes  = require('./routes/marketplaceAdmin');
+const paymentsRoutes          = require('./routes/payments');
 // Batch 8 — LMS, School, Store
 const lmsRoutes               = require('./routes/lms');
 const educationUpgradesRoutes = require('./routes/educationUpgrades');
@@ -141,12 +149,31 @@ const { ADDON_ROUTER, HEALTH_ROUTER, WORKSPACE_ROUTER } = require('./routes/supe
 
 const app = express();
 
+// Initialize Sentry (must be before any other middleware)
+const sentryEnabled = initSentry(app);
+
 app.set('trust proxy', 1); // we sit behind OpenLiteSpeed
+
+// Sentry request handler - must be first middleware if enabled
+if (sentryEnabled) {
+  app.use(Sentry.Handlers.requestHandler());
+  app.use(Sentry.Handlers.tracingHandler());
+}
+
+// Request ID tracking - must be early to track all requests
+app.use(requestIdMiddleware);
+
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:4000', credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: '200kb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// CSRF protection for state-changing requests
+app.use('/api', csrfProtection);
+
+// Add user context to logger after authentication (applied to all /api routes)
+app.use('/api', addUserContext);
 
 // AI documents are shared across writer/email/proposal/blog modules,
 // so use a generic access check whose message doesn't hard-code one slug.
@@ -168,7 +195,7 @@ const requireAiDocuments = async (req, res, next) => {
   }
 };
 
-app.get('/api/v1/health', (req, res) => res.json({ ok: true }));
+app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth/sso', ssoRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/modules', moduleRoutes);
@@ -191,6 +218,26 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/pages', pagesRoutes);
 app.use('/api/v1/funnels', requireAuth, requireModuleAccess('funnel-builder'), funnelsRoutes);
 app.use('/api/v1/funnel-templates',   requireAuth, requireModuleAccess('funnel-builder'), funnelTemplatesRoutes);
+
+// Website Builder Ecosystem
+const builderThemesRoutes = require('./routes/builder-themes');
+const builderComponentsRoutes = require('./routes/builder-components');
+const builderSectionsRoutes = require('./routes/builder-sections');
+const builderTemplatesRoutes = require('./routes/builder-templates');
+const builderSitesRoutes = require('./routes/builder-sites');
+const builderAssetsRoutes = require('./routes/builder-assets');
+const pexelsRoutes = require('./routes/pexels.routes');
+const componentsRoutes = require('./routes/components');
+const sectionsRoutes = require('./routes/sections');
+app.use('/api/v1/builder/themes', builderThemesRoutes);
+app.use('/api/v1/builder/components', builderComponentsRoutes);
+app.use('/api/v1/builder/sections', builderSectionsRoutes);
+app.use('/api/v1/builder/templates', builderTemplatesRoutes);
+app.use('/api/v1/builder/sites', builderSitesRoutes);
+app.use('/api/v1/builder/assets', builderAssetsRoutes);
+app.use('/api/v1/pexels', pexelsRoutes);
+app.use('/api/v1/components', componentsRoutes);
+app.use('/api/v1/sections', sectionsRoutes);
 app.use('/api/v1/form-templates',     requireAuth, formTemplatesRoutes);
 app.use('/api/v1/hr', requireAuth, requireModuleAccess('hr'), hrRoutes);
 app.use('/api/v1/hr', requireAuth, requireModuleAccess('hr'), hrUpgradesRoutes);
@@ -276,6 +323,9 @@ app.use('/api/v1/pdf',                requireAuth, requireModuleAccess('pdf-tool
 app.use('/api/v1/storage',            requireAuth, requireModuleAccess('cloud-storage'), cloudStorageRoutes);
 app.use('/api/v1/workflows',          requireAuth, requireModuleAccess('workflow-automation'), workflowAutomationRoutes);
 app.use('/api/v1/marketplace',        requireAuth, requireModuleAccess('marketplace'), marketplaceRoutes);
+app.use('/api/v1/marketplace/admin',  marketplaceAdminRoutes);
+app.use('/api/v1/analytics',          requireAuth, analyticsRoutes);
+app.use('/api/v1/payments',           paymentsRoutes);
 // Batch 8
 app.use('/api/v1/lms',                requireAuth, requireModuleAccess('learning-management-system'), lmsRoutes);
 app.use('/api/v1/lms',                requireAuth, requireModuleAccess('learning-management-system'), educationUpgradesRoutes);
@@ -315,11 +365,54 @@ app.use('/api/v1/admin/addons',       ADDON_ROUTER);
 app.use('/api/v1/admin/health',       HEALTH_ROUTER);
 app.use('/api/v1/marketplace',        requireAuth, WORKSPACE_ROUTER);
 
-app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
+app.use((req, res) => {
+  // Log 404 errors with request context
+  if (req.logger) {
+    req.logger.warn('Route not found', {
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+    });
+  }
+  res.status(404).json({ error: 'Not found.' });
+});
+
+// Sentry error handler - must be before other error handlers
+if (sentryEnabled) {
+  app.use(Sentry.Handlers.errorHandler({
+    shouldHandleError(error) {
+      // Capture all errors with status code >= 500
+      return error.status >= 500 || !error.status;
+    },
+  }));
+}
 
 // Centralised error handler — never leak stack traces to the client in production.
 app.use((err, req, res, next) => {
-  console.error(err);
+  // Add user context to Sentry if available
+  if (sentryEnabled && req.user) {
+    setSentryUser(req.user);
+  }
+  
+  // Log error with full context
+  const errorContext = {
+    message: err.message,
+    stack: err.stack,
+    requestId: req.id,
+    userId: req.user?.id,
+    orgId: req.user?.orgId,
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  };
+  
+  if (req.logger) {
+    req.logger.error('Unhandled error', errorContext);
+  } else {
+    logger.error('Unhandled error (no request context)', errorContext);
+  }
+  
   res.status(500).json({ error: 'Something went wrong on our end.' });
 });
 

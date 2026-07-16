@@ -17,3 +17,8 @@
 - Build + Deploy every session: git add/commit/push → wait for CI → curl health endpoint (must be 200) → smoke test (new sign-up, pre-existing sign-in, primary module, one financial module, any domain/embed work) → verify sitemap.xml publicly reachable → output final report with bug-count lines. Confidence: 0.85
 - Auto-decision stack preferences: shadcn/ui for components, Zustand + TanStack Query for state, Tailwind CSS, Recharts for charts, Fabric.js for canvas editor, dnd-kit for drag-and-drop, RESTful /api/v1/ prefix, kebab-case files and PascalCase components, Pexels API for images, GPT-4o (gpt-4o) for AI features. Confidence: 0.85
 - After each module is complete, proactively audit against competitor feature list (Notion/Linear/Canva/HubSpot/Stripe/Webflow equivalents) and add missing high-value features before moving on. Confidence: 0.75
+- Execute only one phase, one task, and one module workflow at a time; never attempt multiple phases or tasks simultaneously. Confidence: 0.85
+- Before code changes: create backup/checkpoint, confirm exact files to modify, explain implementation approach, identify risks/dependencies, verify existing functionality won't break. Confidence: 0.80
+- After each completed task: show files changed, explain implementation, database changes, env changes, security considerations, run tests, run build checks, confirm no new errors, verify feature through real end-to-end workflow. Confidence: 0.85
+- A feature is only complete after functional verification — never mark tasks done based on code changes alone. Confidence: 0.85
+- Wait for user approval before moving to the next task; do not proceed between tasks without explicit sign-off. Confidence: 0.85

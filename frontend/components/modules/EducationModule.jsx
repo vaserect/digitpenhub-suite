@@ -35,11 +35,11 @@ export default function EducationModule({ goHome }) {
     try {
       const [co, st, at, as2, gc, cbt] = await Promise.all([
         apiFetch('/api/v1/lms/courses'),
-        apiFetch('/api/v1/school/students').catch(() => ({ students: [] })),
-        apiFetch('/api/v1/lms/attendance').catch(() => ({ records: [] })),
-        apiFetch('/api/v1/lms/attendance/stats').catch(() => ({ stats: null })),
-        apiFetch('/api/v1/lms/grade-categories').catch(() => ({ categories: [] })),
-        apiFetch('/api/v1/cbt/quizzes').catch(() => ({ quizzes: [] })),
+        apiFetch('/api/v1/school/students').catch(() => { console.error('Failed to load students'); return { students: [] }; }),
+        apiFetch('/api/v1/lms/attendance').catch(() => { console.error('Failed to load attendance'); return { records: [] }; }),
+        apiFetch('/api/v1/lms/attendance/stats').catch(() => { console.error('Failed to load attendance stats'); return { stats: null }; }),
+        apiFetch('/api/v1/lms/grade-categories').catch(() => { console.error('Failed to load grade categories'); return { categories: [] }; }),
+        apiFetch('/api/v1/cbt/quizzes').catch(() => { console.error('Failed to load CBT quizzes'); return { quizzes: [] }; }),
       ]);
       setCourses(co.courses || []);
       setStudents(st.students || []);

@@ -105,7 +105,7 @@ async function generateEmbed(req, res) {
   var target = document.currentScript.parentNode;
   target.insertBefore(iframe, document.currentScript);
 })();
-<\/script>`;
+</script>`;
 
   res.json({
     publicUrl,

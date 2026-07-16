@@ -29,10 +29,10 @@ export default function MarketingFormsModule({ goHome }) {
     setLoading(true);
     try {
       const [f, p, fn, q] = await Promise.all([
-        apiFetch('/api/v1/leads/forms').catch(() => ({ forms: [] })),
-        apiFetch('/api/v1/popup-builder').catch(() => ({ popups: [] })),
-        apiFetch('/api/v1/funnels').catch(() => ({ funnels: [] })),
-        apiFetch('/api/v1/quiz-builder').catch(() => ({ quizzes: [] })),
+        apiFetch('/api/v1/leads/forms').catch(() => { console.error('Failed to load Forms'); return { forms: [] } }),
+        apiFetch('/api/v1/popup-builder').catch(() => { console.error('Failed to load Popups'); return { popups: [] } }),
+        apiFetch('/api/v1/funnels').catch(() => { console.error('Failed to load Funnels'); return { funnels: [] } }),
+        apiFetch('/api/v1/quiz-builder').catch(() => { console.error('Failed to load Quizzes'); return { quizzes: [] } }),
       ]);
       setForms(f.forms || []);
       setPopups(p.popups || []);

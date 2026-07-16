@@ -31,9 +31,9 @@ export default function CommerceModule({ goHome }) {
     setLoading(true);
     try {
       const [p, o, s] = await Promise.all([
-        apiFetch('/api/v1/store-builder/products').catch(() => ({ products: [] })),
-        apiFetch('/api/v1/orders').catch(() => ({ orders: [] })),
-        apiFetch('/api/v1/customer-subs').catch(() => ({ subscriptions: [] })),
+        apiFetch('/api/v1/store-builder/products').catch(() => { console.error('Failed to load products'); return { products: [] } }),
+        apiFetch('/api/v1/orders').catch(() => { console.error('Failed to load orders'); return { orders: [] } }),
+        apiFetch('/api/v1/customer-subs').catch(() => { console.error('Failed to load subscriptions'); return { subscriptions: [] } }),
       ]);
       setProducts(p.products || []);
       setOrders(o.orders || []);

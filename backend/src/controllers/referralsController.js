@@ -61,7 +61,9 @@ async function updateProgram(req, res) {
   if (terms      !==undefined){updates.push(`terms=$${i++}`);       vals.push(terms||null);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE referral_programs SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE referral_programs SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Program not found.' });
   res.json({ program: rows[0] });
 }
@@ -105,7 +107,9 @@ async function updateReferral(req, res) {
   if (notes !==undefined){updates.push(`notes=$${i++}`); vals.push(notes||null);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE referrals SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE referrals SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Referral not found.' });
   res.json({ referral: rows[0] });
 }

@@ -31,7 +31,7 @@ export default function FunnelTemplateGallery({ isOpen, onClose, onUsed }) {
     .finally(() => setLoading(false));
   }, [isOpen]);
 
-  async function useTemplate(id) {
+  async function handleUseTemplate(id) {
     setUsingId(id);
     try {
       await apiFetch(`/api/v1/funnel-templates/${id}/use`, { method: 'POST' });
@@ -74,7 +74,7 @@ export default function FunnelTemplateGallery({ isOpen, onClose, onUsed }) {
               <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{t.name}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flex: 1 }}>{t.description}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{t.step_count || 0} steps</div>
-              <Button size="sm" loading={usingId === t.id} onClick={() => useTemplate(t.id)}>Create funnel</Button>
+              <Button size="sm" loading={usingId === t.id} onClick={() => handleUseTemplate(t.id)}>Create funnel</Button>
             </div>
           ))}
         </div>

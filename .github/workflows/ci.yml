@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: digitpenhub_suite
+          POSTGRES_USER: digitpenhub_suite
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Backend — install dependencies
+        run: cd backend && npm ci
+
+      - name: Backend — lint
+        run: cd backend && npm run lint
+
+      - name: Backend — test
+        run: cd backend && npm test
+        env:
+          NODE_ENV: development
+          JWT_SECRET: ci-jwt-secret-for-testing-only
+          DATABASE_URL: postgres://digitpenhub_suite:ci_test_password@127.0.0.1:5432/digitpenhub_suite
+
+      - name: Frontend — install dependencies
+        run: cd frontend && npm ci
+
+      - name: Frontend — lint
+        run: cd frontend && npm run lint
+
+      - name: Frontend — build
+        run: cd frontend && npm run build
+        env:
+          NODE_ENV: development

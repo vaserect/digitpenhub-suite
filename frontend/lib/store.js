@@ -15,6 +15,7 @@ import { apiFetch } from '../lib/api';
 const useStore = create((set, get) => ({
   // ── Auth ──────────────────────────────────────────────────────────────────
   user: null,
+  sessionExpiresAt: null,
   orgPlan: null,
   loading: true,
   loadError: null,
@@ -77,7 +78,8 @@ const useStore = create((set, get) => ({
   init: async () => {
     try {
       const meRes = await apiFetch('/api/v1/auth/me');
-      set({ user: meRes.user });
+      const session = (meRes.sessions || []).find((s) => s.is_current);
+      set({ user: meRes.user, sessionExpiresAt: session?.expires_at || null });
 
       const modRes = await apiFetch('/api/v1/modules');
       set({ categories: modRes.categories || [], orgPlan: modRes.plan || null });

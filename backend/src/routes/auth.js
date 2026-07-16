@@ -8,6 +8,7 @@ const {
   register, login, verifyMfa, logout, me, changePassword,
   forgotPassword, resetPassword,
   updateProfile, updateEmail, uploadAvatar, getAvatar,
+  verifyEmail, resendVerification, deleteAccount,
   setup2fa, confirm2fa, disable2fa, regenerateBackup,
   listSessions, revokeSession, revokeAllOtherSessions,
   getAuditLog,
@@ -61,6 +62,7 @@ router.post('/login', loginLimiter, login);
 router.post('/verify-mfa', loginLimiter, verifyMfa);
 router.post('/forgot-password', loginLimiter, forgotPassword);
 router.post('/reset-password', loginLimiter, resetPassword);
+router.get('/verify-email/:token', verifyEmail);
 
 // Protected
 router.post('/logout', logout);
@@ -75,6 +77,8 @@ router.post('/me/avatar', requireAuth, uploadLimiter, (req, res, next) => {
   });
 }, uploadAvatar);
 router.get('/avatar/:filename', requireAuth, getAvatar);
+router.post('/me/resend-verification', requireAuth, resendVerification);
+router.delete('/me', requireAuth, deleteAccount);
 
 // 2FA management (requires existing session)
 router.get('/2fa/setup', requireAuth, setup2fa);

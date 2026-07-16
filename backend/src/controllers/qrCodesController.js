@@ -41,7 +41,9 @@ async function updateQrCode(req, res) {
   if (tags    !==undefined){updates.push(`tags=$${i++}`);     vals.push(tags||[]);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE qr_codes SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE qr_codes SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ qrCode: rows[0] });
 }
@@ -75,8 +77,20 @@ async function resolveQrCode(req, res) {
   );
   if (!rows.length) return res.status(404).json({ error: 'QR code not found.' });
   const qr = rows[0];
+
+  if (req.xhr || req.headers.accept?.includes('json')) {
+    return res.json({
+      id: qr.id,
+      title: qr.title,
+      content: qr.content,
+      type: qr.type,
+      scans: qr.scans,
+      redirectUrl: qr.type === 'url' ? qr.content : undefined
+    });
+  }
+
   if (qr.type === 'url') return res.redirect(302, qr.content);
-  res.json({ type: qr.type, title: qr.title, content: qr.content });
+  return res.redirect(302, `/qr/${qr.id}`);
 }
 
 module.exports = { getStats, listQrCodes, createQrCode, updateQrCode, deleteQrCode, trackScan, resolveQrCode };

@@ -4,6 +4,7 @@ const db = require('../db');
 const { sendMail } = require('../utils/mailer');
 const { notify } = require('../utils/notify');
 const { fetchWithTimeout } = require('../utils/aiReliability');
+const { sendSms, smsProviderConfigured } = require('../utils/messagingProviders');
 
 const r = Router();
 r.use(requireAuth);
@@ -50,8 +51,17 @@ async function executeStep(step, orgId) {
       );
       return rowCount ? { ok: true, note: `Contact moved to "${cfg.stage}".` } : { ok: false, note: 'Contact not found.' };
     }
-    case 'send_sms':
-      return { ok: true, simulated: true, note: 'Simulated — no SMS provider is configured yet, see NEXT_STEPS_FOR_YOU.md.' };
+    case 'send_sms': {
+      if (!smsProviderConfigured()) {
+        return { ok: true, simulated: true, note: 'Simulated — no SMS provider is configured yet, see .env for TERMII_API_KEY.' };
+      }
+      const to = cfg.to;
+      if (!to) return { ok: false, note: 'No recipient configured — nothing sent.' };
+      const result = await sendSms({ to, message: cfg.body || '' });
+      return result.ok
+        ? { ok: true, note: `SMS sent to ${to}.` }
+        : { ok: false, note: `SMS failed: ${result.error}` };
+    }
     case 'condition':
       return { ok: true, simulated: true, note: 'Simulated — a manual "Run Now" has no real trigger data to branch on.' };
     case 'delay':

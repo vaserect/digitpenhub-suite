@@ -62,14 +62,14 @@ export default function SeoModule({ goHome }) {
     setLoading(true);
     try {
       const [a, k, b, sp, sc, sq, l, cs] = await Promise.all([
-        apiFetch('/api/v1/seo/audits').catch(() => ({ audits: [] })),
-        apiFetch('/api/v1/seo/keywords').catch(() => ({ keywords: [] })),
-        apiFetch('/api/v1/seo/backlinks/domains').catch(() => ({ domains: [] })),
-        apiFetch('/api/v1/seo/speed').catch(() => ({ results: [] })),
-        apiFetch('/api/v1/seo/search-console').catch(() => ({ connections: [] })),
-        apiFetch('/api/v1/seo/queries').catch(() => ({ queries: [] })),
-        apiFetch('/api/v1/seo/local').catch(() => ({ listings: [] })),
-        apiFetch('/api/v1/seo/content-scores').catch(() => ({ scores: [] })),
+        apiFetch('/api/v1/seo/audits').catch(() => { console.error('Failed to load Audits'); return { audits: [] } }),
+        apiFetch('/api/v1/seo/keywords').catch(() => { console.error('Failed to load Keywords'); return { keywords: [] } }),
+        apiFetch('/api/v1/seo/backlinks/domains').catch(() => { console.error('Failed to load Domains'); return { domains: [] } }),
+        apiFetch('/api/v1/seo/speed').catch(() => { console.error('Failed to load Results'); return { results: [] } }),
+        apiFetch('/api/v1/seo/search-console').catch(() => { console.error('Failed to load Connections'); return { connections: [] } }),
+        apiFetch('/api/v1/seo/queries').catch(() => { console.error('Failed to load Queries'); return { queries: [] } }),
+        apiFetch('/api/v1/seo/local').catch(() => { console.error('Failed to load Listings'); return { listings: [] } }),
+        apiFetch('/api/v1/seo/content-scores').catch(() => { console.error('Failed to load Scores'); return { scores: [] } }),
       ]);
       setAudits(a.audits || []);
       setKeywords(k.keywords || []);

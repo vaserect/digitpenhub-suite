@@ -1,22 +1,18 @@
 const db = require('../db');
+const ContactService = require('../services/crm/ContactService');
 const { attachCustomFields, validateCustomFieldValues, upsertCustomFieldValues } = require('../utils/customFields');
+const { notify } = require('../utils/notify');
+const { trackActivity } = require('../utils/activityTracker');
 
 const STAGES = ['new', 'contacted', 'proposal_sent', 'won', 'lost'];
 
 async function listContacts(req, res) {
-  const { rows } = await db.query(
-    `SELECT id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags
-     FROM contacts WHERE org_id = $1
-     ORDER BY last_touch_at DESC`,
-    [req.user.orgId]
-  );
-
-  const counts = { new: 0, contacted: 0, proposal_sent: 0, won: 0, lost: 0 };
-  rows.forEach((r) => { counts[r.stage] = (counts[r.stage] || 0) + 1; });
-
-  const withEngineFields = await attachCustomFields(rows, 'crm_contact', req.user.orgId);
-
-  res.json({ contacts: withEngineFields, counts });
+  try {
+    const contacts = await ContactService.findAll(req.user.orgId);
+    const stats = await ContactService.getStatistics(req.user.orgId);
+    const withEngineFields = await attachCustomFields(contacts, 'crm_contact', req.user.orgId);
+    res.json({ contacts: withEngineFields, counts: stats });
+  } catch (err) { throw err; }
 }
 
 async function createContact(req, res) {
@@ -25,15 +21,12 @@ async function createContact(req, res) {
   if (stage && !STAGES.includes(stage)) {
     return res.status(400).json({ error: `stage must be one of: ${STAGES.join(', ')}` });
   }
-
   const { errors, defByKey } = await validateCustomFieldValues(req.user.orgId, 'crm_contact', customFields || {});
   if (errors.length) return res.status(400).json({ error: errors.join(' ') });
-
   const client = await db.connect();
   let contact = null;
   try {
     await client.query('BEGIN');
-
     const { rows } = await client.query(
       `INSERT INTO contacts (org_id, full_name, company, email, phone, stage, value_ngn, created_by, tags)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
@@ -42,139 +35,124 @@ async function createContact(req, res) {
        Array.isArray(tags) ? tags : []]
     );
     contact = rows[0];
-
     if (customFields) {
       await upsertCustomFieldValues(client, req.user.orgId, 'crm_contact', contact.id, customFields, defByKey);
     }
-
     await client.query(`INSERT INTO audit_log (user_id, action, meta) VALUES ($1,'crm.contact.create',$2)`, [
-      req.user.id,
-      JSON.stringify({ contactId: contact.id }),
+      req.user.id, JSON.stringify({ contactId: contact.id }),
     ]);
-
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
-  }
-
+  } finally { client.release(); }
+  trackActivity(req.user.orgId, req.user.id, 'contact.created', {
+    contactId: contact.id, description: `Created contact ${fullName}`, metadata: { fullName, source: 'manual' },
+  });
   res.status(201).json({ contact: { ...contact, customFields: customFields || {} } });
 }
 
-// Full edit: any subset of these fields can be sent; whatever's omitted is left unchanged.
-// stage/value updates also bump last_touch_at — that field exists specifically to mean
-// "when did someone last act on this contact," so any edit at all counts as a touch.
 async function updateContact(req, res) {
   const { id } = req.params;
   const { fullName, company, email, phone, stage, valueNgn, tags, customFields } = req.body || {};
   if (stage && !STAGES.includes(stage)) {
     return res.status(400).json({ error: `stage must be one of: ${STAGES.join(', ')}` });
   }
-
   let defByKey = null;
   if (customFields !== undefined) {
     const validation = await validateCustomFieldValues(req.user.orgId, 'crm_contact', customFields || {});
     if (validation.errors.length) return res.status(400).json({ error: validation.errors.join(' ') });
     defByKey = validation.defByKey;
   }
-
   const client = await db.connect();
   let contact = null;
   try {
     await client.query('BEGIN');
-
-    // org_id check in the WHERE clause is the tenant-isolation guard — a user can never
-    // touch another organization's contact even if they guess a valid id.
     const { rows } = await client.query(
       `UPDATE contacts
-       SET full_name = COALESCE($1, full_name),
-           company = COALESCE($2, company),
-           email = COALESCE($3, email),
-           phone = COALESCE($4, phone),
-           stage = COALESCE($5, stage),
-           value_ngn = COALESCE($6, value_ngn),
-           tags = COALESCE($7, tags),
-           last_touch_at = now(),
-           updated_at = now()
+       SET full_name = COALESCE($1, full_name), company = COALESCE($2, company),
+           email = COALESCE($3, email), phone = COALESCE($4, phone),
+           stage = COALESCE($5, stage), value_ngn = COALESCE($6, value_ngn),
+           tags = COALESCE($7, tags), last_touch_at = now(), updated_at = now()
        WHERE id = $8 AND org_id = $9
        RETURNING id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags`,
       [fullName || null, company ?? null, email ?? null, phone ?? null, stage || null, valueNgn ?? null,
        Array.isArray(tags) ? tags : null, id, req.user.orgId]
     );
-
     if (rows.length) {
       contact = rows[0];
       if (customFields !== undefined) {
         await upsertCustomFieldValues(client, req.user.orgId, 'crm_contact', id, customFields, defByKey);
       }
     }
-
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
-  }
-
+  } finally { client.release(); }
   if (!contact) return res.status(404).json({ error: 'Contact not found.' });
-
+  if (stage) {
+    trackActivity(req.user.orgId, req.user.id, 'contact.stage_changed', {
+      contactId: id, description: `Stage changed to ${stage}`, metadata: { newStage: stage },
+    });
+  }
   const [withFields] = await attachCustomFields([contact], 'crm_contact', req.user.orgId);
   res.json({ contact: withFields });
 }
 
 async function deleteContact(req, res) {
   const { id } = req.params;
-  const { rows } = await db.query(
-    `DELETE FROM contacts WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [id, req.user.orgId]
-  );
-  if (!rows.length) return res.status(404).json({ error: 'Contact not found.' });
-
-  await db.query(`INSERT INTO audit_log (user_id, action, meta) VALUES ($1,'crm.contact.delete',$2)`, [
-    req.user.id,
-    JSON.stringify({ contactId: id }),
-  ]);
-
+  const deleted = await ContactService.delete(id, req.user.orgId, req.user.id);
+  if (!deleted) return res.status(404).json({ error: 'Contact not found.' });
+  trackActivity(req.user.orgId, req.user.id, 'contact.deleted', {
+    contactId: id, description: 'Deleted contact', metadata: {},
+  });
   res.json({ ok: true });
 }
 
-// A contact_id foreign key alone doesn't enforce tenant isolation — a user
-// could otherwise read/write notes and tasks on another org's contact by ID.
 async function assertContactInOrg(contactId, orgId) {
-  const { rows } = await db.query(`SELECT 1 FROM contacts WHERE id=$1 AND org_id=$2`, [contactId, orgId]);
-  return rows.length > 0;
+  const contact = await ContactService.findById(contactId, orgId);
+  return contact !== null;
 }
 
 async function listContactNotes(req, res) {
   const { contactId } = req.params;
-  if (!(await assertContactInOrg(contactId, req.user.orgId))) return res.status(404).json({ error: 'Contact not found.' });
-  const { rows } = await db.query(
-    `SELECT n.id, n.body, n.created_at, u.full_name AS author_name
-     FROM contact_notes n LEFT JOIN users u ON u.id = n.author_id
-     WHERE n.contact_id = $1 ORDER BY n.created_at DESC`,
-    [contactId]
-  );
-  res.json({ notes: rows });
+  try {
+    const notes = await ContactService.getNotes(contactId, req.user.orgId);
+    res.json({ notes });
+  } catch (err) {
+    if (err.message === 'Contact not found') return res.status(404).json({ error: 'Contact not found.' });
+    throw err;
+  }
 }
 
 async function createContactNote(req, res) {
   const { contactId } = req.params;
   const { body } = req.body || {};
   if (!body?.trim()) return res.status(400).json({ error: 'body is required.' });
-  if (!(await assertContactInOrg(contactId, req.user.orgId))) return res.status(404).json({ error: 'Contact not found.' });
-  const { rows } = await db.query(
-    `INSERT INTO contact_notes (org_id, contact_id, author_id, body) VALUES ($1,$2,$3,$4) RETURNING id, body, created_at`,
-    [req.user.orgId, contactId, req.user.id, body.trim()]
-  );
-  res.status(201).json({ note: { ...rows[0], author_name: req.user.fullName || null } });
+  try {
+    const note = await ContactService.addNote(contactId, { content: body.trim() }, req.user.orgId, req.user.id);
+    trackActivity(req.user.orgId, req.user.id, 'note.added', {
+      contactId, description: 'Added note', metadata: { preview: body.trim().slice(0, 100) },
+    });
+    res.status(201).json({ note: { ...note, author_name: req.user.fullName || null } });
+  } catch (err) {
+    if (err.message === 'Contact not found') return res.status(404).json({ error: 'Contact not found.' });
+    throw err;
+  }
 }
 
 async function deleteContactNote(req, res) {
-  await db.query(`DELETE FROM contact_notes WHERE id=$1 AND org_id=$2`, [req.params.noteId, req.user.orgId]);
-  res.json({ ok: true });
+  try {
+    await ContactService.deleteNote(req.params.contactId, req.params.noteId, req.user.orgId);
+    trackActivity(req.user.orgId, req.user.id, 'note.deleted', {
+      contactId: req.params.contactId, description: 'Deleted note', metadata: {},
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.message === 'Note not found') return res.status(404).json({ error: 'Note not found.' });
+    throw err;
+  }
 }
 
 async function listContactTasks(req, res) {
@@ -196,6 +174,9 @@ async function createContactTask(req, res) {
     `INSERT INTO contact_tasks (org_id, contact_id, title, due_date, created_by) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
     [req.user.orgId, contactId, title.trim(), dueDate || null, req.user.id]
   );
+  trackActivity(req.user.orgId, req.user.id, 'task.added', {
+    contactId, description: `Added task: ${title}`, metadata: { title, dueDate },
+  });
   res.status(201).json({ task: rows[0] });
 }
 
@@ -209,53 +190,33 @@ async function updateContactTask(req, res) {
     [title || null, dueDate || null, status || null, taskId, req.user.orgId]
   );
   if (!rows.length) return res.status(404).json({ error: 'Task not found.' });
+  if (status === 'done') {
+    trackActivity(req.user.orgId, req.user.id, 'task.completed', {
+      contactId: req.params.contactId, description: 'Completed task', metadata: { taskId },
+    });
+  }
   res.json({ task: rows[0] });
 }
 
 async function deleteContactTask(req, res) {
-  await db.query(`DELETE FROM contact_tasks WHERE id=$1 AND org_id=$2`, [req.params.taskId, req.user.orgId]);
+  const { taskId, contactId } = req.params;
+  await db.query(`DELETE FROM contact_tasks WHERE id=$1 AND org_id=$2`, [taskId, req.user.orgId]);
+  trackActivity(req.user.orgId, req.user.id, 'task.deleted', {
+    contactId, description: 'Deleted task', metadata: {},
+  });
   res.json({ ok: true });
 }
 
-// CSV import — mirrors the dedupe-by-identifier pattern already used by
-// SMS Marketing's bulk contact import (dedupe by email within the org and
-// within the same upload).
 async function bulkCreateContacts(req, res) {
   const { contacts } = req.body || {};
   if (!Array.isArray(contacts) || !contacts.length) return res.status(400).json({ error: 'contacts array required' });
   if (contacts.length > 2000) return res.status(400).json({ error: 'Max 2000 contacts per import.' });
-
-  const { rows: existingRows } = await db.query(`SELECT email FROM contacts WHERE org_id=$1 AND email IS NOT NULL`, [req.user.orgId]);
-  const existingEmails = new Set(existingRows.map((r) => r.email.toLowerCase()));
-
-  const seen = new Set();
-  const valid = [];
-  let invalid = 0, duplicate = 0;
-  for (const raw of contacts) {
-    const fullName = String(raw?.fullName || raw?.name || '').trim();
-    const email = String(raw?.email || '').trim().toLowerCase() || null;
-    const company = String(raw?.company || '').trim() || null;
-    const phone = String(raw?.phone || '').trim() || null;
-    if (!fullName) { invalid++; continue; }
-    if (email && (existingEmails.has(email) || seen.has(email))) { duplicate++; continue; }
-    if (email) seen.add(email);
-    valid.push({ fullName, email, company, phone });
-  }
-
-  if (!valid.length) return res.json({ imported: 0, duplicate, invalid });
-
-  const values = [];
-  const placeholders = valid.map((c, i) => {
-    const base = i * 6;
-    values.push(req.user.orgId, c.fullName, c.company, c.email, c.phone, req.user.id);
-    return `($${base+1},$${base+2},$${base+3},$${base+4},$${base+5},$${base+6})`;
-  });
-  await db.query(
-    `INSERT INTO contacts (org_id, full_name, company, email, phone, created_by) VALUES ${placeholders.join(',')}`,
-    values
-  );
-
-  res.status(201).json({ imported: valid.length, duplicate, invalid });
+  try {
+    const result = await ContactService.bulkCreate(contacts, req.user.orgId, req.user.id);
+    res.status(201).json({
+      imported: result.created.length, errors: result.errors.length, duplicate: 0, invalid: result.errors.length,
+    });
+  } catch (err) { throw err; }
 }
 
 module.exports = {

@@ -1,5 +1,5 @@
 const db = require('../db');
-const { FIELD_TYPES, validateCustomFieldValues, upsertCustomFieldValues } = require('../utils/customFields');
+const { FIELD_TYPES, validateCustomFieldValues, upsertCustomFieldValues, attachCustomFields } = require('../utils/customFields');
 
 function toJsonb(value, fallback) {
   if (value === undefined || value === null) {

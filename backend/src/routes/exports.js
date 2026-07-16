@@ -66,7 +66,7 @@ async function generateExport(job) {
           lines.push(Object.values(r).map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(','));
         }
       }
-    } catch {}
+    } catch { /* file may not exist yet */ }
   }
 
   if (lines.length) {

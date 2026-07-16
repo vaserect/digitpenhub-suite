@@ -8,7 +8,8 @@ export default function Input({
   id,
   ...props
 }) {
-  const inputId = id || React.useId();
+  const autoId = React.useId();
+  const inputId = id || autoId;
 
   return (
     <div className={["field", error ? 'field-error' : '', className].filter(Boolean).join(' ')}>

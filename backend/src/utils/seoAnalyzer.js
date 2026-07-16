@@ -65,7 +65,7 @@ async function runAudit(rawUrl) {
   const anchorTags = html.match(/<a\s[^>]*href=["']([^"']*)["'][^>]*>/gi) || [];
   let internalLinks = 0, externalLinks = 0;
   let finalHostname = '';
-  try { finalHostname = new URL(finalUrl).hostname; } catch {}
+  try { finalHostname = new URL(finalUrl).hostname; } catch { /* ignore invalid URLs */ }
   for (const tag of anchorTags) {
     const href = extract(tag, /href=["']([^"']*)["']/i);
     if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) continue;

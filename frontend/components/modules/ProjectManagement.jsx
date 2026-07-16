@@ -34,7 +34,7 @@ export default function ProjectManagementModule({ goHome, showToast }) {
   }
 
   useEffect(() => {
-    loadPm().catch(() => showToast());
+    loadPm().catch(() => showToast('Failed to load projects.'));
   }, []);
 
   async function handleCreateProject(e) {

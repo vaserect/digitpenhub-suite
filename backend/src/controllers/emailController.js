@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const db = require('../db');
+const { validateEmail, normalizeEmail } = require('../utils/emailValidator');
 
 // Sendmail transport — uses the server's local Postfix (with DKIM via opendkim)
 function makeTransport() {
@@ -85,7 +86,7 @@ async function listSubscribers(req, res) {
 
 async function addSubscriber(req, res) {
   const { listId } = req.params;
-  const { email, name } = req.body || {};
+  const { email, name, skipConfirmation } = req.body || {};
 
   const listCheck = await db.query(
     `SELECT id FROM email_lists WHERE id = $1 AND org_id = $2`,
@@ -93,15 +94,65 @@ async function addSubscriber(req, res) {
   );
   if (!listCheck.rows.length) return res.status(404).json({ error: 'List not found.' });
 
-  if (!email || !String(email).trim()) return res.status(400).json({ error: 'email is required.' });
+  if (!email || !String(email).trim()) {
+    return res.status(400).json({ error: 'email is required.' });
+  }
 
+  const normalizedEmail = normalizeEmail(email);
+  
+  // CRITICAL FIX: Validate email to prevent invalid/disposable addresses
+  const validation = await validateEmail(normalizedEmail);
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.reason });
+  }
+
+  // CRITICAL FIX: Implement double opt-in for GDPR compliance (unless explicitly skipped for imports)
+  if (!skipConfirmation) {
+    const crypto = require('crypto');
+    const confirmationToken = crypto.randomBytes(32).toString('hex');
+    
+    const { rows } = await db.query(
+      `INSERT INTO email_subscribers (list_id, org_id, email, name, status, confirmation_token)
+       VALUES ($1, $2, $3, $4, 'pending', $5)
+       ON CONFLICT (list_id, email) DO UPDATE
+         SET status = 'pending', 
+             confirmation_token = EXCLUDED.confirmation_token,
+             name = EXCLUDED.name
+       RETURNING id, email, confirmation_token`,
+      [listId, req.user.orgId, normalizedEmail, name || null, confirmationToken]
+    );
+    
+    // Send confirmation email
+    const confirmUrl = `${process.env.FRONTEND_ORIGIN || 'https://suite.digitpenhub.com'}/confirm-subscription/${confirmationToken}`;
+    const { sendMail } = require('../utils/mailer');
+    
+    try {
+      await sendMail({
+        to: normalizedEmail,
+        subject: 'Confirm your subscription',
+        html: `<p>Please confirm your subscription by clicking the link below:</p>
+<p><a href="${confirmUrl}" style="display:inline-block;padding:10px 20px;background:#007bff;color:#fff;text-decoration:none;border-radius:4px;">Confirm Subscription</a></p>
+<p style="font-size:12px;color:#888;">This link expires in 24 hours. If you didn't request this, please ignore this email.</p>`,
+      });
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
+      return res.status(500).json({ error: 'Failed to send confirmation email.' });
+    }
+    
+    return res.status(201).json({ 
+      subscriber: { id: rows[0].id, email: rows[0].email, status: 'pending' },
+      message: 'Confirmation email sent. Please check your inbox.' 
+    });
+  }
+
+  // Direct subscription (for imports or admin adds)
   const { rows } = await db.query(
-    `INSERT INTO email_subscribers (list_id, org_id, email, name, status)
-     VALUES ($1, $2, $3, $4, 'subscribed')
+    `INSERT INTO email_subscribers (list_id, org_id, email, name, status, confirmed_at)
+     VALUES ($1, $2, $3, $4, 'subscribed', now())
      ON CONFLICT (list_id, email) DO UPDATE
-       SET status = 'subscribed', name = EXCLUDED.name
+       SET status = 'subscribed', name = EXCLUDED.name, confirmed_at = now()
      RETURNING id, email, name, status, subscribed_at`,
-    [listId, req.user.orgId, String(email).trim().toLowerCase(), name || null]
+    [listId, req.user.orgId, normalizedEmail, name || null]
   );
   res.status(201).json({ subscriber: rows[0] });
 }
@@ -151,10 +202,30 @@ async function removeSubscriber(req, res) {
 // Public unsubscribe endpoint — no auth required
 async function unsubscribe(req, res) {
   const { id } = req.params;
-  await db.query(
-    `UPDATE email_subscribers SET status = 'unsubscribed' WHERE id = $1`,
-    [id]
+  const { reason } = req.body || {};
+  
+  // CRITICAL FIX: Track unsubscribe events for compliance (CAN-SPAM Act)
+  const { rows } = await db.query(
+    `UPDATE email_subscribers 
+     SET status = 'unsubscribed',
+         unsubscribed_at = now(),
+         unsubscribe_reason = $2
+     WHERE id = $1
+     RETURNING email, list_id`,
+    [id, reason || null]
   );
+  
+  if (!rows.length) {
+    return res.status(404).json({ error: 'Subscriber not found.' });
+  }
+  
+  // Log unsubscribe event for audit trail
+  await db.query(
+    `INSERT INTO audit_log (user_id, action, ip_address, meta) 
+     VALUES (null, 'email.unsubscribed', $1, $2)`,
+    [req.ip, JSON.stringify({ subscriberId: id, email: rows[0].email, reason })]
+  );
+  
   res.json({ ok: true, message: 'You have been unsubscribed.' });
 }
 
@@ -273,6 +344,31 @@ async function sendCampaign(req, res) {
   const subscribers = subscribersResult.rows;
   if (!subscribers.length) return res.status(400).json({ error: 'No subscribed contacts in this list.' });
 
+  // CRITICAL FIX: Check daily email quota to prevent abuse
+  const { rows: dailyCount } = await db.query(
+    `SELECT COALESCE(SUM(
+      (SELECT COUNT(*) FROM email_subscribers 
+       WHERE list_id = c.list_id AND status = 'subscribed')
+    ), 0) AS emails_sent_today
+     FROM email_campaigns c
+     WHERE c.org_id = $1 
+       AND c.sent_at >= CURRENT_DATE 
+       AND c.status = 'sent'`,
+    [req.user.orgId]
+  );
+  
+  const emailsSentToday = Number(dailyCount[0]?.emails_sent_today || 0);
+  const DAILY_LIMIT = 10000; // TODO: Make this configurable per plan
+  
+  if (emailsSentToday + subscribers.length > DAILY_LIMIT) {
+    return res.status(429).json({ 
+      error: `Daily email limit reached (${DAILY_LIMIT}). Upgrade your plan for higher limits.`,
+      sent: emailsSentToday,
+      limit: DAILY_LIMIT,
+      requested: subscribers.length
+    });
+  }
+
   const transport = makeTransport();
   const fromAddress = process.env.ADMIN_EMAIL || 'noreply@digitpenhub.com';
   const baseUrl = process.env.FRONTEND_ORIGIN || 'https://suite.digitpenhub.com';
@@ -339,9 +435,39 @@ async function getStats(req, res) {
   });
 }
 
+// CRITICAL FIX: Confirmation endpoint for double opt-in (GDPR compliance)
+async function confirmSubscription(req, res) {
+  const { token } = req.params;
+  
+  const { rows } = await db.query(
+    `UPDATE email_subscribers 
+     SET status = 'subscribed', 
+         subscribed_at = now(),
+         confirmed_at = now(),
+         confirmation_token = NULL
+     WHERE confirmation_token = $1 AND status = 'pending'
+     RETURNING id, email, list_id`,
+    [token]
+  );
+  
+  if (!rows.length) {
+    return res.status(404).json({ error: 'Invalid or expired confirmation token.' });
+  }
+  
+  // Log confirmation event
+  await db.query(
+    `INSERT INTO audit_log (user_id, action, ip_address, meta) 
+     VALUES (null, 'email.subscription_confirmed', $1, $2)`,
+    [req.ip, JSON.stringify({ subscriberId: rows[0].id, email: rows[0].email })]
+  );
+  
+  res.json({ ok: true, message: 'Subscription confirmed! Thank you.' });
+}
+
 module.exports = {
   listLists, createList, updateList, deleteList,
   listSubscribers, addSubscriber, importSubscribers, removeSubscriber, unsubscribe,
   listCampaigns, createCampaign, getCampaign, updateCampaign, deleteCampaign, sendCampaign,
   getStats,
+  confirmSubscription, // CRITICAL FIX: Export confirmation endpoint for double opt-in
 };

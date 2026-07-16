@@ -68,7 +68,7 @@ export default function WorkspaceHome({
     let m = true;
     apiFetch('/api/v1/workspace/onboarding')
       .then(d => { if (m) setOnboarding(d); })
-      .catch(() => {})
+      .catch(() => console.error('Failed to load onboarding'))
       .finally(() => { if (m) setOnboardingLoading(false); });
     return () => { m = false; };
   }, []);

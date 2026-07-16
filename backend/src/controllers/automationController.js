@@ -157,7 +157,9 @@ async function updateWorkflow(req, res) {
   if (status      !== undefined) { updates.push(`status=$${i++}`);        vals.push(status); }
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
   vals.push(id, req.user.orgId);
-  const { rows } = await db.query(`UPDATE automation_workflows SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
+  const idParam = i;
+  const orgParam = i + 1;
+  const { rows } = await db.query(`UPDATE automation_workflows SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Workflow not found.' });
   res.json({ workflow: rows[0] });
 }

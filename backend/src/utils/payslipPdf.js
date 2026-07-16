@@ -8,6 +8,7 @@ function hexToRgb(hex) {
 }
 
 const money = (n) => `NGN ${Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// eslint-disable-next-line no-control-regex
 const safe = (s) => String(s ?? '').replace(/[^\x00-\xFF]/g, '?');
 
 // Renders a payslip PDF for one payroll item within a run. Returns a Buffer.

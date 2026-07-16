@@ -11,7 +11,9 @@ const money = (n) => `NGN ${Number(n || 0).toLocaleString('en-NG', { minimumFrac
 
 // pdf-lib's standard fonts only support WinAnsi — strip anything outside
 // that range (e.g. emoji, curly quotes pasted from elsewhere) rather than
+// removing chars outside printable ASCII range rather than
 // letting drawText throw and take the whole request down.
+// eslint-disable-next-line no-control-regex
 const safe = (s) => String(s ?? '').replace(/[^\x00-\xFF]/g, '?');
 
 // Renders a branded, itemized invoice PDF: sender org name/logo color,

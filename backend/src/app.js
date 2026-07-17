@@ -14,6 +14,7 @@ const logger = require('./utils/logger');
 const { Sentry, initSentry, setSentryUser } = require('./utils/sentry');
 const { requestIdMiddleware, addUserContext } = require('./middleware/requestId');
 const { csrfProtection } = require('./middleware/csrf');
+const { apiLimiter } = require("./middleware/rateLimiters");
 const { loadRoutes } = require('./routes/loader/routeLoader');
 
 const app = express();
@@ -43,6 +44,9 @@ app.use('/api', csrfProtection);
 
 // Add user context to logger after authentication (applied to all /api routes)
 app.use('/api', addUserContext);
+
+// Global rate limiting baseline (100 req/min/org)
+app.use("/api", apiLimiter);
 
 // ─── Dynamic route loading from routes.config.js ─────────────────────────────
 // Routes are auto-discovered and registered with correct middleware per the

@@ -4,6 +4,157 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+// Inline minimal block renderer for preview - renders blocks as they'd appear
+function LiveBlockRenderer({ block }) {
+  const p = (key, fallback) => block.props?.[key] ?? block[key] ?? fallback;
+  const bodySize = 'clamp(0.875rem, 2vw, 1rem)';
+  const h2Size = 'clamp(1.125rem, 3vw, 1.5rem)';
+  switch (block.type) {
+    case 'hero': {
+      const bg = p('bgColor') || '#2563eb';
+      return (
+        <div style={{ backgroundColor: bg, color: '#fff', padding: 'clamp(32px, 6vw, 60px) clamp(16px, 4vw, 24px)', textAlign: 'center' }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 4vw, 2.2rem)', fontWeight: 800, marginBottom: '0.5rem', lineHeight: 1.2 }}>{p('heading') || 'Page Title'}</h1>
+            {p('subheading') && <p style={{ fontSize: bodySize, opacity: 0.9, maxWidth: '500px', margin: '0 auto', lineHeight: 1.5 }}>{p('subheading')}</p>}
+            {p('ctaText') && <div style={{ marginTop: '1rem' }}><span style={{ display: 'inline-block', padding: '8px 24px', backgroundColor: 'white', color: bg, borderRadius: '6px', fontWeight: 600, fontSize: bodySize }}>{p('ctaText')}</span></div>}
+          </div>
+        </div>
+      );
+    }
+    case 'features': {
+      const items = p('items') || [];
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: h2Size, fontWeight: 700, textAlign: 'center', marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)' }}>{p('heading')}</h2>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              {items.map((item, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{item.icon || '✓'}</div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: bodySize }}>{item.title || ''}</div>
+                  <div style={{ color: '#6b7280', fontSize: bodySize, lineHeight: 1.4 }}>{item.desc || ''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    case 'cta': {
+      const ctaBg = p('bgColor') || '#f8fafc';
+      return (
+        <div style={{ backgroundColor: ctaBg, padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)', textAlign: 'center' }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: h2Size, fontWeight: 700, marginBottom: '0.5rem' }}>{p('heading') || 'Ready to get started?'}</h2>
+            {p('buttonText') && <span style={{ display: 'inline-block', marginTop: '0.75rem', padding: '8px 24px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', fontWeight: 600, fontSize: bodySize }}>{p('buttonText')}</span>}
+          </div>
+        </div>
+      );
+    }
+    case 'text':
+      return (
+        <div style={{ padding: 'clamp(24px, 4vw, 40px) clamp(16px, 4vw, 24px)' }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.375rem)', fontWeight: 700, marginBottom: '0.75rem' }}>{p('heading')}</h2>}
+            <div style={{ fontSize: bodySize, lineHeight: '1.625', color: '#374151' }}>{p('body') || 'Content goes here...'}</div>
+          </div>
+        </div>
+      );
+    case 'pricing':
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: h2Size, fontWeight: 700, textAlign: 'center', marginBottom: 'clamp(1.5rem, 3vw, 2rem)' }}>{p('heading')}</h2>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+              {(p('plans') || []).slice(0,3).map((plan, i) => (
+                <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 600, marginBottom: '0.5rem', fontSize: bodySize }}>{plan.name}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{plan.price}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    case 'faq': {
+      const faqItems = p('items') || [];
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)' }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: h2Size, fontWeight: 700, textAlign: 'center', marginBottom: '1.5rem' }}>{p('heading')}</h2>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {faqItems.map((item, i) => (
+                <details key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                  <summary style={{ padding: '12px 16px', fontWeight: 600, fontSize: bodySize, cursor: 'pointer', backgroundColor: '#f9fafb' }}>{item.question}</summary>
+                  <div style={{ padding: '12px 16px', fontSize: bodySize, color: '#4b5563' }}>{item.answer}</div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    case 'testimonials': {
+      const items = p('items') || [];
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)', backgroundColor: '#f9fafb' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: h2Size, fontWeight: 700, textAlign: 'center', marginBottom: '1.5rem' }}>{p('heading')}</h2>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+              {items.map((item, i) => (
+                <div key={i} style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                  <p style={{ fontSize: bodySize, fontStyle: 'italic', marginBottom: '0.75rem' }}>"{item.quote || ''}"</p>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{item.author || ''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    case 'stats':
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)', backgroundColor: p('bgColor') || '#1e3a5f', color: 'white' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1.5rem', textAlign: 'center' }}>
+            {(p('items') || []).map((s, i) => (
+              <div key={i}><div style={{ fontSize: 'clamp(1.25rem, 3vw, 2rem)', fontWeight: 700 }}>{s.value}</div><div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{s.label}</div></div>
+            ))}
+          </div>
+        </div>
+      );
+    case 'team': {
+      const members = p('members') || [];
+      return (
+        <div style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 24px)' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+            {p('heading') && <h2 style={{ fontSize: h2Size, fontWeight: 700, textAlign: 'center', marginBottom: '1.5rem' }}>{p('heading')}</h2>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+              {members.map((m, i) => (
+                <div key={i} style={{ textAlign: 'center', padding: '1rem' }}>
+                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#e5e7eb', margin: '0 auto 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>👤</div>
+                  <div style={{ fontWeight: 600, fontSize: bodySize }}>{m.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>{m.role}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    default:
+      return (
+        <div style={{ padding: '24px 16px', backgroundColor: '#f9fafb', textAlign: 'center', borderBottom: '1px dashed #e5e7eb' }}>
+          <span style={{ fontSize: bodySize, color: '#9ca3af' }}>{getBlockIcon(block.type)} {block.type} block</span>
+        </div>
+      );
+  }
+}
+function getBlockIcon(type) {
+  const icons = { nav: '🧭', footer: '⬇️', form: '📋', pricing: '💰', faq: '❓', team: '👥', portfolio: '🎨', gallery: '🖼️', blog: '📰', newsletter: '📧', stats: '📈', timeline: '📅', tabs: '📑', accordion: '📂', countdown: '⏱️', map: '🗺️', social: '🔗', contact: '📞', 'logo-cloud': '🏢', process: '🔄', comparison: '⚖️', embed: '🔌', hero: '⚡', cta: '🎯', features: '⭐', testimonials: '💬', columns: '📐', text: '📝', image: '🖼️', video: '🎥', spacer: '↕️', divider: '➖' };
+  return icons[type] || '📦';
+}
+
 export default function TemplatePreviewPage() {
   const params = useParams();
   const router = useRouter();
@@ -137,22 +288,24 @@ export default function TemplatePreviewPage() {
                 </div>
               </div>
               {currentPage && currentPage.blocks && currentPage.blocks.length > 0 && (
-                <div className="p-6 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{currentPage.name} — {currentPage.blocks.length} blocks</h3>
-                  <div className="space-y-3">
-                    {currentPage.blocks.map((block, idx) => (
-                      <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">{idx + 1}</div>
-                            <div>
-                              <div className="font-medium text-gray-900 capitalize">{block.type} block</div>
-                              <div className="text-sm text-gray-500">{block.props?.heading || block.heading || block.props?.title || ''}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                <div className="p-0">
+                  {/* Render blocks visually in a simulated browser view */}
+                  <div style={{ maxWidth: '100%', overflow: 'hidden', boxShadow: '0 0 0 1px #e5e7eb', borderRadius: '0 0 12px 12px' }}>
+                    {/* Browser chrome bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px', backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      <span style={{ flex: 1, textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', backgroundColor: 'white', padding: '4px 12px', borderRadius: '4px', maxWidth: '300px', margin: '0 auto' }}>
+                        https://example.com/{currentPage.slug}
+                      </span>
+                    </div>
+                    {/* Actually render blocks */}
+                    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      {currentPage.blocks.map((block, idx) => (
+                        <LiveBlockRenderer key={idx} block={block} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

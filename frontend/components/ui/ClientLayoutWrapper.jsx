@@ -12,6 +12,7 @@ export default function ClientLayoutWrapper({ children, hasSession }) {
     pathname.startsWith('/reset-password');
 
   const isPublicPage = pathname === '/' ||
+    pathname.startsWith('/templates') ||
     pathname === '/pricing' ||
     pathname === '/features' ||
     pathname.startsWith('/invoices/shared') ||

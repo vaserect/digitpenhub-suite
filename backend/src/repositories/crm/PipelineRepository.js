@@ -3,6 +3,7 @@
 // Date: 2026-07-16
 
 const BaseRepository = require('../base/BaseRepository');
+const db = require('../../db');
 const logger = require('../../utils/logger');
 
 /**
@@ -11,7 +12,7 @@ const logger = require('../../utils/logger');
  */
 class PipelineRepository extends BaseRepository {
   constructor() {
-    super('crm_pipelines');
+    super(db, 'crm_pipelines');
   }
 
   /**
@@ -61,10 +62,10 @@ class PipelineRepository extends BaseRepository {
     const query = `
       SELECT 
         p.*,
-        (SELECT COUNT(*) FROM crm_pipeline_stages WHERE pipeline_id = p.id AND deleted_at IS NULL) AS stage_count,
-        (SELECT COUNT(*) FROM crm_deals WHERE pipeline_id = p.id AND deleted_at IS NULL) AS deal_count
+        (SELECT COUNT(*) FROM crm_stages WHERE pipeline_id = p.id) AS stage_count,
+        (SELECT COUNT(*) FROM crm_deals WHERE pipeline_id = p.id AND is_archived IS NOT TRUE) AS deal_count
       FROM crm_pipelines p
-      WHERE p.id = $1 AND p.org_id = $2 AND p.deleted_at IS NULL
+      WHERE p.id = $1 AND p.org_id = $2
     `;
 
     try {
@@ -85,10 +86,10 @@ class PipelineRepository extends BaseRepository {
     const query = `
       SELECT 
         p.*,
-        (SELECT COUNT(*) FROM crm_pipeline_stages WHERE pipeline_id = p.id AND deleted_at IS NULL) AS stage_count,
-        (SELECT COUNT(*) FROM crm_deals WHERE pipeline_id = p.id AND deleted_at IS NULL) AS deal_count
+        (SELECT COUNT(*) FROM crm_stages WHERE pipeline_id = p.id) AS stage_count,
+        (SELECT COUNT(*) FROM crm_deals WHERE pipeline_id = p.id AND is_archived IS NOT TRUE) AS deal_count
       FROM crm_pipelines p
-      WHERE p.org_id = $1 AND p.deleted_at IS NULL
+      WHERE p.org_id = $1
       ORDER BY p.display_order, p.name
     `;
 
@@ -138,7 +139,7 @@ class PipelineRepository extends BaseRepository {
     const query = `
       UPDATE crm_pipelines
       SET ${setClause.join(', ')}
-      WHERE org_id = $1 AND id = $2 AND deleted_at IS NULL
+      WHERE org_id = $1 AND id = $2
       RETURNING *
     `;
 
@@ -156,22 +157,24 @@ class PipelineRepository extends BaseRepository {
   }
 
   /**
-   * Soft delete pipeline
+   * Hard delete pipeline
    * @param {string} orgId - Organization ID
    * @param {string} pipelineId - Pipeline ID
    * @param {string} userId - User deleting the pipeline
    * @returns {Promise<boolean>} Success status
    */
   async delete(orgId, pipelineId, userId) {
-    const query = `
-      UPDATE crm_pipelines
-      SET deleted_at = NOW(), deleted_by = $3
-      WHERE org_id = $1 AND id = $2 AND deleted_at IS NULL
-      RETURNING id
-    `;
-
     try {
-      const result = await this.db.query(query, [orgId, pipelineId, userId]);
+      // First delete associated stages to avoid foreign key issues
+      await this.db.query(`DELETE FROM crm_stages WHERE pipeline_id = $1`, [pipelineId]);
+      
+      const query = `
+        DELETE FROM crm_pipelines
+        WHERE org_id = $1 AND id = $2
+        RETURNING id
+      `;
+
+      const result = await this.db.query(query, [orgId, pipelineId]);
       if (result.rows.length === 0) {
         throw new Error('Pipeline not found');
       }
@@ -192,11 +195,11 @@ class PipelineRepository extends BaseRepository {
    */
   async createStage(pipelineId, stageData, userId) {
     const query = `
-      INSERT INTO crm_pipeline_stages (
+      INSERT INTO crm_stages (
         pipeline_id, name, description, probability, display_order,
-        color, is_closed_won, is_closed_lost, created_by, updated_by
+        color, is_closed_won, is_closed_lost, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
+        $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()
       )
       RETURNING *
     `;
@@ -209,8 +212,7 @@ class PipelineRepository extends BaseRepository {
       stageData.displayOrder || 0,
       stageData.color || '#3B82F6',
       stageData.isClosedWon || false,
-      stageData.isClosedLost || false,
-      userId
+      stageData.isClosedLost || false
     ];
 
     try {
@@ -232,10 +234,10 @@ class PipelineRepository extends BaseRepository {
     const query = `
       SELECT 
         s.*,
-        (SELECT COUNT(*) FROM crm_deals WHERE stage_id = s.id AND deleted_at IS NULL) AS deal_count,
-        (SELECT COALESCE(SUM(amount), 0) FROM crm_deals WHERE stage_id = s.id AND deleted_at IS NULL) AS total_value
-      FROM crm_pipeline_stages s
-      WHERE s.id = $1 AND s.deleted_at IS NULL
+        (SELECT COUNT(*) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS deal_count,
+        (SELECT COALESCE(SUM(amount), 0) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS total_value
+      FROM crm_stages s
+      WHERE s.id = $1
     `;
 
     try {
@@ -256,10 +258,10 @@ class PipelineRepository extends BaseRepository {
     const query = `
       SELECT 
         s.*,
-        (SELECT COUNT(*) FROM crm_deals WHERE stage_id = s.id AND deleted_at IS NULL) AS deal_count,
-        (SELECT COALESCE(SUM(amount), 0) FROM crm_deals WHERE stage_id = s.id AND deleted_at IS NULL) AS total_value
-      FROM crm_pipeline_stages s
-      WHERE s.pipeline_id = $1 AND s.deleted_at IS NULL
+        (SELECT COUNT(*) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS deal_count,
+        (SELECT COALESCE(SUM(amount), 0) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS total_value
+      FROM crm_stages s
+      WHERE s.pipeline_id = $1
       ORDER BY s.display_order, s.name
     `;
 
@@ -302,16 +304,12 @@ class PipelineRepository extends BaseRepository {
       throw new Error('No valid fields to update');
     }
 
-    paramCount++;
-    setClause.push(`updated_by = $${paramCount}`);
-    values.push(userId);
-
     setClause.push('updated_at = NOW()');
 
     const query = `
-      UPDATE crm_pipeline_stages
+      UPDATE crm_stages
       SET ${setClause.join(', ')}
-      WHERE id = $1 AND deleted_at IS NULL
+      WHERE id = $1
       RETURNING *
     `;
 
@@ -336,14 +334,13 @@ class PipelineRepository extends BaseRepository {
    */
   async deleteStage(stageId, userId) {
     const query = `
-      UPDATE crm_pipeline_stages
-      SET deleted_at = NOW(), deleted_by = $2
-      WHERE id = $1 AND deleted_at IS NULL
+      DELETE FROM crm_stages
+      WHERE id = $1
       RETURNING id
     `;
 
     try {
-      const result = await this.db.query(query, [stageId, userId]);
+      const result = await this.db.query(query, [stageId]);
       if (result.rows.length === 0) {
         throw new Error('Stage not found');
       }
@@ -364,7 +361,7 @@ class PipelineRepository extends BaseRepository {
     const query = `
       SELECT *
       FROM crm_pipelines
-      WHERE org_id = $1 AND is_default = true AND deleted_at IS NULL
+      WHERE org_id = $1 AND is_default = true
       LIMIT 1
     `;
 
@@ -391,14 +388,14 @@ class PipelineRepository extends BaseRepository {
       await this.db.query(`
         UPDATE crm_pipelines
         SET is_default = false, updated_by = $2, updated_at = NOW()
-        WHERE org_id = $1 AND is_default = true AND deleted_at IS NULL
+        WHERE org_id = $1 AND is_default = true
       `, [orgId, userId]);
 
       // Set new default
       const result = await this.db.query(`
         UPDATE crm_pipelines
         SET is_default = true, updated_by = $3, updated_at = NOW()
-        WHERE org_id = $1 AND id = $2 AND deleted_at IS NULL
+        WHERE org_id = $1 AND id = $2
         RETURNING *
       `, [orgId, pipelineId, userId]);
 

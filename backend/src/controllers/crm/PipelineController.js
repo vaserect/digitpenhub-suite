@@ -11,8 +11,8 @@ const { ValidationError, NotFoundError } = require('../../utils/errors');
  * Handles HTTP requests for pipeline and stage management
  */
 class PipelineController {
-  constructor() {
-    this.pipelineService = new PipelineService();
+  constructor(pipelineService) {
+    this.pipelineService = pipelineService || new PipelineService();
   }
 
   /**
@@ -260,5 +260,4 @@ class PipelineController {
   }
 }
 
-// Export singleton instance
-module.exports = new PipelineController();
+module.exports = PipelineController;

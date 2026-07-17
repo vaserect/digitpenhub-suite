@@ -4,7 +4,7 @@
 
 const BaseService = require('../base/BaseService');
 const CompanyRepository = require('../../repositories/crm/CompanyRepository');
-const ActivityService = require('../ActivityService');
+const ActivityService = require('./ActivityService');
 const eventBus = require('../../utils/eventBus');
 const logger = require('../../utils/logger');
 const { ValidationError, NotFoundError } = require('../../utils/errors');
@@ -15,7 +15,7 @@ const { ValidationError, NotFoundError } = require('../../utils/errors');
  */
 class CompanyService extends BaseService {
   constructor() {
-    super(CompanyRepository);
+    super(new CompanyRepository());
     this.activityService = new ActivityService();
   }
 

@@ -4,8 +4,9 @@
 
 const express = require('express');
 const router = express.Router();
-const DealController = require('../../controllers/crm/DealController');
-const auth = require('../../middleware/auth');
+const DealControllerClass = require('../../controllers/crm/DealController');
+const DealController = new DealControllerClass();
+const { requireAuth: auth } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { checkPermission } = require('../../middleware/rbac');
 

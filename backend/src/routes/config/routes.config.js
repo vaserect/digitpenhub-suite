@@ -70,6 +70,9 @@ const ROUTES_CONFIG = [
   // ============================================================================
   // CRM MODULE
   // ============================================================================
+  moduleRoute('/api/v1/crm/companies', 'crm/companies.routes', 'crm', 'CRM Companies API'),
+  moduleRoute('/api/v1/crm/deals', 'crm/deals.routes', 'crm', 'CRM Deals API'),
+  moduleRoute('/api/v1/crm/pipelines', 'crm/pipelines.routes', 'crm', 'CRM Pipelines API'),
   publicRoute('/api/v1/crm', 'crm', 'CRM endpoints (mixed auth)'),
   authRoute('/api/v1/crm', 'crmUpgrades', 'CRM upgrade features'),
   authRoute('/api/v1/custom-fields', 'customFields', 'Custom fields management'),

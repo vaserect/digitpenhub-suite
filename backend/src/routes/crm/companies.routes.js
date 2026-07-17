@@ -4,8 +4,9 @@
 
 const express = require('express');
 const router = express.Router();
-const CompanyController = require('../../controllers/crm/CompanyController');
-const auth = require('../../middleware/auth');
+const CompanyControllerClass = require('../../controllers/crm/CompanyController');
+const CompanyController = new CompanyControllerClass();
+const { requireAuth: auth } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { checkPermission } = require('../../middleware/rbac');
 

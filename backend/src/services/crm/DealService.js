@@ -16,7 +16,7 @@ const { ValidationError, NotFoundError } = require('../../utils/errors');
  */
 class DealService extends BaseService {
   constructor() {
-    super(DealRepository);
+    super(new DealRepository());
     this.pipelineService = new PipelineService();
     this.activityService = new ActivityService();
   }

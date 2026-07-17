@@ -125,6 +125,7 @@ export default function UnifiedCanvas({
                 onDragEnd={handleDragEnd}
                 style={{ 
                   position: 'relative',
+                  minHeight: '40px',
                   outline: selectedBlock?.id === block.id ? '2px solid #2563eb' : 'none',
                   borderTop: dragOverIndex === index ? '2px solid #2563eb' : 'none'
                 }}
@@ -136,12 +137,15 @@ export default function UnifiedCanvas({
                 {/* Block Controls Overlay */}
                 <div style={{ 
                   position: 'absolute', 
-                  top: 0, 
-                  right: 0, 
+                  top: '4px', 
+                  right: '4px', 
                   zIndex: 10, 
                   display: 'flex', 
-                  gap: '4px', 
-                  padding: '8px',
+                  gap: '2px', 
+                  padding: '4px',
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   opacity: selectedBlock?.id === block.id ? 1 : 0,
                   transition: 'opacity 0.2s'
                 }}

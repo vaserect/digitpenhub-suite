@@ -2,7 +2,7 @@
 
 | Module # | Module Name | Status | Benchmark | Completion Commit(s) | Notes |
 |---|---|---|---|---|---|
-| 1 | CRM | In Progress | HubSpot CRM | | Resolving database schema gaps, fixing routing conflicts, and connecting contacts, deals, pipelines, and activities |
+| 1 | CRM | Complete | HubSpot CRM | 65da312 | Resolving database schema gaps, fixing routing conflicts, and connecting contacts, deals, pipelines, and activities |
 | 2 | Lead Generation | Not Started | Unbounce / OptinMonster | | |
 | 3 | Landing Page Builder | Not Started | Leadpages / Instapage | | |
 | 4 | Website Builder | Not Started | Webflow / Framer | | |

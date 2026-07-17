@@ -18,6 +18,8 @@ const PLATFORM_CONFIG = {
   'google-business': { name: 'Google Business', color: '#4285F4', icon: 'gb', authUrl: '#' },
   telegram:    { name: 'Telegram',    color: '#0088CC', icon: 'tg', authUrl: '#' },
   'whatsapp-business': { name: 'WhatsApp Business', color: '#25D366', icon: 'wa', authUrl: '#' },
+  'bluesky':     { name: 'Bluesky',    color: '#0285FF', icon: 'bs', authUrl: '#' },
+  'threads':     { name: 'Threads',    color: '#000000', icon: 'th', authUrl: '#' },
 };
 
 export default function AccountManager({ onRefresh }) {

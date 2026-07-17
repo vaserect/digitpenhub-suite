@@ -12,7 +12,8 @@ router.use(requireAuth);
 router.get('/', crmUpgradesController.getAll);
 router.get('/:id', crmUpgradesController.getById);
 router.post('/', crmUpgradesController.create);
-router.put('/:id', crmUpgradesController.update);
+router.put("/:id/approve", crmUpgradesController.approve);
+router.put("/:id", (req, res) => res.status(501).json({error: "Not implemented"}));
 router.delete('/:id', crmUpgradesController.delete);
 
 // Bulk operations

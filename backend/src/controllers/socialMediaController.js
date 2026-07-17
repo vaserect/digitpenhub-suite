@@ -971,6 +971,357 @@ async function listMediaFolders(req, res) {
 // EXPORTS
 // ============================================================
 
+
+
+// ============================================================
+// CALENDAR EXPORT
+// ============================================================
+
+async function exportCalendar(req, res) {
+  try {
+    const { from, to, format } = req.query;
+    const f = from || new Date(Date.now() - 90 * 86400000).toISOString();
+    const t = to || new Date(Date.now() + 90 * 86400000).toISOString();
+
+    const { rows } = await db.query(
+      `SELECT spt.scheduled_at, spt.status AS target_status,
+              p.content_text, p.post_type, p.status AS post_status,
+              sa.account_name, sp.name AS platform_name, sp.slug AS platform_slug
+       FROM social_post_targets spt
+       JOIN social_posts p ON p.id = spt.post_id
+       JOIN social_accounts sa ON sa.id = spt.account_id
+       JOIN social_platforms sp ON sp.id = sa.platform_id
+       WHERE p.org_id = $1 AND spt.scheduled_at >= $2 AND spt.scheduled_at <= $3
+       ORDER BY spt.scheduled_at ASC`,
+      [req.user.orgId, f, t]
+    );
+
+    if (format === 'ical' || format === 'ics') {
+      let ical = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//DigitpenHub//SocialMedia//EN\r\n';
+      for (const ev of rows) {
+        const start = new Date(ev.scheduled_at);
+        const end = new Date(start.getTime() + 3600000);
+        const uid = 'social-' + ev.platform_slug + '-' + start.getTime() + '@digitpenhub';
+        const summary = (ev.content_text || 'Social post').substring(0, 100).replace(/[,;\n]/g, ' ');
+        ical += 'BEGIN:VEVENT\r\n';
+        ical += 'UID:' + uid + '\r\n';
+        ical += 'DTSTART:' + start.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z\r\n';
+        ical += 'DTEND:' + end.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z\r\n';
+        ical += 'SUMMARY:' + summary + '\r\n';
+        ical += 'DESCRIPTION:Post for ' + ev.account_name + ' on ' + ev.platform_name + '\r\n';
+        ical += 'STATUS:' + (ev.target_status === 'published' ? 'CONFIRMED' : 'TENTATIVE') + '\r\n';
+        ical += 'END:VEVENT\r\n';
+      }
+      ical += 'END:VCALENDAR\r\n';
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=social-calendar.ics');
+      return res.send(ical);
+    }
+
+    res.json({ events: rows, count: rows.length, exportedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('[socialMediaController.exportCalendar] Error:', err);
+    res.status(500).json({ error: 'Failed to export calendar.' });
+  }
+}
+
+
+
+// ============================================================
+// APPROVAL WORKFLOW
+// ============================================================
+
+// Submit a post for approval
+async function submitForApproval(req, res) {
+  try {
+    const { id } = req.params;
+    const { assignedTo } = req.body;
+
+    if (!assignedTo) return res.status(400).json({ error: 'assignedTo (user ID) is required.' });
+
+    // Verify post exists and belongs to org
+    const postCheck = await db.query(
+      'SELECT id, status, created_by FROM social_posts WHERE id = $1 AND org_id = $2',
+      [id, req.user.orgId]
+    );
+    if (!postCheck.rows.length) return res.status(404).json({ error: 'Post not found.' });
+
+    // Verify assignee exists in org
+    const userCheck = await db.query(
+      'SELECT id FROM users WHERE id = $1 AND org_id = $2',
+      [assignedTo, req.user.orgId]
+    );
+    if (!userCheck.rows.length) return res.status(400).json({ error: 'Assigned user not found in your organization.' });
+
+    // Check if already has a pending approval
+    const pending = await db.query(
+      "SELECT id FROM social_approval_requests WHERE post_id = $1 AND status = 'pending'",
+      [id]
+    );
+    if (pending.rows.length) return res.status(400).json({ error: 'Post already has a pending approval request.' });
+
+    const { rows } = await db.query(
+      "INSERT INTO social_approval_requests (post_id, requested_by, assigned_to, status) VALUES ($1, $2, $3, 'pending') RETURNING *",
+      [id, req.user.id, assignedTo]
+    );
+
+    // Update post status
+    await db.query("UPDATE social_posts SET status = 'pending_approval', updated_at = now() WHERE id = $1", [id]);
+
+    res.status(201).json({ approval: rows[0], message: 'Submitted for approval.' });
+  } catch (err) {
+    console.error('[socialMediaController.submitForApproval] Error:', err);
+    res.status(500).json({ error: 'Failed to submit for approval.' });
+  }
+}
+
+// Approve a post
+async function approvePost(req, res) {
+  try {
+    const { id } = req.params;
+    const { feedback } = req.body;
+
+    const approvalRes = await db.query(
+      "SELECT id, post_id FROM social_approval_requests WHERE id = $1 AND assigned_to = $2 AND status = 'pending'",
+      [id, req.user.id]
+    );
+    if (!approvalRes.rows.length) return res.status(404).json({ error: 'Pending approval request not found.' });
+
+    await db.query(
+      "UPDATE social_approval_requests SET status = 'approved', feedback = $1, reviewed_at = now() WHERE id = $2",
+      [feedback || null, id]
+    );
+
+    await db.query("UPDATE social_posts SET status = 'approved', updated_at = now() WHERE id = $1", [approvalRes.rows[0].post_id]);
+
+    res.json({ ok: true, message: 'Post approved.' });
+  } catch (err) {
+    console.error('[socialMediaController.approvePost] Error:', err);
+    res.status(500).json({ error: 'Failed to approve post.' });
+  }
+}
+
+// Reject a post
+async function rejectPost(req, res) {
+  try {
+    const { id } = req.params;
+    const { feedback } = req.body;
+
+    if (!feedback) return res.status(400).json({ error: 'Feedback is required when rejecting.' });
+
+    const approvalRes = await db.query(
+      "SELECT id, post_id FROM social_approval_requests WHERE id = $1 AND assigned_to = $2 AND status = 'pending'",
+      [id, req.user.id]
+    );
+    if (!approvalRes.rows.length) return res.status(404).json({ error: 'Pending approval request not found.' });
+
+    await db.query(
+      "UPDATE social_approval_requests SET status = 'changes_requested', feedback = $1, reviewed_at = now() WHERE id = $2",
+      [feedback, id]
+    );
+
+    await db.query("UPDATE social_posts SET status = 'draft', updated_at = now() WHERE id = $1", [approvalRes.rows[0].post_id]);
+
+    res.json({ ok: true, message: 'Post rejected. Feedback sent to author.' });
+  } catch (err) {
+    console.error('[socialMediaController.rejectPost] Error:', err);
+    res.status(500).json({ error: 'Failed to reject post.' });
+  }
+}
+
+// List approval requests for current user
+async function listApprovals(req, res) {
+  try {
+    const { status } = req.query;
+    const conditions = ['(ar.assigned_to = $1 OR ar.requested_by = $1)'];
+    const values = [req.user.id];
+    let idx = 2;
+    if (status) { conditions.push('ar.status = $' + idx); values.push(status); idx++; }
+
+    const { rows } = await db.query(
+      "SELECT ar.id, ar.status, ar.feedback, ar.created_at, ar.reviewed_at, "
+      + "p.id AS post_id, p.content_text, p.post_type, p.status AS post_status, "
+      + "req.full_name AS requested_by_name, "
+      + "ass.full_name AS assigned_to_name "
+      + "FROM social_approval_requests ar "
+      + "JOIN social_posts p ON p.id = ar.post_id "
+      + "JOIN users req ON req.id = ar.requested_by "
+      + "JOIN users ass ON ass.id = ar.assigned_to "
+      + "WHERE " + conditions.join(' AND ') + " "
+      + "ORDER BY ar.created_at DESC",
+      values
+    );
+
+    res.json({ approvals: rows });
+  } catch (err) {
+    console.error('[socialMediaController.listApprovals] Error:', err);
+    res.status(500).json({ error: 'Failed to list approvals.' });
+  }
+}
+
+// Get approval history for a post
+async function getPostApprovalHistory(req, res) {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await db.query(
+      "SELECT ar.*, req.full_name AS requested_by_name, ass.full_name AS assigned_to_name "
+      + "FROM social_approval_requests ar "
+      + "JOIN users req ON req.id = ar.requested_by "
+      + "JOIN users ass ON ass.id = ar.assigned_to "
+      + "WHERE ar.post_id = $1 "
+      + "ORDER BY ar.created_at DESC",
+      [id]
+    );
+
+    res.json({ history: rows });
+  } catch (err) {
+    console.error('[socialMediaController.getPostApprovalHistory] Error:', err);
+    res.status(500).json({ error: 'Failed to get approval history.' });
+  }
+}
+
+// ============================================================
+// COMMENTS (Internal Collaboration)
+// ============================================================
+
+// List comments for a post
+async function listComments(req, res) {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await db.query(
+      "SELECT sc.*, u.full_name AS user_name, u.avatar_url AS user_avatar "
+      + "FROM social_post_comments sc "
+      + "JOIN users u ON u.id = sc.user_id "
+      + "WHERE sc.post_id = $1 "
+      + "ORDER BY sc.created_at ASC",
+      [id]
+    );
+
+    // Build threaded structure
+    const topLevel = rows.filter(c => !c.parent_id);
+    const replies = rows.filter(c => c.parent_id);
+
+    const threads = topLevel.map(c => ({
+      ...c,
+      replies: replies.filter(r => r.parent_id === c.id),
+    }));
+
+    res.json({ comments: threads, total: rows.length });
+  } catch (err) {
+    console.error('[socialMediaController.listComments] Error:', err);
+    res.status(500).json({ error: 'Failed to list comments.' });
+  }
+}
+
+// Add a comment to a post
+async function addComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { content, parentId } = req.body;
+
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Comment content is required.' });
+
+    // Verify post exists
+    const postCheck = await db.query(
+      'SELECT id FROM social_posts WHERE id = $1 AND org_id = $2',
+      [id, req.user.orgId]
+    );
+    if (!postCheck.rows.length) return res.status(404).json({ error: 'Post not found.' });
+
+    // If parentId provided, verify it exists
+    if (parentId) {
+      const parentCheck = await db.query(
+        'SELECT id FROM social_post_comments WHERE id = $1 AND post_id = $2',
+        [parentId, id]
+      );
+      if (!parentCheck.rows.length) return res.status(400).json({ error: 'Parent comment not found.' });
+    }
+
+    const { rows } = await db.query(
+      'INSERT INTO social_post_comments (post_id, user_id, content, parent_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [id, req.user.id, content.trim(), parentId || null]
+    );
+
+    res.status(201).json({ comment: rows[0] });
+  } catch (err) {
+    console.error('[socialMediaController.addComment] Error:', err);
+    res.status(500).json({ error: 'Failed to add comment.' });
+  }
+}
+
+// Delete a comment (only comment author or admin)
+async function deleteComment(req, res) {
+  try {
+    const { id } = req.params;
+
+    const { rowCount } = await db.query(
+      'DELETE FROM social_post_comments WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (!rowCount) return res.status(404).json({ error: 'Comment not found or not authorized to delete.' });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[socialMediaController.deleteComment] Error:', err);
+    res.status(500).json({ error: 'Failed to delete comment.' });
+  }
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+
+// Get activity log for a post
+async function getPostActivity(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Combine approval history + comments into an activity feed
+    const approvalRes = await db.query(
+      "SELECT 'approval' AS type, ar.status AS action, ar.feedback AS details, "
+      + "req.full_name AS actor_name, ar.created_at "
+      + "FROM social_approval_requests ar "
+      + "JOIN users req ON req.id = ar.requested_by "
+      + "WHERE ar.post_id = $1",
+      [id]
+    );
+
+    const commentRes = await db.query(
+      "SELECT 'comment' AS type, 'comment' AS action, sc.content AS details, "
+      + "u.full_name AS actor_name, sc.created_at "
+      + "FROM social_post_comments sc "
+      + "JOIN users u ON u.id = sc.user_id "
+      + "WHERE sc.post_id = $1",
+      [id]
+    );
+
+    // Also add publish/schedule events from target history
+    const targetRes = await db.query(
+      "SELECT 'publish' AS type, spt.status AS action, "
+      + "CASE WHEN spt.published_at IS NOT NULL THEN 'Published to ' || sa.account_name "
+      + "     WHEN spt.scheduled_at IS NOT NULL THEN 'Scheduled on ' || sa.account_name || ' for ' || spt.scheduled_at::text "
+      + "     ELSE 'Target: ' || sa.account_name END AS details, "
+      + "sa.account_name AS actor_name, "
+      + "COALESCE(spt.published_at, spt.created_at) AS created_at "
+      + "FROM social_post_targets spt "
+      + "JOIN social_accounts sa ON sa.id = spt.account_id "
+      + "WHERE spt.post_id = $1",
+      [id]
+    );
+
+    const all = [...approvalRes.rows, ...commentRes.rows, ...targetRes.rows]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({ activity: all });
+  } catch (err) {
+    console.error('[socialMediaController.getPostActivity] Error:', err);
+    res.status(500).json({ error: 'Failed to get activity.' });
+  }
+}
+
 module.exports = {
   // Accounts
   listAccounts, connectAccount, disconnectAccount, reconnectAccount, checkAllHealth, getAccountAnalytics,
@@ -981,7 +1332,13 @@ module.exports = {
   // Scheduling
   schedulePost, publishNow, cancelPost,
   // Calendar
-  getCalendar, reschedulePost,
+  getCalendar, reschedulePost, exportCalendar,
+  // Approvals
+  submitForApproval, approvePost, rejectPost, listApprovals, getPostApprovalHistory,
+  // Comments
+  listComments, addComment, deleteComment,
+  // Activity
+  getPostActivity,
   // Media
   listMedia, uploadMedia, deleteMedia, createMediaFolder, listMediaFolders,
 };

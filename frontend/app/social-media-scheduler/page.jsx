@@ -7,7 +7,10 @@ import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
 import Button from '../../components/ui/Button';
 import AccountManager from '../../components/social/AccountManager';
-import PostCreator from '../../components/social/PostCreator';
+import ContentCalendar from '../../components/social/ContentCalendar';
+import PostEditor from '../../components/social/PostEditor';
+import MediaPicker from '../../components/social/MediaPicker';
+import Modal from '../../components/ui/Modal';
 
 const TABS = [
   { key: 'calendar', label: '📅 Calendar' },
@@ -24,53 +27,76 @@ export default function SocialMediaSchedulerPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState([]);
-  const [calendarEvents, setCalendarEvents] = useState([]);
   const [inboxMessages, setInboxMessages] = useState([]);
   const [mediaItems, setMediaItems] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
 
-  const fetchData = async (tab) => {
-    setLoading(true);
+  const fetchPosts = async () => {
     try {
-      switch (tab) {
-        case 'posts':
-          const p = await apiFetch('/api/v1/social-media/posts?limit=50');
-          setPosts(p.posts || []);
-          break;
-        case 'accounts':
-          const a = await apiFetch('/api/v1/social-media/accounts');
-          setAccounts(a.accounts || []);
-          break;
-        case 'calendar': {
-          const today = new Date();
-          const from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-          const to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString();
-          const c = await apiFetch(`/api/v1/social-media/calendar?from=${from}&to=${to}`);
-          setCalendarEvents(c.events || []);
-          break;
-        }
-        case 'analytics':
-          try {
-            const accs = await apiFetch('/api/v1/social-media/accounts');
-            setAccounts(accs.accounts || []);
-          } catch {}
-          break;
-      }
-    } catch (err) {
-      if (tab !== 'analytics' && tab !== 'accounts') toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+      const p = await apiFetch('/api/v1/social-media/posts?limit=50');
+      setPosts(p.posts || []);
+    } catch { toast.error('Failed to load posts'); }
   };
 
-  useEffect(() => { fetchData(activeTab); }, [activeTab]);
+  const fetchMedia = async () => {
+    try {
+      const res = await apiFetch('/api/v1/social-media/media?limit=100');
+      setMediaItems(res.media || []);
+    } catch {}
+  };
 
-  const renderContent = () => {
+  const fetchAccounts = async () => {
+    try {
+      const a = await apiFetch('/api/v1/social-media/accounts');
+      setAccounts(a.accounts || []);
+    } catch {}
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    if (activeTab === 'posts') fetchPosts().finally(() => setLoading(false));
+    else if (activeTab === 'accounts') fetchAccounts().finally(() => setLoading(false));
+    else if (activeTab === 'media') fetchMedia().finally(() => setLoading(false));
+    else if (activeTab === 'calendar') setLoading(false);
+    else if (activeTab === 'inbox') setLoading(false);
+    else if (activeTab === 'analytics') fetchAccounts().finally(() => setLoading(false));
+    else setLoading(false);
+  }, [activeTab]);
+
+  const handleExport = async (format) => {
+    try {
+      const url = `/api/v1/social-media/calendar/export?format=${format}`;
+      if (format === 'ical' || format === 'ics') {
+        window.open(url, '_blank');
+        toast.success('Calendar exported');
+      } else {
+        const res = await apiFetch(url);
+        // Download JSON
+        const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'social-calendar-export.json';
+        a.click();
+        toast.success('Calendar exported');
+      }
+    } catch { toast.error('Export failed'); }
+  };
+
+  const renderTab = () => {
     if (loading) return <SkeletonRows rows={8} />;
 
     switch (activeTab) {
-      case 'accounts':
-        return <AccountManager onRefresh={() => fetchData('accounts')} />;
+      case 'calendar':
+        return (
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button className="ctag" onClick={() => handleExport('json')}>📥 Export JSON</button>
+              <button className="ctag" onClick={() => handleExport('ics')}>📥 Export iCal</button>
+            </div>
+            <ContentCalendar />
+          </div>
+        );
 
       case 'posts':
         return (
@@ -80,7 +106,7 @@ export default function SocialMediaSchedulerPage() {
                 <h2>Posts</h2>
                 <p className="module-sub">{posts.length} posts</p>
               </div>
-              <PostCreator onCreated={() => fetchData('posts')} />
+              <PostEditor onDone={() => { setShowEditor(false); fetchPosts(); }} />
             </div>
             {posts.length === 0 ? (
               <EmptyState icon="📝" title="No posts yet" description="Create your first post to get started." />
@@ -124,67 +150,30 @@ export default function SocialMediaSchedulerPage() {
           </div>
         );
 
-      case 'calendar':
-        return (
-          <div>
-            <div className="module-head" style={{ marginBottom: 24 }}>
-              <div>
-                <h2>Content Calendar</h2>
-                <p className="module-sub">{calendarEvents.length} scheduled post(s) this month</p>
-              </div>
-              <PostCreator onCreated={() => fetchData('calendar')} />
-            </div>
-            {calendarEvents.length === 0 ? (
-              <EmptyState icon="📅" title="No scheduled posts" description="Schedule your first post to see it on the calendar." />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {calendarEvents.map(event => (
-                  <div key={event.target_id} className="card" style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      minWidth: 48, textAlign: 'center', padding: '4px 8px', borderRadius: 6,
-                      backgroundColor: '#f1f5f9',
-                    }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>
-                        {new Date(event.scheduled_at).getDate()}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>
-                        {new Date(event.scheduled_at).toLocaleString('default', { month: 'short' })}
-                      </div>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{event.content_text?.substring(0, 100) || 'No content'}</div>
-                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                        → {event.account_name} ({event.platform_name})
-                      </div>
-                    </div>
-                    <span className={`status-badge status-${event.post_status}`}>{event.post_status}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
+      case 'accounts':
+        return <AccountManager onRefresh={fetchAccounts} />;
 
       case 'inbox':
-        return <EmptyState icon="💬" title="Social Inbox" description="Inbox will be available once messages are synced from connected accounts." />;
+        return <EmptyState icon="💬" title="Social Inbox" description="Inbox will populate once messages are synced from connected accounts." />;
 
       case 'analytics':
         return (
           <div>
             <div className="module-head" style={{ marginBottom: 24 }}>
               <h2>Analytics</h2>
-              <p className="module-sub">Performance overview across all connected accounts</p>
+              <p className="module-sub">Performance overview across all accounts</p>
             </div>
-            {accounts.length === 0 ? (
+            {accounts.filter(a => a.health_status === 'connected').length === 0 ? (
               <EmptyState icon="📊" title="No analytics data" description="Connect accounts to see performance data." />
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                 {accounts.filter(a => a.health_status === 'connected').map(acc => (
                   <div key={acc.id} className="card" style={{ padding: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{acc.account_name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{acc.account_name}</div>
                     <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{acc.platform_name}</div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                      Connect for 7+ days to see analytics.
+                      • Health: <span style={{ color: '#16a34a', fontWeight: 600 }}>{acc.health_status}</span><br />
+                      • Connect for 7+ days to see trend data.
                     </div>
                   </div>
                 ))}
@@ -198,11 +187,45 @@ export default function SocialMediaSchedulerPage() {
           <div>
             <div className="module-head" style={{ marginBottom: 24 }}>
               <h2>Media Library</h2>
-              <p className="module-sub">Upload and manage images, videos, and GIFs for your posts</p>
+              <p className="module-sub">{mediaItems.length} asset(s)</p>
+              <Button onClick={() => setShowMediaPicker(true)}>📤 Upload Media</Button>
             </div>
-            <EmptyState icon="🖼️" title="No media yet" description="Upload images and videos to use in your social posts.">
-              <Button className="primary-btn">Upload Media</Button>
-            </EmptyState>
+            {showMediaPicker && (
+              <Modal title="Media Library" onClose={() => { setShowMediaPicker(false); fetchMedia(); }} wide>
+                <div style={{ padding: 16 }}>
+                  <MediaPicker
+                    selected={[]}
+                    onSelect={() => {}}
+                    onClose={() => setShowMediaPicker(false)}
+                    multi={true}
+                  />
+                </div>
+              </Modal>
+            )}
+            {!showMediaPicker && mediaItems.length === 0 ? (
+              <EmptyState icon="🖼️" title="No media yet" description="Upload images, videos, and GIFs to use in your posts.">
+                <Button onClick={() => setShowMediaPicker(true)}>Upload Media</Button>
+              </EmptyState>
+            ) : !showMediaPicker ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                {mediaItems.map(item => (
+                  <div key={item.id} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', aspectRatio: '1' }}>
+                    {item.type === 'image' || item.type === 'gif' ? (
+                      <img src={item.url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                    ) : item.type === 'video' ? (
+                      <video src={item.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f1f5f9', fontSize: 32 }}>
+                        📄
+                      </div>
+                    )}
+                    <div style={{ padding: '2px 6px', fontSize: 10, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         );
 
@@ -239,7 +262,7 @@ export default function SocialMediaSchedulerPage() {
         ))}
       </div>
 
-      {renderContent()}
+      {renderTab()}
     </div>
   );
 }

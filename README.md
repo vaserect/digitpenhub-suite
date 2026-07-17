@@ -1,5 +1,11 @@
 # Digitpen Hub Suite — Milestone 0: Platform Shell
 
+> [!IMPORTANT]
+> **DOCUMENTATION DIRECTORY STRUCTURE**  
+> * For current architecture, module, and deployment documentation, see [/docs/current/](file:///home/suite.digitpenhub.com/digitpenhub-suite/docs/current/).  
+> * For historical reports and past audits, see [/docs/archive/](file:///home/suite.digitpenhub.com/digitpenhub-suite/docs/archive/).  
+> * For live module completion status, see the `*_CATEGORY_PROGRESS.md` files at project root.
+
 ## Purpose
 The thin layer everything else gets built behind: real authentication, and a database-driven
 module registry that decides which tiles on the dashboard are "Live" vs "Coming soon" — so

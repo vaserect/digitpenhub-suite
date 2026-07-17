@@ -1,5 +1,11 @@
 # 🚀 START HERE - Deploy Digitpen Hub in 3 Steps
 
+> [!IMPORTANT]
+> **DOCUMENTATION DIRECTORY STRUCTURE**  
+> * For current architecture, module, and deployment documentation, see [/docs/current/](file:///home/suite.digitpenhub.com/digitpenhub-suite/docs/current/).  
+> * For historical reports and past audits, see [/docs/archive/](file:///home/suite.digitpenhub.com/digitpenhub-suite/docs/archive/).  
+> * For live module completion status, see the `*_CATEGORY_PROGRESS.md` files at project root.
+
 **Quick deployment guide - Get up and running in 10 minutes**
 
 ---

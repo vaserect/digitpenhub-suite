@@ -300,10 +300,220 @@ export default function BlockRenderer({ block, isSelected, viewMode, onUpdate })
       );
 
     case 'nav':
+      // Navigation bar
+      return (
+        <nav className={wrapperClass} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 24px', backgroundColor: props.bgColor || '#ffffff',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#111827' }}>
+            {props.logoText || 'Logo'}
+          </div>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            {(props.links || []).slice(0, 5).map((link, i) => (
+              <a key={i} href={link.url || '#'} style={{ color: '#4b5563', textDecoration: 'none', fontSize: '0.875rem' }}>
+                {link.label || 'Link'}
+              </a>
+            ))}
+            {props.ctaText && (
+              <a href={props.ctaUrl || '#'} style={{
+                padding: '8px 20px', backgroundColor: '#2563eb', color: 'white',
+                borderRadius: '6px', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600
+              }}>{props.ctaText}</a>
+            )}
+          </div>
+        </nav>
+      );
+
     case 'footer':
+      return (
+        <footer className={wrapperClass} style={{
+          backgroundColor: props.bgColor || '#111827', color: '#d1d5db',
+          padding: '48px 24px 24px'
+        }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid',
+            gridTemplateColumns: viewMode === 'mobile' ? '1fr' : 'repeat(4, 1fr)', gap: '32px' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1.125rem', color: 'white', marginBottom: '12px' }}>
+                {props.logoText || 'Logo'}
+              </div>
+              <p style={{ fontSize: '0.875rem', lineHeight: '1.625' }}>{props.description || 'Your company description'}</p>
+            </div>
+            {(props.columns || [
+              { heading: 'Product', links: [{ label: 'Features' }, { label: 'Pricing' }] },
+              { heading: 'Company', links: [{ label: 'About' }, { label: 'Contact' }] },
+              { heading: 'Legal', links: [{ label: 'Privacy' }, { label: 'Terms' }] }
+            ]).slice(0, 3).map((col, i) => (
+              <div key={i}>
+                <div style={{ fontWeight: 600, color: 'white', marginBottom: '12px', fontSize: '0.875rem' }}>
+                  {col.heading || 'Column'}
+                </div>
+                {(col.links || []).map((link, j) => (
+                  <a key={j} href={link.url || '#'} style={{
+                    display: 'block', color: '#9ca3af', textDecoration: 'none',
+                    fontSize: '0.875rem', marginBottom: '8px'
+                  }}>{link.label || 'Link'}</a>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{ maxWidth: '1200px', margin: '32px auto 0', paddingTop: '24px',
+            borderTop: '1px solid #374151', textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
+            {props.copyright || '© 2024 All rights reserved.'}
+          </div>
+        </footer>
+      );
+
     case 'form':
-    case 'pricing':
-    case 'faq':
+      return (
+        <div className={wrapperClass} style={{ padding: '60px 20px', backgroundColor: props.bgColor || '#f9fafb' }}>
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {props.title && (
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, textAlign: 'center', marginBottom: '8px' }}>
+                {props.title}
+              </h2>
+            )}
+            {props.description && (
+              <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '32px' }}>{props.description}</p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {props.showName !== false && (
+                <input type="text" placeholder="Your Name"
+                  style={{ padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '1rem' }}
+                  readOnly />
+              )}
+              <input type="email" placeholder="Your Email"
+                style={{ padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '1rem' }}
+                readOnly />
+              {props.showMessage !== false && (
+                <textarea placeholder="Your Message" rows={4}
+                  style={{ padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '1rem', resize: 'vertical' }}
+                  readOnly />
+              )}
+              <button style={{
+                padding: '14px 24px', backgroundColor: '#2563eb', color: 'white',
+                border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer'
+              }}>
+                {props.submitText || 'Send Message'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'pricing': {
+      const plans = props.plans || [
+        { name: 'Starter', price: '$29', period: '/month', description: 'Best for small teams',
+          features: ['5 users', '10GB storage', 'Basic support'], highlighted: false, cta: 'Get Started' },
+        { name: 'Professional', price: '$79', period: '/month', description: 'Best for growing teams',
+          features: ['25 users', '100GB storage', 'Priority support'], highlighted: true, cta: 'Get Started' },
+        { name: 'Enterprise', price: '$199', period: '/month', description: 'Best for large teams',
+          features: ['Unlimited users', '1TB storage', '24/7 support'], highlighted: false, cta: 'Contact us' }
+      ];
+      return (
+        <div className={wrapperClass} style={{ padding: '60px 20px', backgroundColor: props.bgColor || '#ffffff' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            {props.heading && (
+              <h2 style={{ fontSize: '2.25rem', fontWeight: 700, textAlign: 'center', marginBottom: '8px', color: '#111827' }}>
+                {props.heading}
+              </h2>
+            )}
+            {props.subheading && (
+              <p style={{ textAlign: 'center', color: '#6b7280', marginBottom: '48px', fontSize: '1.125rem' }}>
+                {props.subheading}
+              </p>
+            )}
+            <div style={{
+              display: 'grid', gridTemplateColumns: viewMode === 'mobile' ? '1fr' : 'repeat(3, 1fr)',
+              gap: '24px', alignItems: 'start'
+            }}>
+              {plans.slice(0, 3).map((plan, i) => (
+                <div key={i} style={{
+                  backgroundColor: plan.highlighted ? '#2563eb' : 'white',
+                  color: plan.highlighted ? 'white' : '#111827',
+                  borderRadius: '12px', padding: '32px 24px',
+                  border: plan.highlighted ? 'none' : '1px solid #e5e7eb',
+                  transform: plan.highlighted ? 'scale(1.05)' : 'none',
+                  position: 'relative', boxShadow: plan.highlighted ? '0 10px 30px rgba(37,99,235,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  {plan.highlighted && (
+                    <div style={{
+                      position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#f59e0b', color: 'white', padding: '4px 16px',
+                      borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600
+                    }}>Popular</div>
+                  )}
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    marginBottom: '16px', opacity: plan.highlighted ? 0.9 : 0.6 }}>
+                    {plan.name || 'Plan'}
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{ fontSize: '2.5rem', fontWeight: 700 }}>{plan.price || '$0'}</span>
+                    <span style={{ fontSize: '0.875rem', opacity: 0.7 }}>{plan.period || ''}</span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', marginBottom: '24px', opacity: 0.8 }}>
+                    {plan.description || ''}
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', fontSize: '0.875rem' }}>
+                    {(plan.features || []).map((feat, j) => (
+                      <li key={j} style={{ padding: '6px 0', borderBottom: '1px solid ' + (plan.highlighted ? 'rgba(255,255,255,0.2)' : '#f3f4f6') }}>
+                        ✓ {feat}
+                      </li>
+                    ))}
+                  </ul>
+                  <a href="#" style={{
+                    display: 'block', textAlign: 'center', padding: '12px',
+                    backgroundColor: plan.highlighted ? 'white' : '#2563eb',
+                    color: plan.highlighted ? '#2563eb' : 'white',
+                    borderRadius: '8px', textDecoration: 'none', fontWeight: 600
+                  }}>{plan.cta || 'Get Started'}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case 'faq': {
+      const faqItems = props.items || [
+        { question: 'How does the pricing work?', answer: 'Choose a plan that fits your needs. You can upgrade or downgrade at any time.' },
+        { question: 'Can I cancel anytime?', answer: 'Yes, you can cancel your subscription anytime. No questions asked.' },
+        { question: 'Do you offer support?', answer: 'We offer 24/7 support via email and chat on all paid plans.' }
+      ];
+      return (
+        <div className={wrapperClass} style={{ padding: '60px 20px', backgroundColor: props.bgColor || '#ffffff' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {props.heading && (
+              <h2 style={{ fontSize: '2rem', fontWeight: 700, textAlign: 'center', marginBottom: '40px', color: '#111827' }}>
+                {props.heading}
+              </h2>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {faqItems.map((item, i) => (
+                <details key={i} style={{
+                  border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden'
+                }}>
+                  <summary style={{
+                    padding: '16px 20px', fontWeight: 600, fontSize: '1rem',
+                    cursor: 'pointer', backgroundColor: '#f9fafb',
+                    listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
+                    {item.question || 'Question?'}
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>▼</span>
+                  </summary>
+                  <div style={{ padding: '16px 20px', fontSize: '0.9375rem', color: '#4b5563', lineHeight: '1.625' }}>
+                    {item.answer || 'Answer goes here.'}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     case 'team':
     case 'portfolio':
     case 'gallery':

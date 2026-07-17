@@ -27,7 +27,9 @@ export default function UnifiedSidebar({
   onProjectChange,
   onPageChange,
   onAddBlock,
-  onAddPage
+  onAddPage,
+  onShowConfirm,
+  onShowToast
 }) {
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -59,7 +61,7 @@ export default function UnifiedSidebar({
   };
 
   const handleApplyTemplate = async (template) => {
-    if (!confirm(`Apply "${template.name}" template? This will replace your current content.`)) {
+    if (onShowConfirm && !onShowConfirm(`Apply "${template.name}" template? This will replace your current content.`)) {
       return;
     }
     
@@ -77,7 +79,7 @@ export default function UnifiedSidebar({
       const templatePages = pagesData.pages || [];
 
       if (templatePages.length === 0) {
-        alert('This template has no pages to apply.');
+        if (onShowToast) onShowToast('This template has no pages to apply.', 'error');
         return;
       }
 
@@ -99,7 +101,7 @@ export default function UnifiedSidebar({
         });
 
         if (res.ok) {
-          alert(`Template applied! Page updated with "${firstPage.name}" content.`);
+          if (onShowToast) onShowToast(`Template applied! Page updated with "${firstPage.name}" content.`, 'success');
           window.location.reload();
         } else {
           throw new Error('Failed to update page');
@@ -118,17 +120,17 @@ export default function UnifiedSidebar({
 
         if (res.ok) {
           const data = await res.json();
-          alert(`Template applied! Created ${data.pages.length} pages.`);
+          if (onShowToast) onShowToast(`Template applied! Created ${data.pages.length} pages.`, 'success');
           window.location.reload();
         } else {
           throw new Error('Failed to apply template');
         }
       } else {
-        alert('Template application not supported for this project type yet.');
+        if (onShowToast) onShowToast('Template application not supported for this project type yet.', 'error');
       }
     } catch (err) {
       console.error('Error applying template:', err);
-      alert('Failed to apply template. Please try again.');
+      if (onShowToast) onShowToast('Failed to apply template. Please try again.', 'error');
     }
   };
 

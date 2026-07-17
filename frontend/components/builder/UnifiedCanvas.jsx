@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import BlockRenderer from './BlockRenderer';
+import ConfirmDialog from './ConfirmDialog';
 import {
   PlusIcon,
   TrashIcon,
@@ -23,11 +24,13 @@ export default function UnifiedCanvas({
   onDuplicateBlock,
   onMoveBlock,
   onAddBlock,
+  onReorderBlocks,
   viewMode,
   showGrid
 }) {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Canvas width based on view mode
   const canvasWidths = {
@@ -58,9 +61,10 @@ export default function UnifiedCanvas({
         const [movedBlock] = newBlocks.splice(dragIndex, 1);
         newBlocks.splice(dropIndex, 0, movedBlock);
         
-        // Update blocks through parent
-        // Note: This requires parent to handle reordering
-        console.log('Reorder:', dragIndex, '->', dropIndex);
+        // Call the reorder handler
+        if (onReorderBlocks) {
+          onReorderBlocks(newBlocks);
+        }
       }
     }
     
@@ -185,9 +189,7 @@ export default function UnifiedCanvas({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm('Delete this block?')) {
-                        onDeleteBlock(block.id);
-                      }
+                      setDeleteConfirm(block.id);
                     }}
                     style={{ padding: '6px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', borderRadius: '4px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'pointer' }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
@@ -225,6 +227,19 @@ export default function UnifiedCanvas({
           </div>
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={deleteConfirm !== null}
+        title="Delete Block"
+        message="Are you sure you want to delete this block? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (deleteConfirm) onDeleteBlock(deleteConfirm);
+          setDeleteConfirm(null);
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

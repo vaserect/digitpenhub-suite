@@ -1,8 +1,9 @@
 const BaseRepository = require('../base/BaseRepository');
+const db = require('../../db');
 
 class LeadRepository extends BaseRepository {
   constructor() {
-    super('lead_submissions');
+    super(db, 'lead_submissions');
   }
 
   async findByFormId(formId, filters = {}) {

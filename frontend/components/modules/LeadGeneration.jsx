@@ -13,6 +13,8 @@ import WebhooksManager from './LeadGeneration/WebhooksManager';
 import ScoringRulesManager from './LeadGeneration/ScoringRulesManager';
 import ConditionalLogicBuilder from './LeadGeneration/ConditionalLogicBuilder';
 import MultiStepFormBuilder from './LeadGeneration/MultiStepFormBuilder';
+import SpamProtectionConfig from './LeadGeneration/SpamProtectionConfig';
+import BrandingConfig from './LeadGeneration/BrandingConfig';
 
 function createBlankLeadFormDraft() {
   return { name: '', thankYouMessage: '', fields: [] };
@@ -362,6 +364,16 @@ export default function LeadGenerationModule({ goHome, showToast }) {
                 setDraft={setLeadFormDraft}
                 fields={leadFormDraft.fields}
                 showToast={showToast}
+              />
+
+              <SpamProtectionConfig
+                draft={leadFormDraft}
+                setDraft={setLeadFormDraft}
+              />
+
+              <BrandingConfig
+                draft={leadFormDraft}
+                setDraft={setLeadFormDraft}
               />
 
               <div style={{ display: 'flex', gap: 8 }}>

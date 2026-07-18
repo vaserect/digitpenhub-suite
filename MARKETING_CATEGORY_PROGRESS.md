@@ -190,8 +190,36 @@
 ## 📋 Remaining Modules (37/40)
 
 ### Module 4: Website Builder
-**Status:** Partially Complete (Unified Builder exists)
-**Next Steps:** Add landing-page-specific enhancements, conversion blocks library
+**Status:** IN PROGRESS 🚧  
+**Benchmark:** Webflow / Framer
+**Started:** 2026-07-18
+
+#### Completed Features
+✅ **CMS Collections (Webflow CMS / Framer CMS equivalent)**
+- Database: cms_collections, cms_items, cms_collection_templates tables
+- Backend: Full CRUD API with CMSService and cmsController  
+- Frontend: Complete UI for managing collections and items
+- Features: Dynamic content types, field schemas, bulk operations, public API
+- Starter collections: Blog Posts, Team Members, Portfolio, Testimonials, Products
+- Commit: c41ca79
+
+#### Existing Infrastructure
+- UnifiedBuilder component (pages, sites, funnels)
+- Builder themes, components, sections, templates
+- Page management with blocks system
+- Site management with multi-page support
+- Asset library integration
+- Pexels integration for stock images
+
+#### Remaining Features
+- [ ] CMS Collection binding to builder blocks (dynamic content rendering)
+- [ ] Interactions & Animations builder
+- [ ] Responsive breakpoint editor
+- [ ] Component variants system
+- [ ] SEO meta editor enhancements
+- [ ] Basic accessibility checks
+- [ ] Collaboration features (comments, version history)
+- [ ] Export functionality (HTML/CSS/JS)
 
 ### Module 5: Funnel Builder
 **Status:** Schema exists, needs implementation

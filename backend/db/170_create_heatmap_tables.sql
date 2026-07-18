@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS heatmap_data (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_heatmap_data_org_page ON heatmap_data(org_id, page_url, heatmap_type);
-CREATE INDEX idx_heatmap_data_updated ON heatmap_data(org_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_heatmap_data_org_page ON heatmap_data(org_id, page_url, heatmap_type);
+CREATE INDEX IF NOT EXISTS idx_heatmap_data_updated ON heatmap_data(org_id, updated_at DESC);
 
 -- 2. Page snapshots
 CREATE TABLE IF NOT EXISTS heatmap_snapshots (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS heatmap_snapshots (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_heatmap_snapshots_org_page ON heatmap_snapshots(org_id, page_url);
+CREATE INDEX IF NOT EXISTS idx_heatmap_snapshots_org_page ON heatmap_snapshots(org_id, page_url);
 
 -- 3. Click events
 CREATE TABLE IF NOT EXISTS click_events (
@@ -52,9 +52,9 @@ CREATE TABLE IF NOT EXISTS click_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_click_events_session ON click_events(session_id);
-CREATE INDEX idx_click_events_org_page ON click_events(org_id, page_url, timestamp DESC);
-CREATE INDEX idx_click_events_rage ON click_events(org_id, is_rage_click) WHERE is_rage_click = TRUE;
+CREATE INDEX IF NOT EXISTS idx_click_events_session ON click_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_click_events_org_page ON click_events(org_id, page_url, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_click_events_rage ON click_events(org_id, is_rage_click) WHERE is_rage_click = TRUE;
 
 -- 4. Scroll events
 CREATE TABLE IF NOT EXISTS scroll_events (
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS scroll_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_scroll_events_session ON scroll_events(session_id);
-CREATE INDEX idx_scroll_events_org_page ON scroll_events(org_id, page_url, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_scroll_events_session ON scroll_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_scroll_events_org_page ON scroll_events(org_id, page_url, timestamp DESC);
 
 -- 5. Mouse events
 CREATE TABLE IF NOT EXISTS mouse_events (
@@ -85,8 +85,8 @@ CREATE TABLE IF NOT EXISTS mouse_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_mouse_events_session ON mouse_events(session_id);
-CREATE INDEX idx_mouse_events_org_page ON mouse_events(org_id, page_url, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_mouse_events_session ON mouse_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_mouse_events_org_page ON mouse_events(org_id, page_url, timestamp DESC);
 
 -- 6. Form events
 CREATE TABLE IF NOT EXISTS form_events (
@@ -104,8 +104,8 @@ CREATE TABLE IF NOT EXISTS form_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_form_events_session ON form_events(session_id);
-CREATE INDEX idx_form_events_org_page ON form_events(org_id, page_url, event_type);
+CREATE INDEX IF NOT EXISTS idx_form_events_session ON form_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_form_events_org_page ON form_events(org_id, page_url, event_type);
 
 -- 7. Error events
 CREATE TABLE IF NOT EXISTS error_events (
@@ -122,8 +122,8 @@ CREATE TABLE IF NOT EXISTS error_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_error_events_session ON error_events(session_id);
-CREATE INDEX idx_error_events_org ON error_events(org_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_error_events_session ON error_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_error_events_org ON error_events(org_id, timestamp DESC);
 
 -- 8. Network events
 CREATE TABLE IF NOT EXISTS network_events (
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS network_events (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_network_events_session ON network_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_network_events_session ON network_events(session_id);
 
 -- 9. Console logs
 CREATE TABLE IF NOT EXISTS console_logs (
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS console_logs (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_console_logs_session ON console_logs(session_id);
-CREATE INDEX idx_console_logs_level ON console_logs(org_id, log_level) WHERE log_level IN ('error', 'warn');
+CREATE INDEX IF NOT EXISTS idx_console_logs_session ON console_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_console_logs_level ON console_logs(org_id, log_level) WHERE log_level IN ('error', 'warn');
 
 -- 10. Page snapshots for replay
 CREATE TABLE IF NOT EXISTS page_snapshots (
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS page_snapshots (
   timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_page_snapshots_session ON page_snapshots(session_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_page_snapshots_session ON page_snapshots(session_id, timestamp);
 
 -- 11. Daily analytics
 CREATE TABLE IF NOT EXISTS analytics_daily (
@@ -193,8 +193,8 @@ CREATE TABLE IF NOT EXISTS analytics_daily (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_analytics_daily_unique ON analytics_daily(org_id, page_url, date);
-CREATE INDEX idx_analytics_daily_org_date ON analytics_daily(org_id, date DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_daily_unique ON analytics_daily(org_id, page_url, date);
+CREATE INDEX IF NOT EXISTS idx_analytics_daily_org_date ON analytics_daily(org_id, date DESC);
 
 -- 12. Saved filters
 CREATE TABLE IF NOT EXISTS heatmap_filters (
@@ -208,8 +208,8 @@ CREATE TABLE IF NOT EXISTS heatmap_filters (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_heatmap_filters_org ON heatmap_filters(org_id);
-CREATE INDEX idx_heatmap_filters_user ON heatmap_filters(user_id);
+CREATE INDEX IF NOT EXISTS idx_heatmap_filters_org ON heatmap_filters(org_id);
+CREATE INDEX IF NOT EXISTS idx_heatmap_filters_user ON heatmap_filters(user_id);
 
 -- 13. Feedback responses
 CREATE TABLE IF NOT EXISTS feedback_responses (
@@ -228,8 +228,8 @@ CREATE TABLE IF NOT EXISTS feedback_responses (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_feedback_responses_org ON feedback_responses(org_id, created_at DESC);
-CREATE INDEX idx_feedback_responses_page ON feedback_responses(org_id, page_url);
+CREATE INDEX IF NOT EXISTS idx_feedback_responses_org ON feedback_responses(org_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_responses_page ON feedback_responses(org_id, page_url);
 
 -- 14. Tracking settings
 CREATE TABLE IF NOT EXISTS tracking_settings (
@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS tracking_settings (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_tracking_settings_org ON tracking_settings(org_id);
+CREATE INDEX IF NOT EXISTS idx_tracking_settings_org ON tracking_settings(org_id);
 
 -- 15. Recording shares
 CREATE TABLE IF NOT EXISTS recording_shares (
@@ -267,8 +267,8 @@ CREATE TABLE IF NOT EXISTS recording_shares (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_recording_shares_token ON recording_shares(share_token);
-CREATE INDEX idx_recording_shares_session ON recording_shares(session_id);
+CREATE INDEX IF NOT EXISTS idx_recording_shares_token ON recording_shares(share_token);
+CREATE INDEX IF NOT EXISTS idx_recording_shares_session ON recording_shares(session_id);
 
 -- Enhance session_recordings
 ALTER TABLE session_recordings ADD COLUMN IF NOT EXISTS device_type VARCHAR(20);

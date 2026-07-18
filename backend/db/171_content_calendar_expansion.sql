@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS content_campaigns (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_content_campaigns_org ON content_campaigns(org_id);
-CREATE INDEX idx_content_campaigns_status ON content_campaigns(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_content_campaigns_org ON content_campaigns(org_id);
+CREATE INDEX IF NOT EXISTS idx_content_campaigns_status ON content_campaigns(org_id, status);
 
 -- 2. Content items (main content planning table)
 CREATE TABLE IF NOT EXISTS content_items (
@@ -50,11 +50,11 @@ CREATE TABLE IF NOT EXISTS content_items (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_content_items_org ON content_items(org_id);
-CREATE INDEX idx_content_items_campaign ON content_items(campaign_id);
-CREATE INDEX idx_content_items_status ON content_items(org_id, status);
-CREATE INDEX idx_content_items_scheduled ON content_items(org_id, scheduled_at) WHERE scheduled_at IS NOT NULL;
-CREATE INDEX idx_content_items_assigned ON content_items(assigned_to) WHERE assigned_to IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_content_items_org ON content_items(org_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_campaign ON content_items(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_status ON content_items(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_content_items_scheduled ON content_items(org_id, scheduled_at) WHERE scheduled_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_content_items_assigned ON content_items(assigned_to) WHERE assigned_to IS NOT NULL;
 
 -- 3. Content templates
 CREATE TABLE IF NOT EXISTS content_templates (
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS content_templates (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_content_templates_org ON content_templates(org_id);
-CREATE INDEX idx_content_templates_type ON content_templates(org_id, content_type);
+CREATE INDEX IF NOT EXISTS idx_content_templates_org ON content_templates(org_id);
+CREATE INDEX IF NOT EXISTS idx_content_templates_type ON content_templates(org_id, content_type);
 
 -- 4. Content approvals
 CREATE TABLE IF NOT EXISTS content_approvals (
@@ -85,8 +85,8 @@ CREATE TABLE IF NOT EXISTS content_approvals (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_content_approvals_content ON content_approvals(content_id);
-CREATE INDEX idx_content_approvals_approver ON content_approvals(approver_id, status);
+CREATE INDEX IF NOT EXISTS idx_content_approvals_content ON content_approvals(content_id);
+CREATE INDEX IF NOT EXISTS idx_content_approvals_approver ON content_approvals(approver_id, status);
 
 -- 5. Content comments
 CREATE TABLE IF NOT EXISTS content_comments (
@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS content_comments (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_content_comments_content ON content_comments(content_id, created_at DESC);
-CREATE INDEX idx_content_comments_user ON content_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_content_comments_content ON content_comments(content_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_content_comments_user ON content_comments(user_id);
 
 -- 6. Publishing connections
 CREATE TABLE IF NOT EXISTS publishing_connections (
@@ -119,9 +119,9 @@ CREATE TABLE IF NOT EXISTS publishing_connections (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_publishing_connections_org ON publishing_connections(org_id);
-CREATE INDEX idx_publishing_connections_platform ON publishing_connections(org_id, platform);
-CREATE UNIQUE INDEX idx_publishing_connections_unique ON publishing_connections(org_id, platform, account_name);
+CREATE INDEX IF NOT EXISTS idx_publishing_connections_org ON publishing_connections(org_id);
+CREATE INDEX IF NOT EXISTS idx_publishing_connections_platform ON publishing_connections(org_id, platform);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_publishing_connections_unique ON publishing_connections(org_id, platform, account_name);
 
 -- Comments
 COMMENT ON TABLE content_campaigns IS 'Marketing campaigns grouping related content';

@@ -215,6 +215,7 @@ const ROUTES = {
   'Color Palette Generator': '/modules/color-palette-generator',
   'Quiz Builder': '/modules/quiz-builder',
   'Popup Builder': '/modules/popup-builder',
+  'Ad Campaign Manager': '/modules/ad-campaign-manager',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

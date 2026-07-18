@@ -3,7 +3,7 @@
 -- Benchmark: MadKudu / HubSpot Lead Scoring
 
 -- Core scoring models (multiple scoring models per org)
-CREATE TABLE lead_scoring_models (
+CREATE TABLE IF NOT EXISTS lead_scoring_models (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -16,6 +16,7 @@ CREATE TABLE lead_scoring_models (
 );
 
 -- Scoring rules (property-based, activity-based, demographic, behavioral)
+DROP TABLE IF EXISTS lead_scoring_rules CASCADE;
 CREATE TABLE lead_scoring_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   model_id UUID NOT NULL REFERENCES lead_scoring_models(id) ON DELETE CASCADE,

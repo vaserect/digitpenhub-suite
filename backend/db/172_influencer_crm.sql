@@ -23,10 +23,10 @@ CREATE TABLE IF NOT EXISTS influencers (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencers_org ON influencers(org_id);
-CREATE INDEX idx_influencers_status ON influencers(org_id, status);
-CREATE INDEX idx_influencers_tier ON influencers(org_id, tier);
-CREATE INDEX idx_influencers_favorite ON influencers(org_id, is_favorite) WHERE is_favorite = TRUE;
+CREATE INDEX IF NOT EXISTS idx_influencers_org ON influencers(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencers_status ON influencers(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_influencers_tier ON influencers(org_id, tier);
+CREATE INDEX IF NOT EXISTS idx_influencers_favorite ON influencers(org_id, is_favorite) WHERE is_favorite = TRUE;
 
 -- 2. Social accounts
 CREATE TABLE IF NOT EXISTS influencer_social_accounts (
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS influencer_social_accounts (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_social_accounts_influencer ON influencer_social_accounts(influencer_id);
-CREATE INDEX idx_social_accounts_platform ON influencer_social_accounts(platform);
-CREATE UNIQUE INDEX idx_social_accounts_unique ON influencer_social_accounts(influencer_id, platform, handle);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_influencer ON influencer_social_accounts(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_platform ON influencer_social_accounts(platform);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_social_accounts_unique ON influencer_social_accounts(influencer_id, platform, handle);
 
 -- 3. Campaigns
 CREATE TABLE IF NOT EXISTS influencer_campaigns (
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS influencer_campaigns (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencer_campaigns_org ON influencer_campaigns(org_id);
-CREATE INDEX idx_influencer_campaigns_status ON influencer_campaigns(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_influencer_campaigns_org ON influencer_campaigns(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_campaigns_status ON influencer_campaigns(org_id, status);
 
 -- 4. Campaign assignments
 CREATE TABLE IF NOT EXISTS influencer_campaign_assignments (
@@ -80,9 +80,9 @@ CREATE TABLE IF NOT EXISTS influencer_campaign_assignments (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_campaign_assignments_campaign ON influencer_campaign_assignments(campaign_id);
-CREATE INDEX idx_campaign_assignments_influencer ON influencer_campaign_assignments(influencer_id);
-CREATE UNIQUE INDEX idx_campaign_assignments_unique ON influencer_campaign_assignments(campaign_id, influencer_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_assignments_campaign ON influencer_campaign_assignments(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_assignments_influencer ON influencer_campaign_assignments(influencer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_campaign_assignments_unique ON influencer_campaign_assignments(campaign_id, influencer_id);
 
 -- 5. Deliverables
 CREATE TABLE IF NOT EXISTS campaign_deliverables (
@@ -100,8 +100,8 @@ CREATE TABLE IF NOT EXISTS campaign_deliverables (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_deliverables_assignment ON campaign_deliverables(assignment_id);
-CREATE INDEX idx_deliverables_status ON campaign_deliverables(status);
+CREATE INDEX IF NOT EXISTS idx_deliverables_assignment ON campaign_deliverables(assignment_id);
+CREATE INDEX IF NOT EXISTS idx_deliverables_status ON campaign_deliverables(status);
 
 -- 6. Content library
 CREATE TABLE IF NOT EXISTS influencer_content (
@@ -125,9 +125,9 @@ CREATE TABLE IF NOT EXISTS influencer_content (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencer_content_org ON influencer_content(org_id);
-CREATE INDEX idx_influencer_content_influencer ON influencer_content(influencer_id);
-CREATE INDEX idx_influencer_content_campaign ON influencer_content(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_content_org ON influencer_content(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_content_influencer ON influencer_content(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_content_campaign ON influencer_content(campaign_id);
 
 -- 7. Contracts
 CREATE TABLE IF NOT EXISTS influencer_contracts (
@@ -146,9 +146,9 @@ CREATE TABLE IF NOT EXISTS influencer_contracts (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencer_contracts_org ON influencer_contracts(org_id);
-CREATE INDEX idx_influencer_contracts_influencer ON influencer_contracts(influencer_id);
-CREATE INDEX idx_influencer_contracts_status ON influencer_contracts(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_influencer_contracts_org ON influencer_contracts(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_contracts_influencer ON influencer_contracts(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_contracts_status ON influencer_contracts(org_id, status);
 
 -- 8. Payments
 CREATE TABLE IF NOT EXISTS influencer_payments (
@@ -169,10 +169,10 @@ CREATE TABLE IF NOT EXISTS influencer_payments (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencer_payments_org ON influencer_payments(org_id);
-CREATE INDEX idx_influencer_payments_influencer ON influencer_payments(influencer_id);
-CREATE INDEX idx_influencer_payments_status ON influencer_payments(org_id, status);
-CREATE INDEX idx_influencer_payments_due ON influencer_payments(org_id, due_date) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_influencer_payments_org ON influencer_payments(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_payments_influencer ON influencer_payments(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_payments_status ON influencer_payments(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_influencer_payments_due ON influencer_payments(org_id, due_date) WHERE status = 'pending';
 
 -- 9. Communications
 CREATE TABLE IF NOT EXISTS influencer_communications (
@@ -187,8 +187,8 @@ CREATE TABLE IF NOT EXISTS influencer_communications (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_influencer_comms_org ON influencer_communications(org_id);
-CREATE INDEX idx_influencer_comms_influencer ON influencer_communications(influencer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_influencer_comms_org ON influencer_communications(org_id);
+CREATE INDEX IF NOT EXISTS idx_influencer_comms_influencer ON influencer_communications(influencer_id, created_at DESC);
 
 COMMENT ON TABLE influencers IS 'Core influencer/partner profiles';
 COMMENT ON TABLE influencer_social_accounts IS 'Social media handles and metrics';

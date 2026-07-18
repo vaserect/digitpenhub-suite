@@ -93,4 +93,69 @@ async function deleteLink(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { getStats, listPages, createPage, updatePage, deletePage, listLinks, createLink, updateLink, deleteLink };
+// Public route to view a bio page
+async function getPublicPage(req, res) {
+  const { slug } = req.params;
+  
+  // Get page details
+  const pageResult = await db.query(
+    `SELECT * FROM link_in_bio_pages WHERE slug=$1 AND status='active'`,
+    [slug]
+  );
+  
+  if (!pageResult.rows.length) {
+    return res.status(404).json({ error: 'Page not found.' });
+  }
+  
+  const page = pageResult.rows[0];
+  
+  // Increment view count
+  await db.query(
+    `UPDATE link_in_bio_pages SET views = COALESCE(views, 0) + 1 WHERE id=$1`,
+    [page.id]
+  );
+  
+  // Get active links
+  const linksResult = await db.query(
+    `SELECT * FROM bio_links WHERE page_id=$1 AND is_active=true ORDER BY sort_order ASC`,
+    [page.id]
+  );
+  
+  res.json({
+    page: {
+      ...page,
+      views: (page.views || 0) + 1
+    },
+    links: linksResult.rows
+  });
+}
+
+// Track link click
+async function trackLinkClick(req, res) {
+  const { linkId } = req.params;
+  
+  const result = await db.query(
+    `UPDATE bio_links SET clicks = COALESCE(clicks, 0) + 1 WHERE id=$1 RETURNING url`,
+    [linkId]
+  );
+  
+  if (!result.rows.length) {
+    return res.status(404).json({ error: 'Link not found.' });
+  }
+  
+  res.json({ url: result.rows[0].url });
+}
+
+module.exports = { 
+  getStats, 
+  listPages, 
+  createPage, 
+  updatePage, 
+  deletePage, 
+  listLinks, 
+  createLink, 
+  updateLink, 
+  deleteLink,
+  getPublicPage,
+  trackLinkClick
+};

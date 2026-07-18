@@ -99,6 +99,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/automation', 'automation', 'marketing-automation', 'Marketing automation'),
   moduleRoute('/api/v1/sms', 'sms', 'sms-marketing', 'SMS marketing'),
   moduleRoute('/api/v1/whatsapp', 'whatsapp', 'whatsapp-marketing', 'WhatsApp marketing'),
+  moduleRoute('/api/v1/social-media', 'socialMedia', 'social-media-scheduler', 'Social Media Scheduler'),
   
   // ============================================================================
   // WEBSITE BUILDER ECOSYSTEM

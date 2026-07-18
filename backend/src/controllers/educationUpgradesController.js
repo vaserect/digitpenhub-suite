@@ -53,6 +53,55 @@ exports.approve = asyncHandler(async (req, res) => {
   res.json(result.rows[0]);
 });
 
+exports.update = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { orgId } = req.user;
+  const { studentId, fromLevel, toLevel, reason, effectiveDate, status } = req.body;
+
+  const updates = [];
+  const values = [];
+  let paramCount = 1;
+
+  if (studentId !== undefined) {
+    updates.push(`student_id = $${paramCount++}`);
+    values.push(studentId);
+  }
+  if (fromLevel !== undefined) {
+    updates.push(`from_level = $${paramCount++}`);
+    values.push(fromLevel);
+  }
+  if (toLevel !== undefined) {
+    updates.push(`to_level = $${paramCount++}`);
+    values.push(toLevel);
+  }
+  if (reason !== undefined) {
+    updates.push(`reason = $${paramCount++}`);
+    values.push(reason);
+  }
+  if (effectiveDate !== undefined) {
+    updates.push(`effective_date = $${paramCount++}`);
+    values.push(effectiveDate);
+  }
+  if (status !== undefined) {
+    updates.push(`status = $${paramCount++}`);
+    values.push(status);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  updates.push(`updated_at = NOW()`);
+  values.push(id, orgId);
+
+  const query = `UPDATE education_upgrades SET ${updates.join(', ')} WHERE id = $${paramCount++} AND org_id = $${paramCount++} RETURNING *`;
+  const result = await db.query(query, values);
+  
+  if (!result.rows[0]) return res.status(404).json({ error: 'Upgrade not found' });
+  res.json(result.rows[0]);
+});
+
+
 exports.delete = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { orgId } = req.user;

@@ -36,6 +36,8 @@ INSERT INTO social_platforms (name, slug, icon, supports_stories, supports_reels
   ('Google Business Profile', 'google-business', 'google', false, false, false, false, 10, NULL, 1500),
   ('Telegram',      'telegram',   'telegram',  false, false, false, true,  10, NULL, 4096),
   ('WhatsApp Business', 'whatsapp-business', 'whatsapp', false, false, false, true,  1,  NULL, 1024)
+  ('Bluesky',     'bluesky',    'bluesky',   false, false, false, true,  1,  NULL,  300),
+  ('Threads',     'threads',    'threads',   false, false, true,  true,  10, NULL,  500),
 ON CONFLICT (slug) DO NOTHING;
 
 -- 2. WORKSPACES (multi-client isolation)

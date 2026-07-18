@@ -47,7 +47,8 @@ BEGIN
     (cat_marketing, 'WhatsApp Marketing', 'whatsapp-marketing', 'active', '/whatsapp', 6),
     (cat_marketing, 'Affiliates', 'affiliates', 'active', '/affiliates', 7),
     (cat_marketing, 'Referrals', 'referrals', 'active', '/referrals', 8),
-    (cat_marketing, 'SMS Marketing', 'sms-marketing', 'active', '/sms', 9)
+    (cat_marketing, 'SMS Marketing', 'sms-marketing', 'active', '/sms', 9),
+    (cat_marketing, 'Social Media Scheduler', 'social-media-scheduler', 'active', '/social-media', 10)
   ON CONFLICT (slug) DO UPDATE SET status = 'active', route = EXCLUDED.route;
 
   -- HR modules

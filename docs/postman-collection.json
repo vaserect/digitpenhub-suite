@@ -1,0 +1,808 @@
+{
+  "info": {
+    "name": "DigitPenHub CRM API",
+    "description": "Complete API collection for DigitPenHub CRM module with examples for all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "org_id",
+      "value": "org-123",
+      "type": "string"
+    },
+    {
+      "key": "deal_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "company_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pipeline_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "stage_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Deals",
+      "item": [
+        {
+          "name": "Create Deal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('deal_id', response.data.id);",
+                  "    pm.test('Deal created successfully', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data).to.have.property('id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Enterprise Software Deal\",\n  \"amount\": 50000,\n  \"currency\": \"USD\",\n  \"pipeline_id\": \"{{pipeline_id}}\",\n  \"stage_id\": \"{{stage_id}}\",\n  \"company_id\": \"{{company_id}}\",\n  \"expected_close_date\": \"2026-12-31\",\n  \"tags\": [\"enterprise\", \"software\"],\n  \"custom_fields\": {\n    \"source\": \"website\",\n    \"priority\": \"high\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/deals",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals"]
+            },
+            "description": "Create a new deal with all required and optional fields"
+          },
+          "response": []
+        },
+        {
+          "name": "List Deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/deals?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "pipeline_id",
+                  "value": "{{pipeline_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "stage_id",
+                  "value": "{{stage_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "open",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "enterprise",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all deals with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deal by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}"]
+            },
+            "description": "Retrieve a specific deal with all related data"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Deal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Deal Name\",\n  \"amount\": 75000,\n  \"expected_close_date\": \"2026-11-30\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}"]
+            },
+            "description": "Update an existing deal"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Deal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}"]
+            },
+            "description": "Soft delete a deal"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Product to Deal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"product-001\",\n  \"quantity\": 5,\n  \"unit_price\": 1000,\n  \"discount\": 10,\n  \"tax\": 8\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}", "products"]
+            },
+            "description": "Add a product line item to a deal"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product in Deal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 10,\n  \"unit_price\": 950,\n  \"discount\": 15\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}/products/product-001",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}", "products", "product-001"]
+            },
+            "description": "Update a product line item"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Product from Deal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}/products/product-001",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}", "products", "product-001"]
+            },
+            "description": "Remove a product from a deal"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Deal Stage",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage_id\": \"{{stage_id}}\",\n  \"reason\": \"Customer approved proposal\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/deals/{{deal_id}}/stage",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "{{deal_id}}", "stage"]
+            },
+            "description": "Move deal to a different stage"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sales Forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/deals/forecast?pipeline_id={{pipeline_id}}&start_date=2026-01-01&end_date=2026-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "deals", "forecast"],
+              "query": [
+                {
+                  "key": "pipeline_id",
+                  "value": "{{pipeline_id}}"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-12-31"
+                }
+              ]
+            },
+            "description": "Get sales forecast data"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('company_id', response.data.id);",
+                  "    pm.test('Company created successfully', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corporation\",\n  \"industry\": \"Technology\",\n  \"website\": \"https://acme.com\",\n  \"email\": \"contact@acme.com\",\n  \"phone\": \"+1-555-0123\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"zip\": \"94105\",\n    \"country\": \"USA\"\n  },\n  \"tags\": [\"enterprise\", \"saas\"],\n  \"custom_fields\": {\n    \"employee_count\": \"500-1000\",\n    \"annual_revenue\": \"$50M-$100M\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/companies",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies"]
+            },
+            "description": "Create a new company"
+          },
+          "response": []
+        },
+        {
+          "name": "List Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "industry",
+                  "value": "Technology",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "acme",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all companies with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}"]
+            },
+            "description": "Get company details with statistics"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corp (Updated)\",\n  \"industry\": \"Software\",\n  \"website\": \"https://acmecorp.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}"]
+            },
+            "description": "Update company information"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}"]
+            },
+            "description": "Soft delete a company"
+          },
+          "response": []
+        },
+        {
+          "name": "Check Duplicates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/duplicates?name=Acme Corporation",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "duplicates"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Acme Corporation"
+                },
+                {
+                  "key": "email",
+                  "value": "contact@acme.com",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Check for duplicate companies"
+          },
+          "response": []
+        },
+        {
+          "name": "Merge Companies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_company_id\": \"company-002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}/merge",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}", "merge"]
+            },
+            "description": "Merge source company into target company"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Contacts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}/contacts?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}", "contacts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List all contacts for a company"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}/deals?status=open",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}", "deals"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                }
+              ]
+            },
+            "description": "List all deals for a company"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}", "statistics"]
+            },
+            "description": "Get detailed company statistics"
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate Health Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/companies/{{company_id}}/health-score",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "companies", "{{company_id}}", "health-score"]
+            },
+            "description": "Calculate company health score"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pipelines",
+      "item": [
+        {
+          "name": "Create Pipeline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('pipeline_id', response.data.id);",
+                  "    if (response.data.stages && response.data.stages.length > 0) {",
+                  "        pm.collectionVariables.set('stage_id', response.data.stages[0].id);",
+                  "    }",
+                  "    pm.test('Pipeline created with stages', () => {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.data.stages).to.have.lengthOf(6);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sales Pipeline\",\n  \"description\": \"Main sales pipeline for enterprise deals\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines"]
+            },
+            "description": "Create a new pipeline with default stages"
+          },
+          "response": []
+        },
+        {
+          "name": "List Pipelines",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all pipelines"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pipeline by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}"]
+            },
+            "description": "Get pipeline with all stages"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Pipeline",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Sales Pipeline\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}"]
+            },
+            "description": "Update pipeline details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Pipeline",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}"]
+            },
+            "description": "Soft delete a pipeline"
+          },
+          "response": []
+        },
+        {
+          "name": "Set as Default Pipeline",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/default",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "default"]
+            },
+            "description": "Set pipeline as default"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Default Pipeline",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/default",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "default"]
+            },
+            "description": "Get the default pipeline"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Stage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Scheduled\",\n  \"probability\": 40,\n  \"color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/stages",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "stages"]
+            },
+            "description": "Add a new stage to pipeline"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Stage",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Stage Name\",\n  \"probability\": 60,\n  \"color\": \"#33FF57\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/stages/{{stage_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "stages", "{{stage_id}}"]
+            },
+            "description": "Update stage details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Stage",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/stages/{{stage_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "stages", "{{stage_id}}"]
+            },
+            "description": "Delete a stage"
+          },
+          "response": []
+        },
+        {
+          "name": "Reorder Stages",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stages\": [\n    {\"id\": \"stage-002\", \"display_order\": 1},\n    {\"id\": \"stage-001\", \"display_order\": 2},\n    {\"id\": \"stage-003\", \"display_order\": 3}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/stages/reorder",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "stages", "reorder"]
+            },
+            "description": "Reorder pipeline stages"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pipeline Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/crm/pipelines/{{pipeline_id}}/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["crm", "pipelines", "{{pipeline_id}}", "statistics"]
+            },
+            "description": "Get pipeline performance statistics"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

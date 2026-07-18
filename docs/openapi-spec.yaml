@@ -1,0 +1,1364 @@
+openapi: 3.0.3
+info:
+  title: DigitPenHub CRM API
+  description: |
+    Enterprise-grade CRM API for the DigitPenHub Suite.
+    
+    ## Features
+    - Deal Management with sales forecasting
+    - Company Management with health scoring
+    - Pipeline Management with stage tracking
+    - Multi-tenancy support
+    - Event-driven architecture
+    - Comprehensive audit trails
+    
+    ## Authentication
+    All endpoints require Bearer token authentication.
+    
+    ## Rate Limiting
+    - 1000 requests per hour per organization
+    - 100 requests per minute per user
+    
+  version: 1.0.0
+  contact:
+    name: DigitPenHub API Support
+    email: api-support@digitpenhub.com
+  license:
+    name: Proprietary
+    url: https://digitpenhub.com/license
+
+servers:
+  - url: https://api.digitpenhub.com/v1
+    description: Production server
+  - url: https://staging-api.digitpenhub.com/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+tags:
+  - name: Deals
+    description: Deal management operations
+  - name: Companies
+    description: Company management operations
+  - name: Pipelines
+    description: Pipeline and stage management operations
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==================== DEAL ENDPOINTS ====================
+  /crm/deals:
+    get:
+      tags:
+        - Deals
+      summary: List deals
+      description: Retrieve a paginated list of deals with optional filters
+      operationId: listDeals
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: pipeline_id
+          in: query
+          description: Filter by pipeline ID
+          schema:
+            type: string
+        - name: stage_id
+          in: query
+          description: Filter by stage ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by deal status
+          schema:
+            type: string
+            enum: [open, won, lost]
+        - name: owner_id
+          in: query
+          description: Filter by owner user ID
+          schema:
+            type: string
+        - name: company_id
+          in: query
+          description: Filter by company ID
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search in deal name and description
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter by tags (comma-separated)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deal'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      tags:
+        - Deals
+      summary: Create a deal
+      description: Create a new deal
+      operationId: createDeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealInput'
+      responses:
+        '201':
+          description: Deal created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /crm/deals/{id}:
+    get:
+      tags:
+        - Deals
+      summary: Get deal by ID
+      description: Retrieve a specific deal with related data
+      operationId: getDealById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deal'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - Deals
+      summary: Update deal
+      description: Update an existing deal
+      operationId: updateDeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealUpdate'
+      responses:
+        '200':
+          description: Deal updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Deal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - Deals
+      summary: Delete deal
+      description: Soft delete a deal
+      operationId: deleteDeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deal deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Deal deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /crm/deals/{id}/products:
+    post:
+      tags:
+        - Deals
+      summary: Add product to deal
+      description: Add a product line item to a deal
+      operationId: addProductToDeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Product added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+
+  /crm/deals/{id}/products/{productId}:
+    put:
+      tags:
+        - Deals
+      summary: Update product in deal
+      description: Update a product line item
+      operationId: updateProductInDeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Product updated successfully
+    
+    delete:
+      tags:
+        - Deals
+      summary: Remove product from deal
+      description: Remove a product line item from a deal
+      operationId: removeProductFromDeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product removed successfully
+
+  /crm/deals/{id}/stage:
+    put:
+      tags:
+        - Deals
+      summary: Change deal stage
+      description: Move deal to a different stage
+      operationId: changeDealStage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deal ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stage_id
+              properties:
+                stage_id:
+                  type: string
+                  description: Target stage ID
+                reason:
+                  type: string
+                  description: Reason for stage change
+      responses:
+        '200':
+          description: Stage changed successfully
+
+  /crm/deals/forecast:
+    get:
+      tags:
+        - Deals
+      summary: Get sales forecast
+      description: Retrieve sales forecast data
+      operationId: getSalesForecast
+      parameters:
+        - name: pipeline_id
+          in: query
+          description: Filter by pipeline ID
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          description: Start date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: End date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Forecast data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Forecast'
+
+  # ==================== COMPANY ENDPOINTS ====================
+  /crm/companies:
+    get:
+      tags:
+        - Companies
+      summary: List companies
+      description: Retrieve a paginated list of companies
+      operationId: listCompanies
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: industry
+          in: query
+          schema:
+            type: string
+        - name: owner_id
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Company'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      tags:
+        - Companies
+      summary: Create a company
+      description: Create a new company
+      operationId: createCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyInput'
+      responses:
+        '201':
+          description: Company created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Company'
+
+  /crm/companies/{id}:
+    get:
+      tags:
+        - Companies
+      summary: Get company by ID
+      operationId: getCompanyById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Company'
+    
+    put:
+      tags:
+        - Companies
+      summary: Update company
+      operationId: updateCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyUpdate'
+      responses:
+        '200':
+          description: Company updated successfully
+    
+    delete:
+      tags:
+        - Companies
+      summary: Delete company
+      operationId: deleteCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company deleted successfully
+
+  /crm/companies/duplicates:
+    get:
+      tags:
+        - Companies
+      summary: Check for duplicate companies
+      operationId: checkDuplicates
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: email
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Duplicate check results
+
+  /crm/companies/{id}/merge:
+    post:
+      tags:
+        - Companies
+      summary: Merge companies
+      description: Merge source company into target company
+      operationId: mergeCompanies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target company ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_company_id
+              properties:
+                source_company_id:
+                  type: string
+      responses:
+        '200':
+          description: Companies merged successfully
+
+  /crm/companies/{id}/contacts:
+    get:
+      tags:
+        - Companies
+      summary: Get company contacts
+      operationId: getCompanyContacts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Contacts retrieved successfully
+
+  /crm/companies/{id}/deals:
+    get:
+      tags:
+        - Companies
+      summary: Get company deals
+      operationId: getCompanyDeals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, won, lost]
+      responses:
+        '200':
+          description: Deals retrieved successfully
+
+  /crm/companies/{id}/statistics:
+    get:
+      tags:
+        - Companies
+      summary: Get company statistics
+      operationId: getCompanyStatistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CompanyStatistics'
+
+  /crm/companies/{id}/health-score:
+    get:
+      tags:
+        - Companies
+      summary: Calculate company health score
+      operationId: calculateHealthScore
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Health score calculated
+
+  # ==================== PIPELINE ENDPOINTS ====================
+  /crm/pipelines:
+    get:
+      tags:
+        - Pipelines
+      summary: List pipelines
+      operationId: listPipelines
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pipeline'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      tags:
+        - Pipelines
+      summary: Create a pipeline
+      operationId: createPipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineInput'
+      responses:
+        '201':
+          description: Pipeline created successfully
+
+  /crm/pipelines/{id}:
+    get:
+      tags:
+        - Pipelines
+      summary: Get pipeline by ID
+      operationId: getPipelineById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+    
+    put:
+      tags:
+        - Pipelines
+      summary: Update pipeline
+      operationId: updatePipeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineUpdate'
+      responses:
+        '200':
+          description: Pipeline updated successfully
+    
+    delete:
+      tags:
+        - Pipelines
+      summary: Delete pipeline
+      operationId: deletePipeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pipeline deleted successfully
+
+  /crm/pipelines/{id}/default:
+    put:
+      tags:
+        - Pipelines
+      summary: Set as default pipeline
+      operationId: setDefaultPipeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Default pipeline updated
+
+  /crm/pipelines/default:
+    get:
+      tags:
+        - Pipelines
+      summary: Get default pipeline
+      operationId: getDefaultPipeline
+      responses:
+        '200':
+          description: Default pipeline retrieved
+
+  /crm/pipelines/{id}/stages:
+    post:
+      tags:
+        - Pipelines
+      summary: Create a stage
+      operationId: createStage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StageInput'
+      responses:
+        '201':
+          description: Stage created successfully
+
+  /crm/pipelines/{id}/stages/{stageId}:
+    put:
+      tags:
+        - Pipelines
+      summary: Update stage
+      operationId: updateStage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StageUpdate'
+      responses:
+        '200':
+          description: Stage updated successfully
+    
+    delete:
+      tags:
+        - Pipelines
+      summary: Delete stage
+      operationId: deleteStage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Stage deleted successfully
+
+  /crm/pipelines/{id}/stages/reorder:
+    put:
+      tags:
+        - Pipelines
+      summary: Reorder stages
+      operationId: reorderStages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      display_order:
+                        type: integer
+      responses:
+        '200':
+          description: Stages reordered successfully
+
+  /crm/pipelines/{id}/statistics:
+    get:
+      tags:
+        - Pipelines
+      summary: Get pipeline statistics
+      operationId: getPipelineStatistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Deal:
+      type: object
+      properties:
+        id:
+          type: string
+          example: deal-001
+        org_id:
+          type: string
+        name:
+          type: string
+          example: Enterprise Software Deal
+        amount:
+          type: number
+          format: double
+          example: 50000
+        currency:
+          type: string
+          example: USD
+        pipeline_id:
+          type: string
+        stage_id:
+          type: string
+        company_id:
+          type: string
+        owner_id:
+          type: string
+        status:
+          type: string
+          enum: [open, won, lost]
+        probability:
+          type: integer
+          minimum: 0
+          maximum: 100
+        expected_close_date:
+          type: string
+          format: date
+        actual_close_date:
+          type: string
+          format: date
+        tags:
+          type: array
+          items:
+            type: string
+        custom_fields:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DealInput:
+      type: object
+      required:
+        - name
+        - pipeline_id
+        - stage_id
+      properties:
+        name:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+          default: USD
+        pipeline_id:
+          type: string
+        stage_id:
+          type: string
+        company_id:
+          type: string
+        owner_id:
+          type: string
+        expected_close_date:
+          type: string
+          format: date
+        tags:
+          type: array
+          items:
+            type: string
+        custom_fields:
+          type: object
+
+    DealUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        amount:
+          type: number
+        expected_close_date:
+          type: string
+          format: date
+        tags:
+          type: array
+          items:
+            type: string
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+        org_id:
+          type: string
+        name:
+          type: string
+        industry:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: object
+        owner_id:
+          type: string
+        health_score:
+          type: integer
+        contact_count:
+          type: integer
+        deal_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CompanyInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: object
+
+    CompanyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+
+    CompanyStatistics:
+      type: object
+      properties:
+        contact_count:
+          type: integer
+        total_deals:
+          type: integer
+        open_deals:
+          type: integer
+        won_deals:
+          type: integer
+        lost_deals:
+          type: integer
+        total_revenue:
+          type: number
+        pipeline_value:
+          type: number
+        avg_deal_size:
+          type: number
+        health_score:
+          type: integer
+
+    Pipeline:
+      type: object
+      properties:
+        id:
+          type: string
+        org_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        is_default:
+          type: boolean
+        deal_count:
+          type: integer
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stage'
+        created_at:
+          type: string
+          format: date-time
+
+    PipelineInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    PipelineUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Stage:
+      type: object
+      properties:
+        id:
+          type: string
+        pipeline_id:
+          type: string
+        name:
+          type: string
+        probability:
+          type: integer
+        display_order:
+          type: integer
+        color:
+          type: string
+        is_closed_won:
+          type: boolean
+        is_closed_lost:
+          type: boolean
+        deal_count:
+          type: integer
+
+    StageInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        probability:
+          type: integer
+          minimum: 0
+          maximum: 100
+        color:
+          type: string
+        is_closed_won:
+          type: boolean
+        is_closed_lost:
+          type: boolean
+
+    StageUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        probability:
+          type: integer
+        color:
+          type: string
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        deal_id:
+          type: string
+        product_id:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        discount:
+          type: number
+        tax:
+          type: number
+        total:
+          type: number
+
+    ProductInput:
+      type: object
+      required:
+        - product_id
+        - quantity
+        - unit_price
+      properties:
+        product_id:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        unit_price:
+          type: number
+          minimum: 0
+        discount:
+          type: number
+          minimum: 0
+          maximum: 100
+        tax:
+          type: number
+          minimum: 0
+
+    ProductUpdate:
+      type: object
+      properties:
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        discount:
+          type: number
+
+    Forecast:
+      type: object
+      properties:
+        committed:
+          type: number
+          description: Deals with 90%+ probability
+        best_case:
+          type: number
+          description: Deals with 50%+ probability
+        pipeline:
+          type: number
+          description: All open deals
+        closed:
+          type: number
+          description: Won deals
+        total_deals:
+          type: integer
+        avg_deal_size:
+          type: number
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Validation failed
+            code: VALIDATION_ERROR
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Unauthorized access
+            code: UNAUTHORIZED
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Resource not found
+            code: NOT_FOUND
+    
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Internal server error
+            code: INTERNAL_ERROR

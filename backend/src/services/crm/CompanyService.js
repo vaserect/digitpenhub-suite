@@ -1,448 +1,502 @@
+// backend/src/services/crm/CompanyService.js
+// Phase 1 Implementation: Company Service
+// Date: 2026-07-16
+
 const BaseService = require('../base/BaseService');
-const CompanyRepository = require('../../repositories/CompanyRepository');
+const CompanyRepository = require('../../repositories/crm/CompanyRepository');
+const ActivityService = require('../ActivityService');
+const eventBus = require('../../utils/eventBus');
 const logger = require('../../utils/logger');
+const { ValidationError, NotFoundError } = require('../../utils/errors');
 
 /**
- * CompanyService - Business logic for CRM companies
- * Handles company management, validation, and enrichment
+ * Service for CRM Companies/Accounts
+ * Handles business logic for company management
  */
 class CompanyService extends BaseService {
   constructor() {
-    const repository = new CompanyRepository();
-    super(repository, {
-      serviceName: 'CompanyService',
-      logger,
-    });
-
-    // Valid company sizes
-    this.VALID_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'];
+    super(CompanyRepository);
+    this.activityService = new ActivityService();
   }
 
   /**
-   * Validate data before creating a company
-   * @param {Object} data - Company data
-   * @throws {Error} If validation fails
-   */
-  validateCreate(data) {
-    if (!data.name || !data.name.trim()) {
-      throw new Error('Company name is required');
-    }
-
-    if (data.name.trim().length < 2) {
-      throw new Error('Company name must be at least 2 characters');
-    }
-
-    if (data.name.trim().length > 200) {
-      throw new Error('Company name must not exceed 200 characters');
-    }
-
-    // Validate website format if provided
-    if (data.website && !this.isValidWebsite(data.website)) {
-      throw new Error('Invalid website URL format');
-    }
-
-    // Validate email format if provided
-    if (data.email && !this.isValidEmail(data.email)) {
-      throw new Error('Invalid email format');
-    }
-
-    // Validate phone format if provided
-    if (data.phone && !this.isValidPhone(data.phone)) {
-      throw new Error('Invalid phone format');
-    }
-
-    // Validate size if provided
-    if (data.size && !this.VALID_SIZES.includes(data.size)) {
-      throw new Error(`Company size must be one of: ${this.VALID_SIZES.join(', ')}`);
-    }
-  }
-
-  /**
-   * Validate data before updating a company
-   * @param {Object} data - Company data
-   * @throws {Error} If validation fails
-   */
-  validateUpdate(data) {
-    if (data.name !== undefined) {
-      if (!data.name || !data.name.trim()) {
-        throw new Error('Company name cannot be empty');
-      }
-
-      if (data.name.trim().length < 2) {
-        throw new Error('Company name must be at least 2 characters');
-      }
-
-      if (data.name.trim().length > 200) {
-        throw new Error('Company name must not exceed 200 characters');
-      }
-    }
-
-    // Validate website format if provided
-    if (data.website !== undefined && data.website && !this.isValidWebsite(data.website)) {
-      throw new Error('Invalid website URL format');
-    }
-
-    // Validate email format if provided
-    if (data.email !== undefined && data.email && !this.isValidEmail(data.email)) {
-      throw new Error('Invalid email format');
-    }
-
-    // Validate phone format if provided
-    if (data.phone !== undefined && data.phone && !this.isValidPhone(data.phone)) {
-      throw new Error('Invalid phone format');
-    }
-
-    // Validate size if provided
-    if (data.size !== undefined && data.size && !this.VALID_SIZES.includes(data.size)) {
-      throw new Error(`Company size must be one of: ${this.VALID_SIZES.join(', ')}`);
-    }
-  }
-
-  /**
-   * Transform data before creating a company
-   * @param {Object} data - Raw company data
-   * @returns {Object} Transformed data
-   */
-  transformForCreate(data) {
-    const transformed = {
-      name: data.name.trim(),
-      website: data.website ? this.normalizeWebsite(data.website) : null,
-      industry: data.industry ? data.industry.trim() : null,
-      size: data.size || null,
-      phone: data.phone ? this.normalizePhone(data.phone) : null,
-      email: data.email ? data.email.toLowerCase().trim() : null,
-      address: data.address ? data.address.trim() : null,
-      notes: data.notes ? data.notes.trim() : null,
-    };
-
-    return transformed;
-  }
-
-  /**
-   * Transform data before updating a company
-   * @param {Object} data - Raw company data
-   * @returns {Object} Transformed data
-   */
-  transformForUpdate(data) {
-    const transformed = {};
-
-    if (data.name !== undefined) {
-      transformed.name = data.name.trim();
-    }
-
-    if (data.website !== undefined) {
-      transformed.website = data.website ? this.normalizeWebsite(data.website) : null;
-    }
-
-    if (data.industry !== undefined) {
-      transformed.industry = data.industry ? data.industry.trim() : null;
-    }
-
-    if (data.size !== undefined) {
-      transformed.size = data.size || null;
-    }
-
-    if (data.phone !== undefined) {
-      transformed.phone = data.phone ? this.normalizePhone(data.phone) : null;
-    }
-
-    if (data.email !== undefined) {
-      transformed.email = data.email ? data.email.toLowerCase().trim() : null;
-    }
-
-    if (data.address !== undefined) {
-      transformed.address = data.address ? data.address.trim() : null;
-    }
-
-    if (data.notes !== undefined) {
-      transformed.notes = data.notes ? data.notes.trim() : null;
-    }
-
-    return transformed;
-  }
-
-  /**
-   * Enrich company entity with computed fields
-   * @param {Object} entity - Company entity
-   * @returns {Object} Enriched entity
-   */
-  enrichEntity(entity) {
-    return {
-      ...entity,
-      display_name: entity.name,
-      has_website: !!entity.website,
-      has_contacts: entity.contact_count > 0,
-    };
-  }
-
-  /**
-   * Search companies by query
+   * Create a new company
    * @param {string} orgId - Organization ID
-   * @param {string} query - Search query
-   * @param {Object} filters - Additional filters
-   * @returns {Promise<Array>} Matching companies
-   */
-  async search(orgId, query, filters = {}) {
-    this.logger.info(`Searching companies in org ${orgId} with query: ${query}`);
-
-    try {
-      const companies = await this.repository.search(orgId, query, filters);
-      return companies.map(company => this.enrichEntity(company));
-    } catch (error) {
-      this.logger.error('Error searching companies:', error);
-      throw new Error('Failed to search companies');
-    }
-  }
-
-  /**
-   * Get all companies with contact counts
-   * @param {string} orgId - Organization ID
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Companies with contact counts
-   */
-  async findAllWithContactCount(orgId, options = {}) {
-    this.logger.info(`Getting companies with contact count for org ${orgId}`);
-
-    try {
-      const companies = await this.repository.findAllWithContactCount(orgId, options);
-      return companies.map(company => this.enrichEntity(company));
-    } catch (error) {
-      this.logger.error('Error getting companies with contact count:', error);
-      throw new Error('Failed to get companies');
-    }
-  }
-
-  /**
-   * Get company with all related contacts
-   * @param {string} companyId - Company ID
-   * @param {string} orgId - Organization ID
-   * @returns {Promise<Object|null>} Company with contacts
-   */
-  async findByIdWithContacts(companyId, orgId) {
-    this.logger.info(`Getting company ${companyId} with contacts for org ${orgId}`);
-
-    try {
-      const company = await this.repository.findByIdWithContacts(companyId, orgId);
-      return company ? this.enrichEntity(company) : null;
-    } catch (error) {
-      this.logger.error('Error getting company with contacts:', error);
-      throw new Error('Failed to get company');
-    }
-  }
-
-  /**
-   * Get statistics grouped by industry
-   * @param {string} orgId - Organization ID
-   * @returns {Promise<Object>} Industry statistics
-   */
-  async getStatsByIndustry(orgId) {
-    this.logger.info(`Getting industry statistics for org ${orgId}`);
-
-    try {
-      const stats = await this.repository.getStatsByIndustry(orgId);
-      
-      return {
-        industries: stats,
-        total_industries: stats.length,
-        total_companies: stats.reduce((sum, s) => sum + parseInt(s.count, 10), 0),
-        total_contacts: stats.reduce((sum, s) => sum + parseInt(s.total_contacts, 10), 0),
-      };
-    } catch (error) {
-      this.logger.error('Error getting industry statistics:', error);
-      throw new Error('Failed to get statistics');
-    }
-  }
-
-  /**
-   * Get statistics grouped by company size
-   * @param {string} orgId - Organization ID
-   * @returns {Promise<Object>} Size statistics
-   */
-  async getStatsBySize(orgId) {
-    this.logger.info(`Getting size statistics for org ${orgId}`);
-
-    try {
-      const stats = await this.repository.getStatsBySize(orgId);
-      
-      return {
-        sizes: stats,
-        total_companies: stats.reduce((sum, s) => sum + parseInt(s.count, 10), 0),
-        total_contacts: stats.reduce((sum, s) => sum + parseInt(s.total_contacts, 10), 0),
-      };
-    } catch (error) {
-      this.logger.error('Error getting size statistics:', error);
-      throw new Error('Failed to get statistics');
-    }
-  }
-
-  /**
-   * Check if company name already exists
-   * @param {string} name - Company name
-   * @param {string} orgId - Organization ID
-   * @param {string} excludeId - Company ID to exclude (for updates)
-   * @returns {Promise<boolean>} True if exists
-   */
-  async existsByName(name, orgId, excludeId = null) {
-    try {
-      return await this.repository.existsByName(name, orgId, excludeId);
-    } catch (error) {
-      this.logger.error('Error checking company name existence:', error);
-      throw new Error('Failed to check company name');
-    }
-  }
-
-  /**
-   * Create a new company with duplicate check
-   * @param {Object} data - Company data
-   * @param {string} orgId - Organization ID
-   * @param {string} userId - User ID
+   * @param {Object} companyData - Company data
+   * @param {string} userId - User creating the company
    * @returns {Promise<Object>} Created company
    */
-  async create(data, orgId, userId) {
-    // Check for duplicate name
-    const exists = await this.existsByName(data.name, orgId);
-    if (exists) {
-      throw new Error('A company with this name already exists');
+  async create(orgId, companyData, userId) {
+    // Validate required fields
+    this.validateCompanyData(companyData);
+
+    // Check for duplicate company name
+    const existing = await this.repository.searchByName(orgId, companyData.name, 1);
+    if (existing.length > 0 && existing[0].name.toLowerCase() === companyData.name.toLowerCase()) {
+      throw new ValidationError('A company with this name already exists');
     }
 
-    return super.create(data, orgId, userId);
+    // Create company
+    const company = await this.repository.create(orgId, companyData, userId);
+
+    // Log activity
+    await this.activityService.create(orgId, {
+      type: 'company_created',
+      companyId: company.id,
+      subject: `Company created: ${company.name}`,
+      metadata: {
+        companyName: company.name,
+        industry: company.industry,
+        website: company.website
+      }
+    }, userId);
+
+    // Emit event for integrations
+    eventBus.emit('company.created', {
+      company,
+      userId,
+      orgId
+    });
+
+    logger.info('Company created successfully', {
+      companyId: company.id,
+      companyName: company.name,
+      orgId,
+      userId
+    });
+
+    return company;
   }
 
   /**
-   * Update a company with duplicate check
-   * @param {string} id - Company ID
-   * @param {Object} data - Update data
+   * Get company by ID
    * @param {string} orgId - Organization ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object|null>} Updated company
+   * @param {string} companyId - Company ID
+   * @returns {Promise<Object>} Company with related data
    */
-  async update(id, data, orgId, userId) {
-    // Check for duplicate name if name is being updated
-    if (data.name) {
-      const exists = await this.existsByName(data.name, orgId, id);
-      if (exists) {
-        throw new Error('A company with this name already exists');
+  async getById(orgId, companyId) {
+    const company = await this.repository.getById(orgId, companyId);
+    if (!company) {
+      throw new NotFoundError('Company not found');
+    }
+    return company;
+  }
+
+  /**
+   * List companies with filters
+   * @param {string} orgId - Organization ID
+   * @param {Object} filters - Filter options
+   * @returns {Promise<Object>} Companies list with pagination
+   */
+  async list(orgId, filters = {}) {
+    return this.repository.list(orgId, filters);
+  }
+
+  /**
+   * Update company
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @param {Object} updates - Fields to update
+   * @param {string} userId - User updating the company
+   * @returns {Promise<Object>} Updated company
+   */
+  async update(orgId, companyId, updates, userId) {
+    // Get current company
+    const currentCompany = await this.getById(orgId, companyId);
+
+    // Validate name if being updated
+    if (updates.name && updates.name !== currentCompany.name) {
+      const existing = await this.repository.searchByName(orgId, updates.name, 1);
+      if (existing.length > 0 && 
+          existing[0].name.toLowerCase() === updates.name.toLowerCase() &&
+          existing[0].id !== companyId) {
+        throw new ValidationError('A company with this name already exists');
       }
     }
 
-    return super.update(id, data, orgId, userId);
-  }
+    // Update company
+    const updatedCompany = await this.repository.update(orgId, companyId, updates, userId);
 
-  /**
-   * Bulk create companies with validation and duplicate detection
-   * @param {Array<Object>} companies - Array of company data
-   * @param {string} orgId - Organization ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} Result with created companies and errors
-   */
-  async bulkCreate(companies, orgId, userId) {
-    this.logger.info(`Bulk creating ${companies.length} companies for org ${orgId}`);
-
-    const result = {
-      created: [],
-      errors: [],
-    };
-
-    // Get existing company names for duplicate detection
-    const existingCompanies = await this.repository.findAll(orgId);
-    const existingNames = new Set(
-      existingCompanies.map(c => c.name.toLowerCase())
+    // Log activity for significant changes
+    const significantFields = ['name', 'industry', 'companySize', 'annualRevenue', 'ownerId'];
+    const changedFields = Object.keys(updates).filter(key => 
+      significantFields.includes(key) && updates[key] !== currentCompany[key]
     );
 
-    // Track names in current batch
-    const batchNames = new Set();
-
-    for (let i = 0; i < companies.length; i++) {
-      const companyData = companies[i];
-
-      try {
-        // Validate
-        this.validateCreate(companyData);
-
-        // Check for duplicates
-        const normalizedName = companyData.name.trim().toLowerCase();
-        if (existingNames.has(normalizedName) || batchNames.has(normalizedName)) {
-          result.errors.push({
-            index: i,
-            data: companyData,
-            error: 'Duplicate company name',
-          });
-          continue;
+    if (changedFields.length > 0) {
+      await this.activityService.create(orgId, {
+        type: 'company_updated',
+        companyId,
+        subject: `Company updated: ${updatedCompany.name}`,
+        metadata: {
+          changedFields,
+          oldValues: changedFields.reduce((acc, field) => {
+            acc[field] = currentCompany[field];
+            return acc;
+          }, {}),
+          newValues: changedFields.reduce((acc, field) => {
+            acc[field] = updates[field];
+            return acc;
+          }, {})
         }
-
-        // Create company
-        const company = await this.create(companyData, orgId, userId);
-        result.created.push(company);
-        batchNames.add(normalizedName);
-      } catch (error) {
-        result.errors.push({
-          index: i,
-          data: companyData,
-          error: error.message,
-        });
-      }
+      }, userId);
     }
 
-    this.logger.info(
-      `Bulk create completed: ${result.created.length} created, ${result.errors.length} errors`
-    );
+    // Emit event
+    eventBus.emit('company.updated', {
+      company: updatedCompany,
+      previousCompany: currentCompany,
+      changedFields,
+      userId,
+      orgId
+    });
+
+    logger.info('Company updated successfully', {
+      companyId,
+      changedFields,
+      orgId,
+      userId
+    });
+
+    return updatedCompany;
+  }
+
+  /**
+   * Delete company (soft delete)
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @param {string} userId - User deleting the company
+   * @returns {Promise<boolean>} Success status
+   */
+  async delete(orgId, companyId, userId) {
+    const company = await this.getById(orgId, companyId);
+
+    // Check if company has active deals
+    const stats = await this.repository.getStatistics(orgId, companyId);
+    if (stats.open_deals > 0) {
+      throw new ValidationError(
+        `Cannot delete company with ${stats.open_deals} active deal(s). Close or reassign deals first.`
+      );
+    }
+
+    const result = await this.repository.delete(orgId, companyId, userId);
+
+    // Log activity
+    await this.activityService.create(orgId, {
+      type: 'company_deleted',
+      companyId,
+      subject: `Company deleted: ${company.name}`,
+      metadata: {
+        companyName: company.name,
+        contactCount: stats.contact_count,
+        totalDeals: stats.total_deals
+      }
+    }, userId);
+
+    // Emit event
+    eventBus.emit('company.deleted', {
+      companyId,
+      company,
+      userId,
+      orgId
+    });
+
+    logger.info('Company deleted successfully', {
+      companyId,
+      companyName: company.name,
+      orgId,
+      userId
+    });
 
     return result;
   }
 
   /**
-   * Validate website URL format
-   * @param {string} website - Website URL
-   * @returns {boolean} True if valid
+   * Get contacts for company
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @param {Object} filters - Filter options
+   * @returns {Promise<Object>} Contacts list
    */
-  isValidWebsite(website) {
-    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-    return urlPattern.test(website);
+  async getContacts(orgId, companyId, filters = {}) {
+    // Verify company exists
+    await this.getById(orgId, companyId);
+
+    return this.repository.getContacts(orgId, companyId, filters);
   }
 
   /**
-   * Normalize website URL (add https:// if missing)
-   * @param {string} website - Website URL
-   * @returns {string} Normalized URL
+   * Get deals for company
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @param {Object} filters - Filter options
+   * @returns {Promise<Object>} Deals list
    */
-  normalizeWebsite(website) {
-    const trimmed = website.trim();
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-      return `https://${trimmed}`;
+  async getDeals(orgId, companyId, filters = {}) {
+    // Verify company exists
+    await this.getById(orgId, companyId);
+
+    return this.repository.getDeals(orgId, companyId, filters);
+  }
+
+  /**
+   * Get company statistics
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @returns {Promise<Object>} Company statistics
+   */
+  async getStatistics(orgId, companyId) {
+    // Verify company exists
+    await this.getById(orgId, companyId);
+
+    return this.repository.getStatistics(orgId, companyId);
+  }
+
+  /**
+   * Search companies by name
+   * @param {string} orgId - Organization ID
+   * @param {string} searchTerm - Search term
+   * @param {number} limit - Result limit
+   * @returns {Promise<Array>} Matching companies
+   */
+  async searchByName(orgId, searchTerm, limit = 10) {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      throw new ValidationError('Search term must be at least 2 characters');
     }
-    return trimmed;
+
+    return this.repository.searchByName(orgId, searchTerm.trim(), limit);
+  }
+
+  /**
+   * Merge two companies
+   * @param {string} orgId - Organization ID
+   * @param {string} sourceCompanyId - Source company ID (will be deleted)
+   * @param {string} targetCompanyId - Target company ID (will be kept)
+   * @param {string} userId - User performing the merge
+   * @returns {Promise<Object>} Merged company
+   */
+  async merge(orgId, sourceCompanyId, targetCompanyId, userId) {
+    if (sourceCompanyId === targetCompanyId) {
+      throw new ValidationError('Cannot merge a company with itself');
+    }
+
+    // Get both companies
+    const [sourceCompany, targetCompany] = await Promise.all([
+      this.getById(orgId, sourceCompanyId),
+      this.getById(orgId, targetCompanyId)
+    ]);
+
+    // Start transaction (pseudo-code, actual implementation depends on DB driver)
+    try {
+      // Move contacts from source to target
+      await this.db.query(`
+        UPDATE contacts 
+        SET company_id = $1, updated_by = $2, updated_at = NOW()
+        WHERE company_id = $3 AND org_id = $4
+      `, [targetCompanyId, userId, sourceCompanyId, orgId]);
+
+      // Move deals from source to target
+      await this.db.query(`
+        UPDATE crm_deals 
+        SET company_id = $1, updated_by = $2, updated_at = NOW()
+        WHERE company_id = $3 AND org_id = $4
+      `, [targetCompanyId, userId, sourceCompanyId, orgId]);
+
+      // Merge tags
+      const mergedTags = [...new Set([
+        ...(targetCompany.tags || []),
+        ...(sourceCompany.tags || [])
+      ])];
+
+      // Merge custom fields (target takes precedence)
+      const mergedCustomFields = {
+        ...sourceCompany.customFields,
+        ...targetCompany.customFields
+      };
+
+      // Update target company with merged data
+      await this.repository.update(orgId, targetCompanyId, {
+        tags: mergedTags,
+        customFields: mergedCustomFields
+      }, userId);
+
+      // Delete source company
+      await this.repository.delete(orgId, sourceCompanyId, userId);
+
+      // Log activity
+      await this.activityService.create(orgId, {
+        type: 'company_merged',
+        companyId: targetCompanyId,
+        subject: `Company merged: ${sourceCompany.name} into ${targetCompany.name}`,
+        metadata: {
+          sourceCompanyId,
+          sourceCompanyName: sourceCompany.name,
+          targetCompanyId,
+          targetCompanyName: targetCompany.name
+        }
+      }, userId);
+
+      // Emit event
+      eventBus.emit('company.merged', {
+        sourceCompanyId,
+        targetCompanyId,
+        sourceCompany,
+        targetCompany,
+        userId,
+        orgId
+      });
+
+      logger.info('Companies merged successfully', {
+        sourceCompanyId,
+        targetCompanyId,
+        orgId,
+        userId
+      });
+
+      // Return updated target company
+      return this.getById(orgId, targetCompanyId);
+    } catch (error) {
+      logger.error('Error merging companies', {
+        error: error.message,
+        sourceCompanyId,
+        targetCompanyId,
+        orgId,
+        userId
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate company health score
+   * @param {string} orgId - Organization ID
+   * @param {string} companyId - Company ID
+   * @returns {Promise<Object>} Health score data
+   */
+  async calculateHealthScore(orgId, companyId) {
+    const [company, stats] = await Promise.all([
+      this.getById(orgId, companyId),
+      this.repository.getStatistics(orgId, companyId)
+    ]);
+
+    let score = 0;
+    const factors = [];
+
+    // Factor 1: Contact engagement (0-25 points)
+    if (stats.contact_count > 0) {
+      const contactScore = Math.min(stats.contact_count * 5, 25);
+      score += contactScore;
+      factors.push({
+        name: 'Contact Engagement',
+        score: contactScore,
+        maxScore: 25,
+        description: `${stats.contact_count} contact(s)`
+      });
+    }
+
+    // Factor 2: Deal activity (0-30 points)
+    if (stats.total_deals > 0) {
+      const dealScore = Math.min(stats.total_deals * 3, 30);
+      score += dealScore;
+      factors.push({
+        name: 'Deal Activity',
+        score: dealScore,
+        maxScore: 30,
+        description: `${stats.total_deals} deal(s)`
+      });
+    }
+
+    // Factor 3: Revenue generation (0-25 points)
+    if (stats.total_revenue > 0) {
+      const revenueScore = Math.min(Math.floor(stats.total_revenue / 10000), 25);
+      score += revenueScore;
+      factors.push({
+        name: 'Revenue Generation',
+        score: revenueScore,
+        maxScore: 25,
+        description: `$${stats.total_revenue.toLocaleString()} total revenue`
+      });
+    }
+
+    // Factor 4: Pipeline value (0-20 points)
+    if (stats.pipeline_value > 0) {
+      const pipelineScore = Math.min(Math.floor(stats.pipeline_value / 5000), 20);
+      score += pipelineScore;
+      factors.push({
+        name: 'Pipeline Value',
+        score: pipelineScore,
+        maxScore: 20,
+        description: `$${stats.pipeline_value.toLocaleString()} in pipeline`
+      });
+    }
+
+    // Determine health status
+    let status = 'poor';
+    if (score >= 80) status = 'excellent';
+    else if (score >= 60) status = 'good';
+    else if (score >= 40) status = 'fair';
+
+    return {
+      companyId,
+      companyName: company.name,
+      score,
+      maxScore: 100,
+      status,
+      factors,
+      calculatedAt: new Date()
+    };
+  }
+
+  /**
+   * Validate company data
+   * @param {Object} companyData - Company data to validate
+   * @throws {ValidationError} If validation fails
+   */
+  validateCompanyData(companyData) {
+    if (!companyData.name || companyData.name.trim().length === 0) {
+      throw new ValidationError('Company name is required');
+    }
+
+    if (companyData.name.length > 255) {
+      throw new ValidationError('Company name must be 255 characters or less');
+    }
+
+    if (companyData.email && !this.isValidEmail(companyData.email)) {
+      throw new ValidationError('Invalid email address');
+    }
+
+    if (companyData.website && !this.isValidUrl(companyData.website)) {
+      throw new ValidationError('Invalid website URL');
+    }
+
+    if (companyData.annualRevenue && companyData.annualRevenue < 0) {
+      throw new ValidationError('Annual revenue cannot be negative');
+    }
   }
 
   /**
    * Validate email format
-   * @param {string} email - Email address
-   * @returns {boolean} True if valid
+   * @param {string} email - Email to validate
+   * @returns {boolean} Is valid
    */
   isValidEmail(email) {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailPattern.test(email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   /**
-   * Validate phone format
-   * @param {string} phone - Phone number
-   * @returns {boolean} True if valid
+   * Validate URL format
+   * @param {string} url - URL to validate
+   * @returns {boolean} Is valid
    */
-  isValidPhone(phone) {
-    // Allow various phone formats
-    const phonePattern = /^[\d\s\-\+\(\)]+$/;
-    return phonePattern.test(phone) && phone.replace(/\D/g, '').length >= 10;
-  }
-
-  /**
-   * Normalize phone number (remove formatting)
-   * @param {string} phone - Phone number
-   * @returns {string} Normalized phone
-   */
-  normalizePhone(phone) {
-    return phone.trim();
+  isValidUrl(url) {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
-// Export singleton instance
-module.exports = new CompanyService();
+module.exports = CompanyService;

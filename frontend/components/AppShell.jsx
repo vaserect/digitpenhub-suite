@@ -22403,7 +22403,7 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
         'parent-portal','online-store-builder',
         'inbox','notifications','custom-fields','permissions','dedup',
         'native-integrations','collaborative-editing','master-data-management',
-        'global-search','activity-feed','approval-workflow'
+        'activity-feed','approval-workflow'
       ].includes(activeModuleSlug) && (
         <GenericModule moduleSlug={activeModuleSlug} goHome={goHome} categories={categories} />
       )}

@@ -1,5 +1,5 @@
 'use client'
-import KanbanBoard from "../../components/ui/KanbanBoard";
+import KanbanBoard from '../ui/KanbanBoard';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import Pagination from '../ui/Pagination';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import Modal from '../ui/Modal';
 import Tooltip from '../ui/Tooltip';
+import CustomFieldValues from '../ui/CustomFieldValues';
 import { useHotkey, useSearchHotkey } from '../../lib/hotkeys';
 
 const CRM_PAGE_SIZE = 10;
@@ -51,8 +52,8 @@ export default function CRMModule({ goHome, showToast }) {
 
   async function loadCrm() {
     const data = await apiFetch('/api/v1/crm/contacts');
-    setContacts(data.contacts);
-    setContactCounts(data.counts);
+    setContacts(data.contacts || []);
+    setContactCounts(data.counts || {});
     setCrmLoaded(true);
   }
 

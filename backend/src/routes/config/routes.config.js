@@ -110,6 +110,8 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/pages', 'pages', 'Website pages (mixed auth)'),
   publicRoute('/api/v1/landing-pages', 'landingPages', 'Landing page builder (mixed auth)'),
   authRoute('/api/v1/cms', 'cms', 'CMS Collections'),
+  authRoute('/api/v1/interactions', 'interactions', 'Website Builder Interactions & Animations'),
+  authRoute('/api/v1/responsive', 'responsive', 'Responsive Breakpoints System'),
   moduleRoute('/api/v1/funnels', 'funnels', 'funnel-builder', 'Funnel builder'),
   moduleRoute('/api/v1/funnel-templates', 'funnelTemplates', 'funnel-builder', 'Funnel templates'),
   publicRoute('/api/v1/builder/themes', 'builder-themes', 'Builder themes'),
@@ -119,6 +121,7 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/builder/sites', 'builder-sites', 'Builder sites'),
   publicRoute('/api/v1/builder/assets', 'builder-assets', 'Builder assets'),
   publicRoute('/api/v1/pexels', 'pexels.routes', 'Pexels integration'),
+  authRoute('/api/v1/builder/components', 'componentsController', 'Component Variants System'),
   publicRoute('/api/v1/components', 'components', 'Component library'),
   publicRoute('/api/v1/sections', 'sections', 'Section library'),
   

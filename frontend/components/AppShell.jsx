@@ -7137,6 +7137,7 @@ export default function AppShell() {
       'referral-program': '/referrals',
       'ad-campaign-manager': '/modules/ad-campaign-manager',
       'lead-scoring': '/lead-scoring',
+      'pipeline-deals': '/pipeline-deals',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

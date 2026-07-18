@@ -429,6 +429,6 @@ Each module must meet:
   - Enabled mock connection parameters bypass: wrapped providers getProvider method to intercept tokens prefixed with `mock_` for offline simulation of code exchanges, profile retrieval, token refreshes, and successful publishes.
   - Made the connection flow in `AccountManager.jsx` interactive by prompting users to enter a custom profile name and dispatching POST requests to the backend.
   - Verified Next.js production builds and PM2 service reloads.
-- **Commits:** 31f95d2
+- **Commits:** 17c65b9, 718d0e5
 - **Completion Report:** Provided in session
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const referralController = require('../controllers/referralController');
-const { authenticate } = require('../middleware/auth');
+const { requireAuth: authenticate } = require('../middleware/auth');
 
 /**
  * Referral Program Routes - Enterprise Edition

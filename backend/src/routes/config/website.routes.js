@@ -65,23 +65,6 @@ module.exports = {
       public: false,
       moduleSlug: 'website-builder',
     },
-    {
-      path: '/api/v1/funnels',
-      router: require('../funnels'),
-      middleware: [],
-      description: 'Sales funnels and funnel builder',
-      public: false,
-      moduleSlug: 'funnel-builder',
-    },
-    {
-      path: '/api/v1/funnel-templates',
-      router: require('../funnelTemplates'),
-      middleware: [],
-      description: 'Funnel templates library',
-      public: false,
-      moduleSlug: 'funnel-builder',
-    },
-    
     // Templates
     {
       path: '/api/v1/page-templates',

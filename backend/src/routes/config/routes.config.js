@@ -107,13 +107,14 @@ const ROUTES_CONFIG = [
   // ============================================================================
   // WEBSITE BUILDER ECOSYSTEM
   // ============================================================================
+  // Funnels MUST come before pages to avoid route conflicts (pages has /:id catch-all)
+  moduleRoute('/api/v1/funnels', 'funnels', 'funnel-builder', 'Funnel builder'),
+  moduleRoute('/api/v1/funnel-templates', 'funnelTemplates', 'funnel-builder', 'Funnel templates'),
   publicRoute('/api/v1/pages', 'pages', 'Website pages (mixed auth)'),
   publicRoute('/api/v1/landing-pages', 'landingPages', 'Landing page builder (mixed auth)'),
   authRoute('/api/v1/cms', 'cms', 'CMS Collections'),
   authRoute('/api/v1/interactions', 'interactions', 'Website Builder Interactions & Animations'),
   authRoute('/api/v1/responsive', 'responsive', 'Responsive Breakpoints System'),
-  moduleRoute('/api/v1/funnels', 'funnels', 'funnel-builder', 'Funnel builder'),
-  moduleRoute('/api/v1/funnel-templates', 'funnelTemplates', 'funnel-builder', 'Funnel templates'),
   publicRoute('/api/v1/builder/themes', 'builder-themes', 'Builder themes'),
   publicRoute('/api/v1/builder/components', 'builder-components', 'Builder components'),
   publicRoute('/api/v1/builder/sections', 'builder-sections', 'Builder sections'),

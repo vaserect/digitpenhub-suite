@@ -216,6 +216,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/ad-campaigns', 'adCampaign', 'ad-campaign-manager', 'Ad Campaign Manager'),
   
   moduleRoute('/api/v1/events', 'events', 'event-hosting', 'Event / Webinar Hosting'),
+  moduleRoute('/api/v1/sales-playbook', 'salesPlaybook', 'sales-playbook', 'Sales Playbook / Battlecard Library'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================

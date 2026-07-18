@@ -98,6 +98,8 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/email', 'email', 'Email marketing (mixed auth)'),
   authRoute('/api/v1/email', 'emailUpgrades', 'Email upgrade features'),
+  authRoute('/api/v1/email/segments', 'emailSegments', 'Email segmentation'),
+  authRoute('/api/v1/email/automations', 'emailAutomations', 'Email automation workflows'),
   publicRoute('/api/v1/leads', 'leads', 'Lead management'),
   moduleRoute('/api/v1/automation', 'automation', 'marketing-automation', 'Marketing automation'),
   moduleRoute('/api/v1/sms', 'sms', 'sms-marketing', 'SMS marketing'),

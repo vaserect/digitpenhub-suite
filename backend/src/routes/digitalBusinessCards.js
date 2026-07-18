@@ -18,6 +18,11 @@ r.get('/public/:id', c.getPublicCard);
 // Public card by slug
 r.get('/slug/:slug', c.getCardBySlug);
 
+// Public interactions
+r.post('/contacts', c.addContact);
+r.post('/links/:linkId/click', c.trackLinkClick);
+r.post('/:id/track-view', c.trackView);
+
 // =====================================================
 // PROTECTED ROUTES (Authentication Required)
 // =====================================================
@@ -38,19 +43,16 @@ r.post('/:id/sections', c.addSection);
 r.post('/:id/links', c.addLink);
 r.put('/links/:linkId', c.updateLink);
 r.delete('/links/:linkId', c.deleteLink);
-r.post('/links/:linkId/click', c.trackLinkClick);
 
 // ── Templates ────────────────────────────────────────
 r.get('/templates/list', c.listTemplates);
 
 // ── Analytics & Tracking ─────────────────────────────
 r.get('/:id/analytics', c.getAnalytics);
-r.post('/:id/track-view', c.trackView);
 r.post('/:id/view', c.incrementView); // Legacy support
 
 // ── Contacts & Leads ─────────────────────────────────
 r.get('/contacts/list', c.listContacts);
-r.post('/contacts', c.addContact);
 
 // ── Folders ──────────────────────────────────────────
 r.get('/folders/list', c.listFolders);

@@ -208,15 +208,22 @@ async function createCard(req, res) {
       primary_color = '#2563eb',
       layout_style = 'standard',
       is_public = true,
-      status = 'active'
+      status = 'active',
+      slug
     } = req.body;
 
     if (!name?.trim()) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    // Generate unique share token
+    // Generate unique share token and slug
     const share_token = crypto.randomBytes(16).toString('hex');
+    let cardSlug = slug;
+    if (!cardSlug?.trim()) {
+      cardSlug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-') + '-' + crypto.randomBytes(3).toString('hex');
+    } else {
+      cardSlug = cardSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-');
+    }
 
     const { rows } = await db.query(
       `INSERT INTO digital_business_cards (
@@ -227,12 +234,12 @@ async function createCard(req, res) {
         bio, tagline, skills,
         avatar_url, cover_image_url,
         template_id, theme, primary_color, layout_style,
-        is_public, share_token, status
+        is_public, share_token, status, slug
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18,
         $19, $20, $21, $22, $23, $24, $25, $26,
-        $27, $28, $29, $30
+        $27, $28, $29, $30, $31
       ) RETURNING *`,
       [
         req.user.orgId, req.user.id, name.trim(), title, company, department,
@@ -242,7 +249,7 @@ async function createCard(req, res) {
         bio, tagline, skills,
         avatar_url, cover_image_url,
         template_id, theme, primary_color, layout_style,
-        is_public, share_token, status
+        is_public, share_token, status, cardSlug
       ]
     );
 
@@ -268,7 +275,7 @@ async function updateCard(req, res) {
       'address', 'city', 'state', 'country', 'bio', 'tagline', 'skills',
       'avatar_url', 'cover_image_url', 'template_id', 'theme',
       'primary_color', 'secondary_color', 'background_color', 'text_color',
-      'layout_style', 'is_public', 'status'
+      'layout_style', 'is_public', 'status', 'slug'
     ];
 
     const setClause = [];
@@ -710,6 +717,26 @@ async function addContact(req, res) {
       [card_id, name, email, phone, company, source, notes, tags]
     );
 
+    if (rows.length) {
+      const contact = rows[0];
+      const orgId = contact.org_id;
+      // Sync with the core platform contacts/CRM system
+      if (email && email.trim()) {
+        const trimmedEmail = email.trim();
+        const contactCheck = await db.query(
+          `SELECT id FROM contacts WHERE org_id = $1 AND email = $2`,
+          [orgId, trimmedEmail]
+        );
+        if (!contactCheck.rows.length) {
+          await db.query(
+            `INSERT INTO contacts (org_id, full_name, email, phone, company, stage, tags)
+             VALUES ($1, $2, $3, $4, $5, 'lead', $6)`,
+            [orgId, name || 'Contact from Biz Card', trimmedEmail, phone || null, company || null, ['biz-card']]
+          );
+        }
+      }
+    }
+
     res.status(201).json({ contact: rows[0] });
   } catch (error) {
     logger.error('Error adding contact:', error);
@@ -785,6 +812,12 @@ async function createFolder(req, res) {
 async function getPublicCard(req, res) {
   try {
     const { id } = req.params;
+
+    // Check if ID is a valid UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
 
     const { rows } = await db.query(
       `SELECT * FROM digital_business_cards 

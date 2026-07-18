@@ -13,8 +13,8 @@ import ScoringThresholds from '@/components/modules/lead-scoring/ScoringThreshol
 
 export default function LeadScoringPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedModel, setSelectedModel] = useState<any>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -52,7 +52,7 @@ export default function LeadScoringPage() {
     }
   };
 
-  const loadAnalytics = async (modelId: string) => {
+  const loadAnalytics = async (modelId) => {
     try {
       const response = await fetch(`/api/v1/lead-scoring/analytics?model_id=${modelId}`, {
         headers: {
@@ -69,7 +69,7 @@ export default function LeadScoringPage() {
     }
   };
 
-  const handleModelChange = (model: any) => {
+  const handleModelChange = (model) => {
     setSelectedModel(model);
     if (model?.id) {
       loadAnalytics(model.id);

@@ -1,6 +1,8 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { apiFetch } from '@/lib/api';
 
 export default function LandingPageAnalytics() {
   const { user } = useAuth();
@@ -29,10 +31,7 @@ export default function LandingPageAnalytics() {
       if (filters.pageUrl) params.append('pageUrl', filters.pageUrl);
       if (filters.deviceType) params.append('deviceType', filters.deviceType);
       
-      const res = await fetch(`/api/v1/heatmaps?${params}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/heatmaps?${params}`);
       setRecordings(data.recordings || []);
     } catch (err) {
       console.error('Error loading recordings:', err);
@@ -43,10 +42,7 @@ export default function LandingPageAnalytics() {
   const loadPages = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/heatmaps/pages', {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch('/api/v1/heatmaps/pages');
       setPages(data.pages || []);
     } catch (err) {
       console.error('Error loading pages:', err);
@@ -63,10 +59,7 @@ export default function LandingPageAnalytics() {
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo
       });
-      const res = await fetch(`/api/v1/heatmaps/analytics?${params}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/heatmaps/analytics?${params}`);
       setAnalytics(data.analytics);
     } catch (err) {
       console.error('Error loading analytics:', err);

@@ -17,12 +17,12 @@ export default function ReferralAffiliateAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   
   // Data States
-  const [referralStats, setReferralStats] = useState<any>(null);
-  const [affiliateStats, setAffiliateStats] = useState<any>(null);
-  const [topReferrers, setTopReferrers] = useState<any[]>([]);
-  const [topAffiliates, setTopAffiliates] = useState<any[]>([]);
-  const [fraudAlerts, setFraudAlerts] = useState<any[]>([]);
-  const [payoutBatches, setPayoutBatches] = useState<any[]>([]);
+  const [referralStats, setReferralStats] = useState(null);
+  const [affiliateStats, setAffiliateStats] = useState(null);
+  const [topReferrers, setTopReferrers] = useState([]);
+  const [topAffiliates, setTopAffiliates] = useState([]);
+  const [fraudAlerts, setFraudAlerts] = useState([]);
+  const [payoutBatches, setPayoutBatches] = useState([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -47,8 +47,8 @@ export default function ReferralAffiliateAnalyticsPage() {
       const fraudRes = await apiFetch('/api/v1/referrals/fraud/alerts').catch(() => ({ alerts: [] }));
       const affFraudRes = await apiFetch('/api/v1/affiliates/fraud-alerts').catch(() => ({ alerts: [] }));
       const combinedFraud = [
-        ...(fraudRes.alerts || []).map((a: any) => ({ ...a, source: 'referral' })),
-        ...(affFraudRes.alerts || []).map((a: any) => ({ ...a, source: 'affiliate' }))
+        ...(fraudRes.alerts || []).map(a => ({ ...a, source: 'referral' })),
+        ...(affFraudRes.alerts || []).map(a => ({ ...a, source: 'affiliate' }))
       ];
       setFraudAlerts(combinedFraud);
 

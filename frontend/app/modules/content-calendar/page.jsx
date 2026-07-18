@@ -1,6 +1,8 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { apiFetch } from '@/lib/api';
 
 export default function ContentCalendar() {
   const { user } = useAuth();
@@ -38,10 +40,7 @@ export default function ContentCalendar() {
         startDate: filters.dateFrom,
         endDate: filters.dateTo
       });
-      const res = await fetch(`/api/v1/content-calendar/calendar?${params}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/content-calendar/calendar?${params}`);
       setContent(data.items || []);
     } catch (err) {
       console.error('Error loading calendar:', err);
@@ -57,10 +56,7 @@ export default function ContentCalendar() {
       if (filters.contentType) params.append('contentType', filters.contentType);
       if (filters.campaignId) params.append('campaignId', filters.campaignId);
       
-      const res = await fetch(`/api/v1/content-calendar/content?${params}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/content-calendar/content?${params}`);
       setContent(data.items || []);
     } catch (err) {
       console.error('Error loading content:', err);
@@ -71,10 +67,7 @@ export default function ContentCalendar() {
   const loadCampaigns = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/content-calendar/campaigns', {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch('/api/v1/content-calendar/campaigns');
       setCampaigns(data.campaigns || []);
     } catch (err) {
       console.error('Error loading campaigns:', err);
@@ -85,10 +78,7 @@ export default function ContentCalendar() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/content-calendar/templates', {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch('/api/v1/content-calendar/templates');
       setTemplates(data.templates || []);
     } catch (err) {
       console.error('Error loading templates:', err);
@@ -99,10 +89,7 @@ export default function ContentCalendar() {
   const loadApprovals = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/content-calendar/approvals/pending', {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch('/api/v1/content-calendar/approvals/pending');
       setApprovals(data.approvals || []);
     } catch (err) {
       console.error('Error loading approvals:', err);
@@ -113,10 +100,7 @@ export default function ContentCalendar() {
   const loadConnections = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/content-calendar/connections', {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      const data = await res.json();
+      const data = await apiFetch('/api/v1/content-calendar/connections');
       setConnections(data.connections || []);
     } catch (err) {
       console.error('Error loading connections:', err);

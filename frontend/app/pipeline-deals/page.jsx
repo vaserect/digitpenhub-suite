@@ -14,18 +14,18 @@ import {
 } from 'lucide-react';
 
 export default function PipelineDealsPage() {
-  const [pipelines, setPipelines] = useState<any[]>([]);
-  const [selectedPipeline, setSelectedPipeline] = useState<any>(null);
-  const [stages, setStages] = useState<any[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [pipelines, setPipelines] = useState([]);
+  const [selectedPipeline, setSelectedPipeline] = useState(null);
+  const [stages, setStages] = useState([]);
+  const [deals, setDeals] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
+  const [draggedDealId, setDraggedDealId] = useState(null);
 
   // Modals & Forms
   const [showDealModal, setShowDealModal] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<any>(null);
-  const [deletingDealId, setDeletingDealId] = useState<string | null>(null);
+  const [editingDeal, setEditingDeal] = useState(null);
+  const [deletingDealId, setDeletingDealId] = useState(null);
 
   const [dealDraft, setDealDraft] = useState({
     name: '',
@@ -53,7 +53,7 @@ export default function PipelineDealsPage() {
       const res = await apiFetch('/api/v1/crm/pipelines');
       if (res.success && res.data) {
         setPipelines(res.data);
-        const def = res.data.find((p: any) => p.is_default) || res.data[0];
+        const def = res.data.find((p) => p.is_default) || res.data[0];
         setSelectedPipeline(def || null);
       }
     } catch (error) {
@@ -73,7 +73,7 @@ export default function PipelineDealsPage() {
     }
   };
 
-  const loadPipelineData = async (pipelineId: string) => {
+  const loadPipelineData = async (pipelineId) => {
     setLoading(true);
     try {
       // 1. Get stages
@@ -92,7 +92,7 @@ export default function PipelineDealsPage() {
     }
   };
 
-  const handleCreateOrUpdateDeal = async (e: React.FormEvent) => {
+  const handleCreateOrUpdateDeal = async (e) => {
     e.preventDefault();
     try {
       if (editingDeal) {
@@ -122,12 +122,12 @@ export default function PipelineDealsPage() {
           loadPipelineData(selectedPipeline.id);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.message || 'Failed to save deal');
     }
   };
 
-  const handleUpdateStage = async (dealId: string, stageId: string) => {
+  const handleUpdateStage = async (dealId, stageId) => {
     try {
       const res = await apiFetch(`/api/v1/crm/deals/${dealId}/stage`, {
         method: 'PUT',
@@ -161,16 +161,16 @@ export default function PipelineDealsPage() {
   };
 
   // Drag & drop handlers
-  const handleDragStart = (e: React.DragEvent, dealId: string) => {
+  const handleDragStart = (e, dealId) => {
     setDraggedDealId(dealId);
     e.dataTransfer.setData('text/plain', dealId);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
   };
 
-  const handleDrop = async (e: React.DragEvent, stageId: string) => {
+  const handleDrop = async (e, stageId) => {
     e.preventDefault();
     const dealId = e.dataTransfer.getData('text/plain') || draggedDealId;
     if (dealId) {
@@ -361,7 +361,7 @@ export default function PipelineDealsPage() {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyBetween: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
                           <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-color)' }}>
                             ₦{parseFloat(deal.amount || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}
                           </span>

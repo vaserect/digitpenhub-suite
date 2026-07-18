@@ -266,7 +266,6 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/customer-subs', 'subscriptions', 'subscriptions', 'Customer subscriptions'),
   moduleRoute('/api/v1/affiliates', 'affiliates', 'affiliate-system', 'Affiliate system'),
   moduleRoute('/api/v1/referrals', 'referrals', 'referral-program', 'Referral program'),
-  moduleRoute('/api/v1/lead-scoring', 'leadScoring', 'lead-scoring', 'Lead scoring system'),
   
   // ============================================================================
   // ADVANCED FEATURES

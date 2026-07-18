@@ -484,3 +484,244 @@ class SegmentationService extends BaseService {
 }
 
 module.exports = new SegmentationService();
+
+  // ==================== ADVANCED FEATURES ====================
+
+  /**
+   * Build nested condition groups with AND/OR logic
+   */
+  buildNestedConditions(orgId, conditionGroup) {
+    const { logical_operator = 'AND', conditions = [], groups = [] } = conditionGroup;
+    
+    const clauses = [];
+    const params = [orgId];
+    let paramCount = 1;
+
+    // Process direct conditions
+    for (const condition of conditions) {
+      const { field, operator, value } = condition;
+      if (!field || !operator) continue;
+
+      paramCount++;
+      const clause = this.buildConditionClause(field, operator, value, paramCount);
+      if (clause) {
+        clauses.push(clause.sql);
+        if (clause.value !== undefined) {
+          params.push(clause.value);
+        } else {
+          paramCount--;
+        }
+      }
+    }
+
+    // Process nested groups recursively
+    for (const group of groups) {
+      const nestedResult = this.buildNestedConditions(orgId, group);
+      if (nestedResult.clauses.length > 0) {
+        clauses.push(`(${nestedResult.clauses.join(` ${group.logical_operator || 'AND'} `)})`);
+        params.push(...nestedResult.params.slice(1)); // Skip orgId
+        paramCount += nestedResult.params.length - 1;
+      }
+    }
+
+    return { clauses, params, paramCount };
+  }
+
+  /**
+   * Calculate segment overlap with another segment
+   */
+  async calculateSegmentOverlap(orgId, segmentId1, segmentId2) {
+    const { rows } = await db.query(
+      `SELECT 
+        (SELECT COUNT(*) FROM segment_members WHERE segment_id = $1 AND entity_type = 'contact') as segment1_count,
+        (SELECT COUNT(*) FROM segment_members WHERE segment_id = $2 AND entity_type = 'contact') as segment2_count,
+        COUNT(*) as overlap_count,
+        ROUND(COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM segment_members WHERE segment_id = $1 AND entity_type = 'contact'), 0) * 100, 2) as overlap_percentage_1,
+        ROUND(COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM segment_members WHERE segment_id = $2 AND entity_type = 'contact'), 0) * 100, 2) as overlap_percentage_2
+       FROM segment_members sm1
+       INNER JOIN segment_members sm2 ON sm1.entity_id = sm2.entity_id AND sm1.entity_type = sm2.entity_type
+       WHERE sm1.segment_id = $1 AND sm2.segment_id = $2 AND sm1.entity_type = 'contact'`,
+      [segmentId1, segmentId2]
+    );
+
+    return rows[0];
+  }
+
+  /**
+   * Get segment growth trend
+   */
+  async getSegmentGrowthTrend(orgId, segmentId, days = 30) {
+    const { rows } = await db.query(
+      `SELECT 
+        date,
+        member_count,
+        new_members,
+        churned_members,
+        growth_rate
+       FROM segment_analytics_daily
+       WHERE org_id = $1 AND segment_id = $2 AND date >= CURRENT_DATE - INTERVAL '${days} days'
+       ORDER BY date ASC`,
+      [orgId, segmentId]
+    );
+
+    return rows;
+  }
+
+  /**
+   * Create lookalike segment based on existing segment
+   */
+  async createLookalikeSegment(orgId, userId, sourceSegmentId, name, similarity_threshold = 0.7) {
+    const sourceSegment = await this.getSegment(orgId, sourceSegmentId);
+    if (!sourceSegment) {
+      throw new Error('Source segment not found');
+    }
+
+    // Get characteristics of source segment members
+    const { rows: sourceMembers } = await db.query(
+      `SELECT c.* FROM contacts c
+       JOIN segment_members sm ON c.id = sm.entity_id::uuid
+       WHERE sm.segment_id = $1 AND sm.entity_type = 'contact' AND c.org_id = $2
+       LIMIT 1000`,
+      [sourceSegmentId, orgId]
+    );
+
+    // Analyze common attributes (simplified - in production would use ML)
+    const commonAttributes = this.analyzeCommonAttributes(sourceMembers);
+
+    // Create new segment with similar criteria
+    const lookalikeSegment = await this.createSegment(orgId, userId, {
+      name: name || `Lookalike: ${sourceSegment.name}`,
+      description: `Lookalike segment based on ${sourceSegment.name}`,
+      criteria_json: {
+        logical_operator: 'OR',
+        conditions: commonAttributes.map(attr => ({
+          field: attr.field,
+          operator: 'equals',
+          value: attr.value
+        }))
+      },
+      is_dynamic: true,
+      refresh_frequency: 'daily'
+    });
+
+    return lookalikeSegment;
+  }
+
+  /**
+   * Analyze common attributes among segment members
+   */
+  analyzeCommonAttributes(members) {
+    const attributes = [];
+    
+    // Analyze status distribution
+    const statusCounts = {};
+    members.forEach(m => {
+      if (m.status) {
+        statusCounts[m.status] = (statusCounts[m.status] || 0) + 1;
+      }
+    });
+    
+    const mostCommonStatus = Object.entries(statusCounts)
+      .sort((a, b) => b[1] - a[1])[0];
+    
+    if (mostCommonStatus && mostCommonStatus[1] / members.length > 0.5) {
+      attributes.push({ field: 'status', value: mostCommonStatus[0] });
+    }
+
+    // Could add more sophisticated analysis here
+    
+    return attributes;
+  }
+
+  /**
+   * Get segment comparison data
+   */
+  async compareSegments(orgId, segmentIds) {
+    const segments = await Promise.all(
+      segmentIds.map(id => this.getSegment(orgId, id))
+    );
+
+    const comparison = {
+      segments: segments.map(s => ({
+        id: s.id,
+        name: s.name,
+        member_count: s.member_count,
+        is_dynamic: s.is_dynamic
+      })),
+      overlaps: []
+    };
+
+    // Calculate pairwise overlaps
+    for (let i = 0; i < segmentIds.length; i++) {
+      for (let j = i + 1; j < segmentIds.length; j++) {
+        const overlap = await this.calculateSegmentOverlap(orgId, segmentIds[i], segmentIds[j]);
+        comparison.overlaps.push({
+          segment1_id: segmentIds[i],
+          segment2_id: segmentIds[j],
+          overlap_count: overlap.overlap_count,
+          overlap_percentage_1: overlap.overlap_percentage_1,
+          overlap_percentage_2: overlap.overlap_percentage_2
+        });
+      }
+    }
+
+    return comparison;
+  }
+
+  /**
+   * Enhanced condition clause builder with advanced operators
+   */
+  buildAdvancedConditionClause(field, operator, value, paramIndex) {
+    const fieldMap = {
+      'email': 'c.email',
+      'name': 'c.name',
+      'created_at': 'c.created_at',
+      'updated_at': 'c.updated_at',
+      'tags': 'c.tags',
+      'status': 'c.status'
+    };
+
+    const sqlField = fieldMap[field] || `c.${field}`;
+
+    switch (operator) {
+      // Date operators
+      case 'within_last_days':
+        return { sql: `${sqlField} >= NOW() - INTERVAL '${parseInt(value)} days'` };
+      case 'within_last_weeks':
+        return { sql: `${sqlField} >= NOW() - INTERVAL '${parseInt(value)} weeks'` };
+      case 'within_last_months':
+        return { sql: `${sqlField} >= NOW() - INTERVAL '${parseInt(value)} months'` };
+      case 'before_date':
+        return { sql: `${sqlField} < $${paramIndex}`, value };
+      case 'after_date':
+        return { sql: `${sqlField} > $${paramIndex}`, value };
+      case 'between_dates':
+        return { sql: `${sqlField} BETWEEN $${paramIndex} AND $${paramIndex + 1}`, value };
+      
+      // Numeric operators
+      case 'greater_than_or_equal':
+        return { sql: `${sqlField} >= $${paramIndex}`, value };
+      case 'less_than_or_equal':
+        return { sql: `${sqlField} <= $${paramIndex}`, value };
+      case 'between':
+        return { sql: `${sqlField} BETWEEN $${paramIndex} AND $${paramIndex + 1}`, value };
+      
+      // Array operators
+      case 'contains_any':
+        return { sql: `${sqlField} && $${paramIndex}`, value };
+      case 'contains_all':
+        return { sql: `${sqlField} @> $${paramIndex}`, value };
+      
+      // Pattern operators
+      case 'matches_regex':
+        return { sql: `${sqlField} ~ $${paramIndex}`, value };
+      case 'not_matches_regex':
+        return { sql: `${sqlField} !~ $${paramIndex}`, value };
+      
+      default:
+        return this.buildConditionClause(field, operator, value, paramIndex);
+    }
+  }
+}
+
+module.exports = new SegmentationService();

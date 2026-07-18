@@ -251,3 +251,107 @@ module.exports = {
   bulkDelete,
   exportSegment
 };
+
+// ==================== ADVANCED FEATURES ====================
+
+async function getSegmentOverlap(req, res) {
+  try {
+    const { segment_id_2 } = req.query;
+    if (!segment_id_2) {
+      return res.status(400).json({ error: 'segment_id_2 is required' });
+    }
+    
+    const overlap = await segmentationService.calculateSegmentOverlap(
+      req.user.orgId,
+      req.params.id,
+      segment_id_2
+    );
+    res.json({ overlap });
+  } catch (error) {
+    console.error('Error calculating segment overlap:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function getSegmentGrowthTrend(req, res) {
+  try {
+    const { days } = req.query;
+    const trend = await segmentationService.getSegmentGrowthTrend(
+      req.user.orgId,
+      req.params.id,
+      days ? parseInt(days) : 30
+    );
+    res.json({ trend });
+  } catch (error) {
+    console.error('Error fetching segment growth trend:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function createLookalikeSegment(req, res) {
+  try {
+    const { name, similarity_threshold } = req.body;
+    const segment = await segmentationService.createLookalikeSegment(
+      req.user.orgId,
+      req.user.id,
+      req.params.id,
+      name,
+      similarity_threshold
+    );
+    res.status(201).json({ segment });
+  } catch (error) {
+    console.error('Error creating lookalike segment:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function compareSegments(req, res) {
+  try {
+    const { segment_ids } = req.body;
+    if (!Array.isArray(segment_ids) || segment_ids.length < 2) {
+      return res.status(400).json({ error: 'At least 2 segment IDs required' });
+    }
+    
+    const comparison = await segmentationService.compareSegments(
+      req.user.orgId,
+      segment_ids
+    );
+    res.json({ comparison });
+  } catch (error) {
+    console.error('Error comparing segments:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+module.exports = {
+  // Segments
+  createSegment,
+  getSegments,
+  getSegment,
+  updateSegment,
+  deleteSegment,
+  
+  // Calculation
+  calculateSegment,
+  previewSegment,
+  
+  // Members
+  getSegmentMembers,
+  
+  // Analytics
+  getSegmentAnalytics,
+  
+  // Templates
+  getTemplates,
+  createFromTemplate,
+  
+  // Bulk operations
+  bulkDelete,
+  exportSegment,
+  
+  // Advanced features
+  getSegmentOverlap,
+  getSegmentGrowthTrend,
+  createLookalikeSegment,
+  compareSegments
+};

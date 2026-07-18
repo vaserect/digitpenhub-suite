@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Users, Target, TrendingUp, Filter, Plus, Play, Download } from 'lucide-react';
+import { Users, Target, TrendingUp, Filter, Plus, Play, Download, GitCompare, Copy } from 'lucide-react';
 
 export default function CustomerSegmentation() {
   const [activeTab, setActiveTab] = useState('segments');
@@ -13,6 +13,9 @@ export default function CustomerSegmentation() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
+  const [overlapData, setOverlapData] = useState(null);
+  const [growthTrend, setGrowthTrend] = useState([]);
+  const [comparisonData, setComparisonData] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -21,7 +24,7 @@ export default function CustomerSegmentation() {
   const loadData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'segments') {
+      if (activeTab === 'segments' || activeTab === 'advanced') {
         const res = await fetch('/api/v1/segments');
         const data = await res.json();
         setSegments(data.segments || []);
@@ -142,6 +145,59 @@ export default function CustomerSegmentation() {
     }
   };
 
+  const calculateOverlap = async (segmentId1, segmentId2) => {
+    try {
+      const res = await fetch(`/api/v1/segments/${segmentId1}/overlap?segment_id_2=${segmentId2}`);
+      const data = await res.json();
+      setOverlapData(data.overlap);
+    } catch (error) {
+      console.error('Error calculating overlap:', error);
+    }
+  };
+
+  const loadGrowthTrend = async (segmentId, days = 30) => {
+    try {
+      const res = await fetch(`/api/v1/segments/${segmentId}/growth-trend?days=${days}`);
+      const data = await res.json();
+      setGrowthTrend(data.trend || []);
+    } catch (error) {
+      console.error('Error loading growth trend:', error);
+    }
+  };
+
+  const createLookalike = async (segmentId) => {
+    const name = prompt('Enter name for lookalike segment:');
+    if (!name) return;
+    
+    try {
+      const res = await fetch(`/api/v1/segments/${segmentId}/lookalike`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      if (res.ok) {
+        alert('Lookalike segment created!');
+        loadData();
+      }
+    } catch (error) {
+      console.error('Error creating lookalike:', error);
+    }
+  };
+
+  const compareSegments = async (segmentIds) => {
+    try {
+      const res = await fetch('/api/v1/segments/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segment_ids: segmentIds })
+      });
+      const data = await res.json();
+      setComparisonData(data.comparison);
+    } catch (error) {
+      console.error('Error comparing segments:', error);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -159,7 +215,8 @@ export default function CustomerSegmentation() {
         <nav className="-mb-px flex space-x-8">
           {[
             { id: 'segments', label: 'Segments', icon: Target },
-            { id: 'templates', label: 'Templates', icon: Filter }
+            { id: 'templates', label: 'Templates', icon: Filter },
+            { id: 'advanced', label: 'Advanced', icon: TrendingUp }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -242,38 +299,29 @@ export default function CustomerSegmentation() {
                             }`}>
                               {segment.is_active ? 'Active' : 'Inactive'}
                             </span>
-                            {segment.last_calculated && (
-                              <span className="text-xs">
-                                Last calculated: {new Date(segment.last_calculated).toLocaleString()}
-                              </span>
-                            )}
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => calculateSegment(segment.id)}
                             className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-1"
-                            title="Recalculate segment"
                           >
                             <Play className="w-3 h-3" />
                             Calculate
                           </button>
                           <button
-                            onClick={() => exportSegment(segment.id)}
+                            onClick={() => createLookalike(segment.id)}
                             className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm flex items-center gap-1"
-                            title="Export to CSV"
+                          >
+                            <Copy className="w-3 h-3" />
+                            Lookalike
+                          </button>
+                          <button
+                            onClick={() => exportSegment(segment.id)}
+                            className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm flex items-center gap-1"
                           >
                             <Download className="w-3 h-3" />
                             Export
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedSegment(segment);
-                              loadSegmentDetails(segment.id);
-                            }}
-                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                          >
-                            View
                           </button>
                           <button
                             onClick={() => deleteSegment(segment.id)}
@@ -327,6 +375,82 @@ export default function CustomerSegmentation() {
               </div>
             </div>
           )}
+
+          {/* Advanced Tab */}
+          {activeTab === 'advanced' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Advanced Segmentation Tools</h2>
+                
+                {/* Segment Overlap Analysis */}
+                <div className="bg-white border rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <GitCompare className="w-5 h-5" />
+                    Segment Overlap Analysis
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">Compare two segments to see how many members they share</p>
+                  <div className="flex gap-2">
+                    <select className="flex-1 px-3 py-2 border rounded-lg" id="overlap-seg1">
+                      <option value="">Select first segment...</option>
+                      {segments.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <select className="flex-1 px-3 py-2 border rounded-lg" id="overlap-seg2">
+                      <option value="">Select second segment...</option>
+                      {segments.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        const seg1 = document.getElementById('overlap-seg1').value;
+                        const seg2 = document.getElementById('overlap-seg2').value;
+                        if (seg1 && seg2) calculateOverlap(seg1, seg2);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Analyze
+                    </button>
+                  </div>
+                  {overlapData && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded">
+                      <p className="text-sm"><strong>Overlap:</strong> {overlapData.overlap_count} members</p>
+                      <p className="text-sm"><strong>Segment 1:</strong> {overlapData.overlap_percentage_1}% overlap</p>
+                      <p className="text-sm"><strong>Segment 2:</strong> {overlapData.overlap_percentage_2}% overlap</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Segment Comparison */}
+                <div className="bg-white border rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Multi-Segment Comparison
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">Compare multiple segments at once</p>
+                  <button
+                    onClick={() => {
+                      const selected = segments.slice(0, 3).map(s => s.id);
+                      if (selected.length >= 2) compareSegments(selected);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Compare First 3 Segments
+                  </button>
+                  {comparisonData && (
+                    <div className="mt-4 space-y-2">
+                      {comparisonData.segments.map(s => (
+                        <div key={s.id} className="p-2 bg-gray-50 rounded text-sm">
+                          <strong>{s.name}:</strong> {s.member_count} members
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -336,16 +460,6 @@ export default function CustomerSegmentation() {
           onClose={() => setShowCreateModal(false)}
           onCreate={createSegment}
           onPreview={previewSegment}
-        />
-      )}
-
-      {/* Segment Details Modal */}
-      {selectedSegment && (
-        <SegmentDetailsModal
-          segment={selectedSegment}
-          members={members}
-          analytics={analytics}
-          onClose={() => setSelectedSegment(null)}
         />
       )}
 
@@ -464,7 +578,6 @@ function SegmentModal({ onClose, onCreate, onPreview }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Conditions</label>
             
-            {/* Existing conditions */}
             {formData.criteria_json.conditions.map((cond, idx) => (
               <div key={idx} className="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded">
                 <span className="text-sm">{cond.field}</span>
@@ -480,7 +593,6 @@ function SegmentModal({ onClose, onCreate, onPreview }) {
               </div>
             ))}
 
-            {/* Add new condition */}
             <div className="flex gap-2 mt-2">
               <select
                 value={newCondition.field}
@@ -502,6 +614,9 @@ function SegmentModal({ onClose, onCreate, onPreview }) {
                 <option value="starts_with">Starts with</option>
                 <option value="is_null">Is empty</option>
                 <option value="is_not_null">Is not empty</option>
+                <option value="within_last_days">Within last (days)</option>
+                <option value="greater_than">Greater than</option>
+                <option value="less_than">Less than</option>
               </select>
               <input
                 type="text"
@@ -543,48 +658,6 @@ function SegmentModal({ onClose, onCreate, onPreview }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-}
-
-function SegmentDetailsModal({ segment, members, analytics, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h2 className="text-xl font-bold">{segment.name}</h2>
-            <p className="text-sm text-gray-600">{segment.member_count || 0} members</p>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold mb-2">Members</h3>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Name</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Email</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {members.slice(0, 10).map(member => (
-                    <tr key={member.id}>
-                      <td className="px-4 py-2 text-sm">{member.name || 'N/A'}</td>
-                      <td className="px-4 py-2 text-sm">{member.email}</td>
-                      <td className="px-4 py-2 text-sm">{member.status || 'active'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

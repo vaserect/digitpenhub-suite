@@ -18,10 +18,16 @@ router.get('/:id/members', segmentationController.getSegmentMembers);
 
 // ==================== ANALYTICS ====================
 router.get('/:id/analytics', segmentationController.getSegmentAnalytics);
+router.get('/:id/growth-trend', segmentationController.getSegmentGrowthTrend);
 
 // ==================== TEMPLATES ====================
 router.get('/templates/list', segmentationController.getTemplates);
 router.post('/templates/create-from', segmentationController.createFromTemplate);
+
+// ==================== ADVANCED FEATURES ====================
+router.get('/:id/overlap', segmentationController.getSegmentOverlap);
+router.post('/:id/lookalike', segmentationController.createLookalikeSegment);
+router.post('/compare', segmentationController.compareSegments);
 
 // ==================== BULK OPERATIONS ====================
 router.post('/bulk-delete', segmentationController.bulkDelete);

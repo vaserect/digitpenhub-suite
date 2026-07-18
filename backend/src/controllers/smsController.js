@@ -112,7 +112,7 @@ async function createCampaign(req, res) {
 
 async function sendCampaign(req, res) {
   const { id } = req.params;
-  const { contactIds } = req.body || {};
+  const { contactIds, segmentId } = req.body || {};
   const camp = await db.query(`SELECT * FROM sms_campaigns WHERE id=$1 AND org_id=$2`, [id, req.user.orgId]);
   if (!camp.rows.length)           return res.status(404).json({ error: 'Not found.' });
   if (camp.rows[0].status === 'sent') return res.status(400).json({ error: 'Already sent.' });
@@ -120,27 +120,90 @@ async function sendCampaign(req, res) {
   const configured = smsProviderConfigured();
   let sentCount = 0;
   let errorCount = 0;
+  let recipients = [];
 
-  if (configured && contactIds?.length) {
-    // Fetch recipient phone numbers
+  // Get recipients from segment or contact IDs
+  if (segmentId) {
+    const { rows: segmentContacts } = await db.query(
+      `SELECT c.id, c.phone FROM sms_contacts c
+       INNER JOIN sms_segment_members sm ON c.id = sm.contact_id
+       WHERE sm.segment_id = $1 AND c.org_id = $2 AND c.status = 'active'`,
+      [segmentId, req.user.orgId]
+    );
+    recipients = segmentContacts;
+  } else if (contactIds?.length) {
     const { rows: contacts } = await db.query(
-      `SELECT phone FROM sms_contacts WHERE id = ANY($1) AND org_id = $2`,
+      `SELECT id, phone FROM sms_contacts WHERE id = ANY($1) AND org_id = $2 AND status = 'active'`,
       [contactIds, req.user.orgId]
     );
-    const recipients = contacts.map((c) => c.phone).filter(Boolean);
+    recipients = contacts;
+  }
 
-    if (recipients.length) {
-      const result = await sendBulkSms({ recipients, message: camp.rows[0].message });
+  if (configured && recipients.length) {
+    // Handle A/B testing if enabled
+    if (camp.rows[0].ab_test_enabled && camp.rows[0].ab_test_config) {
+      const { variants } = camp.rows[0].ab_test_config;
+      
+      // Get variant configurations
+      const { rows: variantRows } = await db.query(
+        `SELECT * FROM sms_campaign_variants WHERE campaign_id = $1 ORDER BY id`,
+        [id]
+      );
+
+      // Distribute recipients across variants
+      for (let i = 0; i < recipients.length; i++) {
+        const recipient = recipients[i];
+        const variantIndex = i % variantRows.length;
+        const variant = variantRows[variantIndex];
+
+        const result = await sendBulkSms({ 
+          recipients: [recipient.phone], 
+          message: variant.message 
+        });
+
+        if (result.results[0].ok) {
+          sentCount++;
+          // Track send
+          await db.query(
+            `INSERT INTO sms_sends (org_id, campaign_id, contact_id, variant_id, phone, message, status, provider_id, sent_at)
+             VALUES ($1, $2, $3, $4, $5, $6, 'sent', $7, NOW())`,
+            [req.user.orgId, id, recipient.id, variant.id, recipient.phone, variant.message, result.results[0].messageId]
+          );
+          // Update variant stats
+          await db.query(
+            `UPDATE sms_campaign_variants SET sent_count = sent_count + 1 WHERE id = $1`,
+            [variant.id]
+          );
+        } else {
+          errorCount++;
+        }
+      }
+    } else {
+      // Standard send without A/B testing
+      const phoneNumbers = recipients.map((c) => c.phone).filter(Boolean);
+      const result = await sendBulkSms({ recipients: phoneNumbers, message: camp.rows[0].message });
       sentCount = result.results.filter((r) => r.ok).length;
       errorCount = result.results.filter((r) => !r.ok).length;
+
+      // Track individual sends
+      for (let i = 0; i < result.results.length; i++) {
+        const sendResult = result.results[i];
+        const recipient = recipients[i];
+        await db.query(
+          `INSERT INTO sms_sends (org_id, campaign_id, contact_id, phone, message, status, provider_id, sent_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [req.user.orgId, id, recipient.id, sendResult.to, camp.rows[0].message, 
+           sendResult.ok ? 'sent' : 'failed', sendResult.messageId]
+        );
+      }
     }
   }
 
   const { rows } = await db.query(
-    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$2,simulated=$3 WHERE id=$4 AND org_id=$5 RETURNING *`,
-    [contactIds?.length || 0, sentCount, !configured || (configured && !contactIds?.length), id, req.user.orgId]
+    `UPDATE sms_campaigns SET status='sent',sent_at=NOW(),recipients_count=$1,sent_count=$2,failed_count=$3,simulated=$4 WHERE id=$5 AND org_id=$6 RETURNING *`,
+    [recipients.length, sentCount, errorCount, !configured || !recipients.length, id, req.user.orgId]
   );
-  res.json({ campaign: rows[0], simulated: !configured || !contactIds?.length, sentCount, errorCount });
+  res.json({ campaign: rows[0], simulated: !configured || !recipients.length, sentCount, errorCount });
 }
 
 async function deleteCampaign(req, res) {
@@ -153,4 +216,176 @@ async function exportContacts(req, res) {
   sendCsv(res, 'sms-contacts.csv', rows, autoColumns(rows));
 }
 
-module.exports = { getStats, listContacts, exportContacts, createContact, updateContact, deleteContact, bulkCreateContacts, bulkDeleteSmsContacts, listCampaigns, createCampaign, sendCampaign, deleteCampaign };
+async function getCampaignAnalytics(req, res) {
+  const { id } = req.params;
+  const { rows: campaign } = await db.query(
+    `SELECT * FROM sms_campaigns WHERE id=$1 AND org_id=$2`,
+    [id, req.user.orgId]
+  );
+  
+  if (!campaign.length) return res.status(404).json({ error: 'Campaign not found' });
+
+  // Get send statistics
+  const { rows: sendStats } = await db.query(
+    `SELECT 
+       COUNT(*) as total_sends,
+       COUNT(*) FILTER (WHERE status = 'sent') as sent,
+       COUNT(*) FILTER (WHERE status = 'delivered') as delivered,
+       COUNT(*) FILTER (WHERE status = 'failed') as failed,
+       COUNT(*) FILTER (WHERE status = 'clicked') as clicked
+     FROM sms_sends
+     WHERE campaign_id = $1`,
+    [id]
+  );
+
+  // Get daily analytics
+  const { rows: dailyStats } = await db.query(
+    `SELECT * FROM sms_campaign_analytics
+     WHERE campaign_id = $1
+     ORDER BY date DESC
+     LIMIT 30`,
+    [id]
+  );
+
+  // Get A/B test results if enabled
+  let abTestResults = null;
+  if (campaign[0].ab_test_enabled) {
+    const { rows: variants } = await db.query(
+      `SELECT * FROM sms_campaign_variants WHERE campaign_id = $1`,
+      [id]
+    );
+    abTestResults = variants;
+  }
+
+  res.json({
+    campaign: campaign[0],
+    stats: sendStats[0],
+    dailyStats,
+    abTestResults
+  });
+}
+
+async function trackLinkClick(req, res) {
+  const { shortCode } = req.params;
+  
+  // Get link
+  const { rows: links } = await db.query(
+    `SELECT * FROM sms_links WHERE short_code = $1`,
+    [shortCode]
+  );
+
+  if (!links.length) {
+    return res.status(404).json({ error: 'Link not found' });
+  }
+
+  const link = links[0];
+
+  // Track click
+  await db.query(
+    `INSERT INTO sms_link_clicks (link_id, ip_address, user_agent, clicked_at)
+     VALUES ($1, $2, $3, NOW())`,
+    [link.id, req.ip, req.get('user-agent')]
+  );
+
+  // Update click count
+  await db.query(
+    `UPDATE sms_links SET click_count = click_count + 1 WHERE id = $1`,
+    [link.id]
+  );
+
+  // Update contact click stats if we can identify them
+  // (This would require additional tracking logic)
+
+  // Redirect to original URL
+  res.redirect(link.original_url);
+}
+
+async function listTemplates(req, res) {
+  const { category } = req.query;
+  let query = `SELECT * FROM sms_templates WHERE org_id = $1`;
+  const values = [req.user.orgId];
+  
+  if (category) {
+    query += ` AND category = $2`;
+    values.push(category);
+  }
+  
+  query += ` ORDER BY created_at DESC`;
+  
+  const { rows } = await db.query(query, values);
+  res.json({ templates: rows });
+}
+
+async function createTemplate(req, res) {
+  const { name, category, message, media_urls, merge_fields } = req.body || {};
+  
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  if (!message?.trim()) return res.status(400).json({ error: 'message required' });
+  
+  const { rows } = await db.query(
+    `INSERT INTO sms_templates (org_id, name, category, message, media_urls, merge_fields)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING *`,
+    [req.user.orgId, name.trim(), category || null, message.trim(), media_urls || [], merge_fields || []]
+  );
+  
+  res.status(201).json({ template: rows[0] });
+}
+
+async function updateTemplate(req, res) {
+  const { id } = req.params;
+  const { name, category, message, media_urls, merge_fields, is_active } = req.body || {};
+  
+  const updates = [];
+  const vals = [];
+  let i = 1;
+  
+  if (name !== undefined) { updates.push(`name=$${i++}`); vals.push(name.trim()); }
+  if (category !== undefined) { updates.push(`category=$${i++}`); vals.push(category); }
+  if (message !== undefined) { updates.push(`message=$${i++}`); vals.push(message.trim()); }
+  if (media_urls !== undefined) { updates.push(`media_urls=$${i++}`); vals.push(media_urls); }
+  if (merge_fields !== undefined) { updates.push(`merge_fields=$${i++}`); vals.push(merge_fields); }
+  if (is_active !== undefined) { updates.push(`is_active=$${i++}`); vals.push(is_active); }
+  
+  if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
+  
+  updates.push(`updated_at=NOW()`);
+  vals.push(id, req.user.orgId);
+  
+  const { rows } = await db.query(
+    `UPDATE sms_templates SET ${updates.join(',')} WHERE id=$${i++} AND org_id=$${i++} RETURNING *`,
+    vals
+  );
+  
+  if (!rows.length) return res.status(404).json({ error: 'Template not found' });
+  res.json({ template: rows[0] });
+}
+
+async function deleteTemplate(req, res) {
+  await db.query(
+    `DELETE FROM sms_templates WHERE id=$1 AND org_id=$2`,
+    [req.params.id, req.user.orgId]
+  );
+  res.json({ ok: true });
+}
+
+module.exports = { 
+  getStats, 
+  listContacts, 
+  exportContacts, 
+  createContact, 
+  updateContact, 
+  deleteContact, 
+  bulkCreateContacts, 
+  bulkDeleteSmsContacts, 
+  listCampaigns, 
+  createCampaign, 
+  sendCampaign, 
+  deleteCampaign,
+  getCampaignAnalytics,
+  trackLinkClick,
+  listTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate
+};

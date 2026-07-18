@@ -9,11 +9,11 @@ const router = Router();
 router.use(requireAuth);
 
 // CRUD operations
-router.get('/', componentsController.getAll);
-router.get('/:id', componentsController.getById);
-router.post('/', componentsController.create);
-router.put('/:id', componentsController.update);
-router.delete('/:id', componentsController.delete);
+router.get('/', componentsController.getComponents);
+router.get('/:id', componentsController.getComponentById);
+router.post('/', componentsController.createComponent);
+router.put('/:id', componentsController.updateComponent);
+router.delete('/:id', componentsController.deleteComponent);
 
 // Bulk operations
 router.post('/bulk-delete', bulkDeleteHandler('components'));

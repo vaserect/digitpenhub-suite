@@ -10,7 +10,8 @@ import { apiFetch } from '@/lib/api';
 export default function CMSCollectionBlock({ 
   block, 
   isEditing = false,
-  onUpdate 
+  onUpdate,
+  orgId 
 }) {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

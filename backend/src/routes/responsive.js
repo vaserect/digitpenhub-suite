@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const responsiveController = require('../controllers/responsiveController');
-const { authenticate } = require('../middleware/auth');
+const { requireAuth: authenticate } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(authenticate);

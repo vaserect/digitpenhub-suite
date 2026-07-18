@@ -8,7 +8,7 @@ const logger = require('../../utils/logger');
  */
 class AutomationService extends BaseService {
   constructor() {
-    super(null, { serviceName: 'AutomationService', logger });
+    super({}, { serviceName: 'AutomationService', logger });
   }
 
   /**

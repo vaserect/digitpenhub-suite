@@ -102,8 +102,16 @@ const ROUTES_CONFIG = [
   authRoute('/api/v1/email/automations', 'emailAutomations', 'Email automation workflows'),
   publicRoute('/api/v1/leads', 'leads', 'Lead management'),
   moduleRoute('/api/v1/automation', 'automation', 'marketing-automation', 'Marketing automation'),
+  authRoute('/api/v1/automation/analytics', 'automationAnalytics', 'Automation analytics', [requireModuleAccess('marketing-automation')]),
   moduleRoute('/api/v1/sms', 'sms', 'sms-marketing', 'SMS marketing'),
+  authRoute('/api/v1/sms/segments', 'smsSegments', 'SMS segmentation', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/automations', 'smsAutomations', 'SMS automation workflows', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/conversations', 'smsConversations', 'SMS conversations', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/keywords', 'smsKeywords', 'SMS keywords', [requireModuleAccess('sms-marketing')]),
   moduleRoute('/api/v1/whatsapp', 'whatsapp', 'whatsapp-marketing', 'WhatsApp marketing'),
+  authRoute('/api/v1/whatsapp/segments', 'whatsappSegments', 'WhatsApp segmentation', [requireModuleAccess('whatsapp-marketing')]),
+  authRoute('/api/v1/whatsapp/automations', 'whatsappAutomations', 'WhatsApp automation workflows', [requireModuleAccess('whatsapp-marketing')]),
+  authRoute('/api/v1/whatsapp/conversations', 'whatsappConversations', 'WhatsApp conversations', [requireModuleAccess('whatsapp-marketing')]),
   moduleRoute('/api/v1/social-media', 'socialMedia', 'social-media-scheduler', 'Social Media Scheduler'),
   
   // ============================================================================

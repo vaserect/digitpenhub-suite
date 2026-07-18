@@ -8,7 +8,7 @@ const logger = require('../../utils/logger');
  */
 class SegmentationService extends BaseService {
   constructor() {
-    super(null, { serviceName: 'SegmentationService', logger });
+    super({}, { serviceName: 'SegmentationService', logger });
   }
 
   /**

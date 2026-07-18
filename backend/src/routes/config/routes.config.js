@@ -215,6 +215,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/color-palettes', 'colorPalettes', 'color-palette-generator', 'Color palette generator'),
   moduleRoute('/api/v1/ad-campaigns', 'adCampaign', 'ad-campaign-manager', 'Ad Campaign Manager'),
   
+  moduleRoute('/api/v1/events', 'events', 'event-hosting', 'Event / Webinar Hosting'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================

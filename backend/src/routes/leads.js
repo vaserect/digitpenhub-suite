@@ -65,9 +65,10 @@ router.patch('/variants/:id', ext.updateVariant);
 router.delete('/variants/:id', ext.deleteVariant);
 
 // Analytics
+router.get('/analytics/top-forms', ext.getTopPerformingForms);
 router.get('/forms/:formId/analytics', ext.getFormAnalytics);
-router.get('/forms/:formId/variants/performance', ext.getVariantPerformance);
-router.get('/forms/:formId/funnel', ext.getConversionFunnel);
+router.get('/forms/:formId/analytics/variants', ext.getVariantPerformance);
+router.get('/forms/:formId/analytics/funnel', ext.getConversionFunnel);
 router.post('/forms/:formId/track', ext.trackFormEvent);
 
 // Lead Scoring

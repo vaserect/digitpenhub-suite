@@ -6,6 +6,11 @@ import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import StarterTemplateModal from '../ui/StarterTemplateModal';
+import PopupBuilder from './LeadGeneration/PopupBuilder';
+import ABTestingManager from './LeadGeneration/ABTestingManager';
+import AnalyticsDashboard from './LeadGeneration/AnalyticsDashboard';
+import WebhooksManager from './LeadGeneration/WebhooksManager';
+import ScoringRulesManager from './LeadGeneration/ScoringRulesManager';
 
 function createBlankLeadFormDraft() {
   return { name: '', thankYouMessage: '', fields: [] };
@@ -32,6 +37,7 @@ export default function LeadGenerationModule({ goHome, showToast }) {
   const [editSubmissionDraft, setEditSubmissionDraft] = useState({ status: 'new', notes: '' });
   const [leadFormError, setLeadFormError] = useState('');
   const [leadTemplateOpen, setLeadTemplateOpen] = useState(false);
+  const [selectedFormForABTest, setSelectedFormForABTest] = useState(null);
 
   const leadStarterTemplates = useMemo(() => getLeadFormStarterTemplates(), []);
 
@@ -180,6 +186,21 @@ export default function LeadGenerationModule({ goHome, showToast }) {
     showToast('Embed code copied to clipboard.');
   }
 
+  // Render A/B Testing view for a specific form
+  if (selectedFormForABTest) {
+    const form = leadForms.find(f => f.id === selectedFormForABTest);
+    return (
+      <div className="panel">
+        <button className="back-link" onClick={() => setSelectedFormForABTest(null)}>← Back to forms</button>
+        <ABTestingManager
+          formId={selectedFormForABTest}
+          formName={form?.name || 'Form'}
+          showToast={showToast}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="panel">
       <button className="back-link" onClick={goHome}>← Workspace</button>
@@ -211,7 +232,15 @@ export default function LeadGenerationModule({ goHome, showToast }) {
       )}
 
       <div className="invoice-tabs" style={{ marginBottom: 20 }}>
-        {[{ key: 'forms', label: 'Forms' }, { key: 'inbox', label: 'Leads inbox' }, { key: 'pipeline', label: 'Pipeline' }].map((t) => (
+        {[
+          { key: 'forms', label: 'Forms' },
+          { key: 'inbox', label: 'Leads inbox' },
+          { key: 'pipeline', label: 'Pipeline' },
+          { key: 'popups', label: 'Popups' },
+          { key: 'analytics', label: 'Analytics' },
+          { key: 'scoring', label: 'Scoring' },
+          { key: 'webhooks', label: 'Webhooks' }
+        ].map((t) => (
           <button key={t.key} type="button"
             className={`invoice-tab${leadsTab === t.key ? ' active' : ''}`}
             onClick={() => { setLeadsTab(t.key); setShowLeadFormBuilder(false); setViewEmbedFormId(null); setLeadFormError(''); }}>
@@ -224,6 +253,22 @@ export default function LeadGenerationModule({ goHome, showToast }) {
 
       {leadFormError && (
         <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,.1)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,.2)', marginBottom: 14, fontSize: 13 }}>{leadFormError}</div>
+      )}
+
+      {leadsTab === 'popups' && (
+        <PopupBuilder forms={leadForms} onClose={() => setLeadsTab('forms')} showToast={showToast} />
+      )}
+
+      {leadsTab === 'analytics' && (
+        <AnalyticsDashboard forms={leadForms} showToast={showToast} />
+      )}
+
+      {leadsTab === 'webhooks' && (
+        <WebhooksManager showToast={showToast} />
+      )}
+
+      {leadsTab === 'scoring' && (
+        <ScoringRulesManager showToast={showToast} />
       )}
 
       {leadsTab === 'forms' && (
@@ -343,6 +388,7 @@ export default function LeadGenerationModule({ goHome, showToast }) {
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="ctag" onClick={() => apiFetch(`/api/v1/leads/forms/${form.id}`).then((d) => startEditLeadForm(d.form)).catch(() => showToast('Unable to load form.'))}>Edit</button>
+                        <button className="ctag" onClick={() => setSelectedFormForABTest(form.id)}>A/B Test</button>
                         <button className="ctag" onClick={() => setViewEmbedFormId(form.id)}>Embed</button>
                         <button className="ctag" onClick={() => { window.open(`/leads/${form.id}`, '_blank'); }}>Preview</button>
                         <button className="ctag" style={{ color: 'var(--danger)' }} onClick={() => handleDeleteLeadForm(form.id)}>Delete</button>

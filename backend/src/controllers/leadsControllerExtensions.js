@@ -130,6 +130,16 @@ async function deleteVariant(req, res) {
 
 // ── Analytics ───────────────────────────────────────────────────────────────
 
+async function getTopPerformingForms(req, res) {
+  try {
+    const { limit } = req.query;
+    const forms = await analyticsService.getTopPerformingForms(req.user.orgId, parseInt(limit) || 10);
+    res.json({ forms });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function getFormAnalytics(req, res) {
   try {
     const { formId } = req.params;
@@ -384,7 +394,7 @@ module.exports = {
   // Variants
   listVariants, createVariant, updateVariant, deleteVariant,
   // Analytics
-  getFormAnalytics, getVariantPerformance, getConversionFunnel, trackFormEvent,
+  getTopPerformingForms, getFormAnalytics, getVariantPerformance, getConversionFunnel, trackFormEvent,
   // Scoring
   listScoringRules, createScoringRule, updateScoringRule, deleteScoringRule, calculateScore,
   // Assignment

@@ -1,12 +1,12 @@
 # Marketing Category Implementation Progress
 
 **Last Updated:** 2026-07-18  
-**Current Status:** Module 24 COMPLETE (27/40 modules done)  
+**Current Status:** Module 25 COMPLETE (28/40 modules done)  
 **Note:** Module ordering aligned with categories.data.js (canonical source of truth)
 
 ## Completion Status
 
-### ✅ Completed Modules (27/40)
+### ✅ Completed Modules (28/40)
 
 #### Module 1: CRM ✅
 - **Status:** COMPLETE (pre-existing, audited)
@@ -289,8 +289,7 @@
 - **Completion Report:** MODULE_16_QUIZ_BUILDER_COMPLETION_REPORT.md
 - **Benchmark Achievement:** 85% feature parity with Outgrow/Interact (core features complete)
 
-### ⏳ Pending Modules (13/40)
-25. Lead Scoring
+### ⏳ Pending Modules (12/40)
 26. Pipeline / Deals
 27. Referral & Affiliate Analytics Dashboard
 29. Content Calendar
@@ -307,10 +306,10 @@
 ## Statistics
 
 - **Total Modules:** 40
-- **Completed:** 27 (67.5%)
+- **Completed:** 28 (70.0%)
 - **In Progress:** 0 (0%)
-- **Remaining:** 13 (32.5%)
-- **Completion Velocity:** 18 modules completed in current session
+- **Remaining:** 12 (30.0%)
+- **Completion Velocity:** 19 modules completed in current session
 
 ## Quality Standards
 
@@ -616,3 +615,21 @@ Each module must meet:
 - **Notes:**
   - Rules engine executes dynamically and updates statuses based on CPA triggers.
   - Fully production-ready core implementation with mock data simulator to guarantee instant trial usability.
+
+#### Module 25: Lead Scoring ✅
+- **Status:** COMPLETE
+- **Completion Date:** 2026-07-18
+- **Benchmark:** MadKudu / HubSpot Lead Scoring
+- **Features:**
+  - Lead property-based and activity-based scoring models (demographic, behavioral, engagement).
+  - Manual, bulk, and automated recalculations of lead score whenever contact properties or activities change.
+  - Score history audit trail logging changes, applied rules, and triggering source details.
+  - Score thresholds categorization (Hot, Warm, Cold, etc.) with custom visual color-coding and routing alerts.
+- **Backend:**
+  - Fixed database query column reference conflicts (changing `u.name` to `u.full_name` for user joins).
+  - Created backend route file `backend/src/routes/leadScoring.js` and registered it in the Express loader.
+  - Fully tested activity evaluation loops in `LeadScoringService.js`.
+- **Frontend:**
+  - Dedicated lead scoring page route wrapper at `frontend/app/lead-scoring/page.tsx`.
+  - Rich score distribution analytics, rule setup, and threshold management panels in `frontend/components/modules/lead-scoring/`.
+- **Commits:** 410c130

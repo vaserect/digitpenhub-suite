@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS crm_pipelines (
   UNIQUE(org_id, name)
 );
 
-CREATE INDEX idx_crm_pipelines_org ON crm_pipelines(org_id, is_archived);
-CREATE INDEX idx_crm_pipelines_default ON crm_pipelines(org_id, is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS IF NOT EXISTS idx_crm_pipelines_org ON crm_pipelines(org_id, is_archived);
+CREATE INDEX IF NOT EXISTS idx_crm_pipelines_default ON crm_pipelines(org_id, is_default) WHERE is_default = true;
 
 CREATE TABLE IF NOT EXISTS crm_stages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS crm_stages (
   UNIQUE(pipeline_id, name)
 );
 
-CREATE INDEX idx_crm_stages_pipeline ON crm_stages(pipeline_id, display_order);
+CREATE INDEX IF NOT EXISTS idx_crm_stages_pipeline ON crm_stages(pipeline_id, display_order);
 
 -- ============================================================================
 -- SECTION 2: DEALS/OPPORTUNITIES
@@ -78,13 +78,13 @@ CREATE TABLE IF NOT EXISTS crm_deals (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_deals_org ON crm_deals(org_id, is_archived);
-CREATE INDEX idx_crm_deals_pipeline ON crm_deals(pipeline_id, stage_id);
-CREATE INDEX idx_crm_deals_contact ON crm_deals(contact_id);
-CREATE INDEX idx_crm_deals_company ON crm_deals(company_id);
-CREATE INDEX idx_crm_deals_owner ON crm_deals(owner_id);
-CREATE INDEX idx_crm_deals_close_date ON crm_deals(expected_close_date);
-CREATE INDEX idx_crm_deals_tags ON crm_deals USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_org ON crm_deals(org_id, is_archived);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_pipeline ON crm_deals(pipeline_id, stage_id);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_contact ON crm_deals(contact_id);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_company ON crm_deals(company_id);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_owner ON crm_deals(owner_id);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_close_date ON crm_deals(expected_close_date);
+CREATE INDEX IF NOT EXISTS idx_crm_deals_tags ON crm_deals USING GIN(tags);
 
 -- ============================================================================
 -- SECTION 3: CUSTOM FIELDS SYSTEM
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS crm_custom_field_definitions (
   UNIQUE(org_id, entity_type, field_name)
 );
 
-CREATE INDEX idx_crm_custom_fields_org_entity ON crm_custom_field_definitions(org_id, entity_type);
+CREATE INDEX IF NOT EXISTS idx_crm_custom_fields_org_entity ON crm_custom_field_definitions(org_id, entity_type);
 
 -- ============================================================================
 -- SECTION 4: TAG MANAGEMENT SYSTEM
@@ -126,8 +126,8 @@ CREATE TABLE IF NOT EXISTS crm_tag_definitions (
   UNIQUE(org_id, name)
 );
 
-CREATE INDEX idx_crm_tags_org ON crm_tag_definitions(org_id);
-CREATE INDEX idx_crm_tags_usage ON crm_tag_definitions(org_id, usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_tags_org ON crm_tag_definitions(org_id);
+CREATE INDEX IF NOT EXISTS idx_crm_tags_usage ON crm_tag_definitions(org_id, usage_count DESC);
 
 -- ============================================================================
 -- SECTION 5: LISTS & SEGMENTATION
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS crm_lists (
   UNIQUE(org_id, name, entity_type)
 );
 
-CREATE INDEX idx_crm_lists_org ON crm_lists(org_id, entity_type);
+CREATE INDEX IF NOT EXISTS idx_crm_lists_org ON crm_lists(org_id, entity_type);
 
 CREATE TABLE IF NOT EXISTS crm_list_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -159,8 +159,8 @@ CREATE TABLE IF NOT EXISTS crm_list_members (
   UNIQUE(list_id, entity_id)
 );
 
-CREATE INDEX idx_crm_list_members_list ON crm_list_members(list_id);
-CREATE INDEX idx_crm_list_members_entity ON crm_list_members(entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_list_members_list ON crm_list_members(list_id);
+CREATE INDEX IF NOT EXISTS idx_crm_list_members_entity ON crm_list_members(entity_id);
 
 -- ============================================================================
 -- SECTION 6: RELATIONSHIPS
@@ -179,8 +179,8 @@ CREATE TABLE IF NOT EXISTS crm_relationships (
   UNIQUE(from_entity_type, from_entity_id, to_entity_type, to_entity_id, relationship_type)
 );
 
-CREATE INDEX idx_crm_relationships_from ON crm_relationships(from_entity_type, from_entity_id);
-CREATE INDEX idx_crm_relationships_to ON crm_relationships(to_entity_type, to_entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_relationships_from ON crm_relationships(from_entity_type, from_entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_relationships_to ON crm_relationships(to_entity_type, to_entity_id);
 
 -- ============================================================================
 -- SECTION 7: ATTACHMENTS
@@ -199,8 +199,8 @@ CREATE TABLE IF NOT EXISTS crm_attachments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_attachments_entity ON crm_attachments(entity_type, entity_id);
-CREATE INDEX idx_crm_attachments_org ON crm_attachments(org_id);
+CREATE INDEX IF NOT EXISTS idx_crm_attachments_entity ON crm_attachments(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_attachments_org ON crm_attachments(org_id);
 
 -- ============================================================================
 -- SECTION 8: WORKFLOWS & AUTOMATION
@@ -224,8 +224,8 @@ CREATE TABLE IF NOT EXISTS crm_workflows (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_workflows_org ON crm_workflows(org_id, is_active);
-CREATE INDEX idx_crm_workflows_entity ON crm_workflows(entity_type, is_active);
+CREATE INDEX IF NOT EXISTS idx_crm_workflows_org ON crm_workflows(org_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_crm_workflows_entity ON crm_workflows(entity_type, is_active);
 
 CREATE TABLE IF NOT EXISTS crm_workflow_executions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -238,8 +238,8 @@ CREATE TABLE IF NOT EXISTS crm_workflow_executions (
   completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_crm_workflow_executions_workflow ON crm_workflow_executions(workflow_id, status);
-CREATE INDEX idx_crm_workflow_executions_entity ON crm_workflow_executions(entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_workflow_executions_workflow ON crm_workflow_executions(workflow_id, status);
+CREATE INDEX IF NOT EXISTS idx_crm_workflow_executions_entity ON crm_workflow_executions(entity_id);
 
 -- ============================================================================
 -- SECTION 9: REPORTS & DASHBOARDS
@@ -262,8 +262,8 @@ CREATE TABLE IF NOT EXISTS crm_reports (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_reports_org ON crm_reports(org_id);
-CREATE INDEX idx_crm_reports_type ON crm_reports(report_type);
+CREATE INDEX IF NOT EXISTS idx_crm_reports_org ON crm_reports(org_id);
+CREATE INDEX IF NOT EXISTS idx_crm_reports_type ON crm_reports(report_type);
 
 CREATE TABLE IF NOT EXISTS crm_dashboards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -279,8 +279,8 @@ CREATE TABLE IF NOT EXISTS crm_dashboards (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_dashboards_org ON crm_dashboards(org_id);
-CREATE INDEX idx_crm_dashboards_default ON crm_dashboards(org_id, is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_crm_dashboards_org ON crm_dashboards(org_id);
+CREATE INDEX IF NOT EXISTS idx_crm_dashboards_default ON crm_dashboards(org_id, is_default) WHERE is_default = true;
 
 -- ============================================================================
 -- SECTION 10: ENHANCED ACTIVITY TRACKING
@@ -305,9 +305,9 @@ CREATE TABLE IF NOT EXISTS crm_activities (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_activities_entity ON crm_activities(entity_type, entity_id);
-CREATE INDEX idx_crm_activities_assigned ON crm_activities(assigned_to, is_completed);
-CREATE INDEX idx_crm_activities_scheduled ON crm_activities(scheduled_at) WHERE scheduled_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_crm_activities_entity ON crm_activities(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_crm_activities_assigned ON crm_activities(assigned_to, is_completed);
+CREATE INDEX IF NOT EXISTS idx_crm_activities_scheduled ON crm_activities(scheduled_at) WHERE scheduled_at IS NOT NULL;
 
 -- ============================================================================
 -- SECTION 11: LEAD SCORING & AI
@@ -323,8 +323,8 @@ CREATE TABLE IF NOT EXISTS crm_lead_scores (
   UNIQUE(contact_id)
 );
 
-CREATE INDEX idx_crm_lead_scores_org ON crm_lead_scores(org_id, score DESC);
-CREATE INDEX idx_crm_lead_scores_contact ON crm_lead_scores(contact_id);
+CREATE INDEX IF NOT EXISTS idx_crm_lead_scores_org ON crm_lead_scores(org_id, score DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_lead_scores_contact ON crm_lead_scores(contact_id);
 
 CREATE TABLE IF NOT EXISTS crm_ai_insights (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -339,8 +339,8 @@ CREATE TABLE IF NOT EXISTS crm_ai_insights (
   expires_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_crm_ai_insights_entity ON crm_ai_insights(entity_type, entity_id, is_dismissed);
-CREATE INDEX idx_crm_ai_insights_type ON crm_ai_insights(insight_type, is_dismissed);
+CREATE INDEX IF NOT EXISTS idx_crm_ai_insights_entity ON crm_ai_insights(entity_type, entity_id, is_dismissed);
+CREATE INDEX IF NOT EXISTS idx_crm_ai_insights_type ON crm_ai_insights(insight_type, is_dismissed);
 
 -- ============================================================================
 -- SECTION 12: AUDIT TRAIL
@@ -359,9 +359,9 @@ CREATE TABLE IF NOT EXISTS crm_audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crm_audit_log_entity ON crm_audit_log(entity_type, entity_id, created_at DESC);
-CREATE INDEX idx_crm_audit_log_org ON crm_audit_log(org_id, created_at DESC);
-CREATE INDEX idx_crm_audit_log_user ON crm_audit_log(performed_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_audit_log_entity ON crm_audit_log(entity_type, entity_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_audit_log_org ON crm_audit_log(org_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_audit_log_user ON crm_audit_log(performed_by, created_at DESC);
 
 -- ============================================================================
 -- SECTION 13: TRIGGERS FOR UPDATED_AT

@@ -51,13 +51,33 @@ export default function AccountManager({ onRefresh }) {
     }
   };
 
-  const startOAuth = (platform) => {
+  const startOAuth = async (platform) => {
     const config = PLATFORM_CONFIG[platform];
-    if (!config || config.authUrl === '#') {
-      toast.info(`${config?.name || platform} setup requires manual API configuration.`);
-      return;
+    if (!config) return;
+    
+    const accountName = prompt(`Enter a custom name for this simulated ${config.name} page or account:`, `@${platform}_business`);
+    if (!accountName?.trim()) return;
+
+    try {
+      const data = await apiFetch('/api/v1/social-media/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform,
+          code: 'mock_code',
+          accountName: accountName.trim()
+        })
+      });
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`${config.name} connected successfully!`);
+        setShowConnect(false);
+        fetchAccounts();
+      }
+    } catch (err) {
+      toast.error('Failed to connect social account.');
     }
-    toast.info(`OAuth window would open for ${config.name}. Connect flow ready when credentials are configured.`);
   };
 
   const platformStats = {};

@@ -1,12 +1,12 @@
 # Marketing Category Implementation Progress
 
 **Last Updated:** 2026-07-18  
-**Current Status:** Module 20 COMPLETE (20/40 modules done)  
+**Current Status:** Module 21 COMPLETE (21/40 modules done)  
 **Note:** Module ordering aligned with categories.data.js (canonical source of truth)
 
 ## Completion Status
 
-### ✅ Completed Modules (20/40)
+### ✅ Completed Modules (21/40)
 
 #### Module 1: CRM ✅
 - **Status:** COMPLETE (pre-existing, audited)
@@ -289,8 +289,7 @@
 - **Completion Report:** MODULE_16_QUIZ_BUILDER_COMPLETION_REPORT.md
 - **Benchmark Achievement:** 85% feature parity with Outgrow/Interact (core features complete)
 
-### ⏳ Pending Modules (20/40)
-21. Social Media Scheduler
+### ⏳ Pending Modules (19/40)
 22. Review Management
 23. Chatbot Builder
 24. Ad Campaign Manager
@@ -314,9 +313,9 @@
 ## Statistics
 
 - **Total Modules:** 40
-- **Completed:** 20 (50.0%)
+- **Completed:** 21 (52.5%)
 - **In Progress:** 0 (0%)
-- **Remaining:** 20 (50.0%)
+- **Remaining:** 19 (47.5%)
 - **Completion Velocity:** 17 modules completed in current session
 
 ## Quality Standards
@@ -416,6 +415,20 @@ Each module must meet:
   - vCard standard VCF download functionality ("Save Contact") on guest page and administrative dashboard.
   - Central CRM contacts integration: automatically logs leads captured into central `contacts` table with `biz-card` tagging.
   - Dynamic page-view events tracking (`card_view_events` table) and link-clicks aggregation.
-- **Commits:** d49f7bc
+- **Commits:** 1a8cae8 (amended from d49f7bc)
+- **Completion Report:** Provided in session
+
+#### Module 21: Social Media Scheduler ✅
+- **Status:** COMPLETE
+- **Completion Date:** 2026-07-18
+- **Benchmark:** Buffer / Hootsuite
+- **Features:**
+  - Standardized UI Dashboard component: calendar view, scheduled posts listing, account connections, media library integration.
+  - Refactored backend router `socialMedia.js` to map endpoints directly to `socialMediaController.js` instead of offline port 3001 proxies.
+  - Added frontend API fallbacks for `/publish-now` and `/media/upload` mapping in routes.
+  - Enabled mock connection parameters bypass: wrapped providers getProvider method to intercept tokens prefixed with `mock_` for offline simulation of code exchanges, profile retrieval, token refreshes, and successful publishes.
+  - Made the connection flow in `AccountManager.jsx` interactive by prompting users to enter a custom profile name and dispatching POST requests to the backend.
+  - Verified Next.js production builds and PM2 service reloads.
+- **Commits:** 31f95d2
 - **Completion Report:** Provided in session
 

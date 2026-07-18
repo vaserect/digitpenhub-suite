@@ -109,6 +109,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/pages', 'pages', 'Website pages (mixed auth)'),
   publicRoute('/api/v1/landing-pages', 'landingPages', 'Landing page builder (mixed auth)'),
+  authRoute('/api/v1/cms', 'cms', 'CMS Collections'),
   moduleRoute('/api/v1/funnels', 'funnels', 'funnel-builder', 'Funnel builder'),
   moduleRoute('/api/v1/funnel-templates', 'funnelTemplates', 'funnel-builder', 'Funnel templates'),
   publicRoute('/api/v1/builder/themes', 'builder-themes', 'Builder themes'),

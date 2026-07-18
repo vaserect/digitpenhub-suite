@@ -207,6 +207,7 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/barcodes', 'barcodes', 'Barcode generator (mixed auth)'),
   publicRoute('/api/v1/biz-cards', 'digitalBusinessCards', 'Digital business cards (mixed auth)'),
   publicRoute('/api/v1/link-in-bio', 'linkInBio', 'Link in bio (mixed auth)'),
+  publicRoute('/api/v1/reviews', 'reviews', 'Review management (mixed auth)'),
   moduleRoute('/api/v1/certificates', 'certificates', 'certificate-generator', 'Certificate generator'),
   moduleRoute('/api/v1/color-palettes', 'colorPalettes', 'color-palette-generator', 'Color palette generator'),
   

@@ -7107,6 +7107,7 @@ export default function AppShell() {
     // Extracted modules — navigate to real route instead of inline SPA
     const extracted = {
       'crm': '/crm',
+      'review-management': '/review-management',
       'invoices': '/billing-invoices',
       'email-marketing': '/email-marketing',
       'project-management': '/project-management',

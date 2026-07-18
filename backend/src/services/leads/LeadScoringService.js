@@ -170,7 +170,7 @@ class LeadScoringService {
     const { activeOnly = false } = options;
     
     let query = `
-      SELECT lsr.*, u.name as created_by_name
+      SELECT lsr.*, u.full_name as created_by_name
       FROM lead_scoring_rules lsr
       LEFT JOIN users u ON u.id = lsr.created_by
       WHERE lsr.model_id = $1 AND lsr.org_id = $2
@@ -293,6 +293,8 @@ class LeadScoringService {
       if (field.startsWith('activity.')) {
         const activityField = field.replace('activity.', '');
         fieldValue = activityData[activityField];
+      } else if (field === 'activity_type' || field === 'activity_data') {
+        fieldValue = activityData[field];
       } else {
         fieldValue = contactData[field];
       }
@@ -373,6 +375,13 @@ class LeadScoringService {
     
     const contact = contactResult.rows[0];
     
+    // Get contact's activities
+    const activitiesResult = await db.query(
+      `SELECT * FROM lead_scoring_activities WHERE contact_id = $1 AND org_id = $2`,
+      [contactId, orgId]
+    );
+    const activities = activitiesResult.rows;
+    
     // Get active rules for model
     const rules = await this.getRules(modelId, orgId, { activeOnly: true });
     
@@ -395,13 +404,29 @@ class LeadScoringService {
     const appliedRules = [];
     
     for (const rule of rules) {
-      if (this.evaluateRule(rule, contact)) {
+      let ruleMatched = false;
+      const isActivityRule = ['activity', 'behavioral', 'engagement'].includes(rule.rule_type);
+
+      if (isActivityRule) {
+        if (activities && activities.length > 0) {
+          for (const activity of activities) {
+            if (this.evaluateRule(rule, contact, activity)) {
+              ruleMatched = true;
+              break;
+            }
+          }
+        }
+      } else {
+        ruleMatched = this.evaluateRule(rule, contact, {});
+      }
+
+      if (ruleMatched) {
         newScore += rule.score_change;
         
         // Track by type
         if (rule.rule_type === 'demographic') {
           demographicScore += rule.score_change;
-        } else if (rule.rule_type === 'behavioral') {
+        } else if (rule.rule_type === 'behavioral' || rule.rule_type === 'activity') {
           behavioralScore += rule.score_change;
         } else if (rule.rule_type === 'engagement') {
           engagementScore += rule.score_change;
@@ -557,7 +582,7 @@ class LeadScoringService {
     const { modelId = null, limit = 50, offset = 0 } = options;
     
     let query = `
-      SELECT csh.*, lsr.name as rule_name, u.name as created_by_name
+      SELECT csh.*, lsr.name as rule_name, u.full_name as created_by_name
       FROM contact_score_history csh
       LEFT JOIN lead_scoring_rules lsr ON lsr.id = csh.rule_id
       LEFT JOIN users u ON u.id = csh.created_by

@@ -216,6 +216,7 @@ const ROUTES = {
   'Quiz Builder': '/modules/quiz-builder',
   'Popup Builder': '/modules/popup-builder',
   'Ad Campaign Manager': '/modules/ad-campaign-manager',
+  'Lead Scoring': '/lead-scoring',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

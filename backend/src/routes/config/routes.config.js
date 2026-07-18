@@ -299,7 +299,7 @@ const ROUTES_CONFIG = [
   // REMAINING MODULES
   // ============================================================================
   authRoute('/api/v1/support', 'remainingYellow', 'Support features'),
-  authRoute('/api/v1/community', 'greenModules', 'Community features'),
+  authRoute('/api/v1/community', 'community', 'Community/Membership Platform'),
   
   // ============================================================================
   // SUPER ADMIN

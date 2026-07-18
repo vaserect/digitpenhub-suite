@@ -14,6 +14,7 @@ export default function CommunityPlatform() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -31,7 +32,9 @@ export default function CommunityPlatform() {
         const data = await res.json();
         setEvents(data.events || []);
       } else if (activeTab === 'members') {
-        const res = await fetch('/api/v1/community/members');
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        const res = await fetch(`/api/v1/community/members?${params}`);
         const data = await res.json();
         setMembers(data.members || []);
       } else if (activeTab === 'tiers') {
@@ -47,6 +50,11 @@ export default function CommunityPlatform() {
       console.error('Error loading data:', error);
     }
     setLoading(false);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    loadData();
   };
 
   const handleCreateSpace = async (e) => {
@@ -103,15 +111,6 @@ export default function CommunityPlatform() {
     }
   };
 
-  const handleJoinSpace = async (spaceId) => {
-    try {
-      await fetch(`/api/v1/community/spaces/${spaceId}/join`, { method: 'POST' });
-      loadData();
-    } catch (error) {
-      console.error('Error joining space:', error);
-    }
-  };
-
   const handleRSVP = async (eventId, status) => {
     try {
       await fetch(`/api/v1/community/events/${eventId}/rsvp`, {
@@ -125,13 +124,57 @@ export default function CommunityPlatform() {
     }
   };
 
+  const filteredSpaces = spaces.filter(space =>
+    space.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (space.description && space.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredEvents = events.filter(event =>
+    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Platform</h1>
-          <p className="text-gray-600">Connect, engage, and grow your community</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Platform</h1>
+              <p className="text-gray-600">Connect, engage, and grow your community</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/community/notifications')}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              >
+                🔔 Notifications
+              </button>
+              <button
+                onClick={() => router.push('/community/activity')}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              >
+                📊 Activity
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          {(activeTab === 'spaces' || activeTab === 'events' || activeTab === 'members') && (
+            <form onSubmit={handleSearch} className="max-w-2xl">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={`Search ${activeTab}...`}
+                  className="w-full px-4 py-2 pl-10 border rounded-lg"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Tabs */}
@@ -175,13 +218,15 @@ export default function CommunityPlatform() {
                       </button>
                     </div>
 
-                    {spaces.length === 0 ? (
+                    {filteredSpaces.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600 mb-4">No spaces yet. Create your first community space!</p>
+                        <p className="text-gray-600 mb-4">
+                          {searchQuery ? 'No spaces found matching your search' : 'No spaces yet. Create your first community space!'}
+                        </p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {spaces.map((space) => (
+                        {filteredSpaces.map((space) => (
                           <div key={space.id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow">
                             {space.cover_image_url && (
                               <img src={space.cover_image_url} alt={space.name} className="w-full h-32 object-cover rounded-lg mb-4" />
@@ -196,7 +241,7 @@ export default function CommunityPlatform() {
                                 {space.space_type}
                               </span>
                             </div>
-                            <p className="text-gray-600 text-sm mb-4">{space.description}</p>
+                            <p className="text-gray-600 text-sm mb-4 line-clamp-2">{space.description}</p>
                             <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                               <span>👥 {space.member_count} members</span>
                               <span>📝 {space.post_count} posts</span>
@@ -227,18 +272,20 @@ export default function CommunityPlatform() {
                       </button>
                     </div>
 
-                    {events.length === 0 ? (
+                    {filteredEvents.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600 mb-4">No upcoming events. Create your first event!</p>
+                        <p className="text-gray-600 mb-4">
+                          {searchQuery ? 'No events found matching your search' : 'No upcoming events. Create your first event!'}
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {events.map((event) => (
+                        {filteredEvents.map((event) => (
                           <div key={event.id} className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <h3 className="text-lg font-semibold mb-2">{event.title}</h3>
-                                <p className="text-gray-600 text-sm mb-4">{event.description}</p>
+                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
                                 <div className="flex items-center gap-4 text-sm text-gray-500">
                                   <span>📅 {new Date(event.start_time).toLocaleDateString()}</span>
                                   <span>🕐 {new Date(event.start_time).toLocaleTimeString()}</span>
@@ -280,12 +327,18 @@ export default function CommunityPlatform() {
                     <h2 className="text-xl font-semibold mb-6">Community Members</h2>
                     {members.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600">No members yet.</p>
+                        <p className="text-gray-600">
+                          {searchQuery ? 'No members found matching your search' : 'No members yet.'}
+                        </p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {members.map((member) => (
-                          <div key={member.user_id} className="bg-white border rounded-lg p-6">
+                          <div
+                            key={member.user_id}
+                            onClick={() => router.push(`/community/members/${member.user_id}`)}
+                            className="bg-white border rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                          >
                             <div className="flex items-center gap-4 mb-4">
                               {member.avatar_url ? (
                                 <img src={member.avatar_url} alt={member.display_name || member.name} className="w-16 h-16 rounded-full" />
@@ -299,7 +352,7 @@ export default function CommunityPlatform() {
                                 <p className="text-sm text-gray-600">{member.email}</p>
                               </div>
                             </div>
-                            {member.bio && <p className="text-sm text-gray-600 mb-4">{member.bio}</p>}
+                            {member.bio && <p className="text-sm text-gray-600 mb-4 line-clamp-2">{member.bio}</p>}
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <span>📝 {member.post_count || 0} posts</span>
                               <span>💬 {member.comment_count || 0} comments</span>

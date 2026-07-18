@@ -1,6 +1,8 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { Bell, Send, Users, BarChart3, Target, Zap, Calendar, Settings } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 export default function PushNotificationMarketing() {
   const [activeTab, setActiveTab] = useState('campaigns');
@@ -21,24 +23,19 @@ export default function PushNotificationMarketing() {
     setLoading(true);
     try {
       if (activeTab === 'campaigns') {
-        const res = await fetch('/api/v1/push-notifications/campaigns');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/push-notifications/campaigns');
         setCampaigns(data.campaigns || []);
       } else if (activeTab === 'subscribers') {
-        const res = await fetch('/api/v1/push-notifications/subscribers');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/push-notifications/subscribers');
         setSubscribers(data.subscribers || []);
       } else if (activeTab === 'segments') {
-        const res = await fetch('/api/v1/push-notifications/segments');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/push-notifications/segments');
         setSegments(data.segments || []);
       } else if (activeTab === 'templates') {
-        const res = await fetch('/api/v1/push-notifications/templates');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/push-notifications/templates');
         setTemplates(data.templates || []);
       } else if (activeTab === 'analytics') {
-        const res = await fetch('/api/v1/push-notifications/analytics/summary');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/push-notifications/analytics/summary');
         setAnalytics(data.summary || {});
       }
     } catch (error) {
@@ -49,15 +46,12 @@ export default function PushNotificationMarketing() {
 
   const createCampaign = async (campaignData) => {
     try {
-      const res = await fetch('/api/v1/push-notifications/campaigns', {
+      const data = await apiFetch('/api/v1/push-notifications/campaigns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(campaignData)
       });
-      if (res.ok) {
-        setShowCampaignModal(false);
-        loadData();
-      }
+      setShowCampaignModal(false);
+      loadData();
     } catch (error) {
       console.error('Error creating campaign:', error);
     }
@@ -66,13 +60,11 @@ export default function PushNotificationMarketing() {
   const sendCampaign = async (campaignId) => {
     if (!confirm('Send this campaign now?')) return;
     try {
-      const res = await fetch(`/api/v1/push-notifications/campaigns/${campaignId}/send`, {
+      await apiFetch(`/api/v1/push-notifications/campaigns/${campaignId}/send`, {
         method: 'POST'
       });
-      if (res.ok) {
-        alert('Campaign sent successfully!');
-        loadData();
-      }
+      alert('Campaign sent successfully!');
+      loadData();
     } catch (error) {
       console.error('Error sending campaign:', error);
     }
@@ -81,7 +73,7 @@ export default function PushNotificationMarketing() {
   const deleteCampaign = async (campaignId) => {
     if (!confirm('Delete this campaign?')) return;
     try {
-      await fetch(`/api/v1/push-notifications/campaigns/${campaignId}`, {
+      await apiFetch(`/api/v1/push-notifications/campaigns/${campaignId}`, {
         method: 'DELETE'
       });
       loadData();

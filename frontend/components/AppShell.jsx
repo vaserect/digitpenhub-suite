@@ -7141,6 +7141,7 @@ export default function AppShell() {
       'referral-affiliate-analytics': '/modules/referral-affiliate-analytics',
       'content-calendar': '/modules/content-calendar',
       'influencer-partner-crm': '/modules/influencer-crm',
+      'push-notification-marketing': '/modules/push-notification-marketing',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

@@ -3,7 +3,7 @@
 | Module # | Module Name | Status | Benchmark | Completion Commit(s) | Notes |
 |---|---|---|---|---|---|
 | 1 | CRM | Complete | HubSpot CRM | 65da312 | Resolving database schema gaps, fixing routing conflicts, and connecting contacts, deals, pipelines, and activities |
-| 2 | Lead Generation | Not Started | Unbounce / OptinMonster | | |
+| 2 | Lead Generation | In Progress | Unbounce / OptinMonster | 3f7b437 | Added PopupBuilder, ABTestingManager, AnalyticsDashboard, WebhooksManager, ScoringRulesManager components. Backend services and routes already exist. Still need: conditional logic, multi-step forms, spam protection UI, custom branding UI, expanded templates, lead enrichment, advanced segmentation, plan gating, comprehensive testing |
 | 3 | Landing Page Builder | Not Started | Leadpages / Instapage | | |
 | 4 | Website Builder | Not Started | Webflow / Framer | | |
 | 5 | Funnel Builder | Not Started | ClickFunnels 2.0 | | |

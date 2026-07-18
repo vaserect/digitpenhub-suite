@@ -11,6 +11,8 @@ import ABTestingManager from './LeadGeneration/ABTestingManager';
 import AnalyticsDashboard from './LeadGeneration/AnalyticsDashboard';
 import WebhooksManager from './LeadGeneration/WebhooksManager';
 import ScoringRulesManager from './LeadGeneration/ScoringRulesManager';
+import ConditionalLogicBuilder from './LeadGeneration/ConditionalLogicBuilder';
+import MultiStepFormBuilder from './LeadGeneration/MultiStepFormBuilder';
 
 function createBlankLeadFormDraft() {
   return { name: '', thankYouMessage: '', fields: [] };
@@ -38,6 +40,7 @@ export default function LeadGenerationModule({ goHome, showToast }) {
   const [leadFormError, setLeadFormError] = useState('');
   const [leadTemplateOpen, setLeadTemplateOpen] = useState(false);
   const [selectedFormForABTest, setSelectedFormForABTest] = useState(null);
+  const [selectedFormForLogic, setSelectedFormForLogic] = useState(null);
 
   const leadStarterTemplates = useMemo(() => getLeadFormStarterTemplates(), []);
 
@@ -201,6 +204,22 @@ export default function LeadGenerationModule({ goHome, showToast }) {
     );
   }
 
+  // Render Conditional Logic view for a specific form
+  if (selectedFormForLogic) {
+    const form = leadForms.find(f => f.id === selectedFormForLogic);
+    return (
+      <div className="panel">
+        <button className="back-link" onClick={() => setSelectedFormForLogic(null)}>← Back to forms</button>
+        <ConditionalLogicBuilder
+          formId={selectedFormForLogic}
+          formName={form?.name || 'Form'}
+          fields={form?.fields_json || []}
+          showToast={showToast}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="panel">
       <button className="back-link" onClick={goHome}>← Workspace</button>
@@ -337,6 +356,14 @@ export default function LeadGenerationModule({ goHome, showToast }) {
                   ))}
                 </div>
               </div>
+
+              <MultiStepFormBuilder
+                draft={leadFormDraft}
+                setDraft={setLeadFormDraft}
+                fields={leadFormDraft.fields}
+                showToast={showToast}
+              />
+
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="primary-btn" type="submit">{editingLeadFormId ? 'Save changes' : 'Create form'}</button>
                 {editingLeadFormId && <button type="button" className="back-link" style={{ margin: 0 }} onClick={() => { setEditingLeadFormId(null); setShowLeadFormBuilder(false); }}>Cancel</button>}
@@ -389,6 +416,7 @@ export default function LeadGenerationModule({ goHome, showToast }) {
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="ctag" onClick={() => apiFetch(`/api/v1/leads/forms/${form.id}`).then((d) => startEditLeadForm(d.form)).catch(() => showToast('Unable to load form.'))}>Edit</button>
                         <button className="ctag" onClick={() => setSelectedFormForABTest(form.id)}>A/B Test</button>
+                        <button className="ctag" onClick={() => setSelectedFormForLogic(form.id)}>Logic</button>
                         <button className="ctag" onClick={() => setViewEmbedFormId(form.id)}>Embed</button>
                         <button className="ctag" onClick={() => { window.open(`/leads/${form.id}`, '_blank'); }}>Preview</button>
                         <button className="ctag" style={{ color: 'var(--danger)' }} onClick={() => handleDeleteLeadForm(form.id)}>Delete</button>

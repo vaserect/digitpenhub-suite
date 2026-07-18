@@ -72,6 +72,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/crm', 'crm', 'CRM endpoints (mixed auth)'),
   authRoute('/api/v1/crm', 'crmUpgrades', 'CRM upgrade features'),
+  authRoute('/api/v1/crm/email', 'crm/email', 'CRM email integration'),
   authRoute('/api/v1/custom-fields', 'customFields', 'Custom fields management'),
   
   // ============================================================================

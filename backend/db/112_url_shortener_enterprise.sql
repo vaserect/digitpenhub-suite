@@ -163,7 +163,7 @@ CREATE TABLE url_click_events (
   org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   
   -- Visitor identification
-  visitor_id      TEXT NOT NULL, -- Hashed fingerprint for unique visitor tracking
+  visitor_id      TEXT NOT NULL,
   session_id      TEXT,
   
   -- Request details
@@ -180,7 +180,7 @@ CREATE TABLE url_click_events (
   longitude       NUMERIC(10,7),
   
   -- Device info
-  device_type     TEXT, -- mobile, tablet, desktop
+  device_type     TEXT,
   device_brand    TEXT,
   device_model    TEXT,
   os_name         TEXT,
@@ -190,9 +190,9 @@ CREATE TABLE url_click_events (
   
   -- Referrer analysis
   referrer_domain TEXT,
-  referrer_type   TEXT, -- direct, social, search, email, ad, other
+  referrer_type   TEXT,
   
-  -- UTM tracking (can override link defaults)
+  -- UTM tracking
   utm_source      TEXT,
   utm_medium      TEXT,
   utm_campaign    TEXT,
@@ -200,24 +200,23 @@ CREATE TABLE url_click_events (
   utm_content     TEXT,
   
   -- A/B test tracking
-  variant_id      TEXT, -- Which variant was served (for A/B tests)
+  variant_id      TEXT,
   
   -- Bot detection
   is_bot          BOOLEAN DEFAULT FALSE,
   bot_name        TEXT,
   
   -- Timestamp
-  clicked_at      TIMESTAMPTZ DEFAULT NOW(),
-  
-  -- Indexes for analytics queries
-  INDEX idx_url_clicks_link_id (link_id),
-  INDEX idx_url_clicks_org_id (org_id),
-  INDEX idx_url_clicks_clicked_at (clicked_at),
-  INDEX idx_url_clicks_country (country),
-  INDEX idx_url_clicks_device_type (device_type),
-  INDEX idx_url_clicks_referrer_type (referrer_type),
-  INDEX idx_url_clicks_visitor_id (visitor_id)
+  clicked_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_url_clicks_link_id ON url_click_events(link_id);
+CREATE INDEX idx_url_clicks_org_id ON url_click_events(org_id);
+CREATE INDEX idx_url_clicks_clicked_at ON url_click_events(clicked_at);
+CREATE INDEX idx_url_clicks_country ON url_click_events(country);
+CREATE INDEX idx_url_clicks_device_type ON url_click_events(device_type);
+CREATE INDEX idx_url_clicks_referrer_type ON url_click_events(referrer_type);
+CREATE INDEX idx_url_clicks_visitor_id ON url_click_events(visitor_id);
 
 -- Aggregated analytics for fast queries
 CREATE TABLE url_analytics_daily (
@@ -341,16 +340,16 @@ CREATE TABLE url_conversions (
   link_id         BIGINT NOT NULL REFERENCES short_links(id) ON DELETE CASCADE,
   click_event_id  BIGINT REFERENCES url_click_events(id) ON DELETE SET NULL,
   
-  conversion_type TEXT NOT NULL, -- purchase, signup, download, etc.
+  conversion_type TEXT NOT NULL,
   conversion_value NUMERIC(12,2),
   currency        TEXT DEFAULT 'USD',
   
   metadata        JSONB DEFAULT '{}',
   
-  converted_at    TIMESTAMPTZ DEFAULT NOW(),
-  
-  INDEX idx_url_conversions_link_id (link_id)
+  converted_at    TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_url_conversions_link_id ON url_conversions(link_id);
 
 -- =====================================================
 -- 9. LINK BUNDLES (Collections)
@@ -439,15 +438,15 @@ CREATE TABLE url_health_checks (
   link_id         BIGINT NOT NULL REFERENCES short_links(id) ON DELETE CASCADE,
   
   status_code     INT,
-  response_time   INT, -- milliseconds
+  response_time   INT,
   is_accessible   BOOLEAN,
   error_message   TEXT,
   
-  checked_at      TIMESTAMPTZ DEFAULT NOW(),
-  
-  INDEX idx_url_health_link_id (link_id),
-  INDEX idx_url_health_checked_at (checked_at)
+  checked_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_url_health_link_id ON url_health_checks(link_id);
+CREATE INDEX idx_url_health_checked_at ON url_health_checks(checked_at);
 
 -- =====================================================
 -- 12. API ACCESS & WEBHOOKS

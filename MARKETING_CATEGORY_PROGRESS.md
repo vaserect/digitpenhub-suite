@@ -1,12 +1,12 @@
 # Marketing Category Implementation Progress
 
 **Last Updated:** 2026-07-18  
-**Current Status:** Module 25 COMPLETE (28/40 modules done)  
+**Current Status:** Module 26 COMPLETE (29/40 modules done)  
 **Note:** Module ordering aligned with categories.data.js (canonical source of truth)
 
 ## Completion Status
 
-### ✅ Completed Modules (28/40)
+### ✅ Completed Modules (29/40)
 
 #### Module 1: CRM ✅
 - **Status:** COMPLETE (pre-existing, audited)
@@ -289,8 +289,7 @@
 - **Completion Report:** MODULE_16_QUIZ_BUILDER_COMPLETION_REPORT.md
 - **Benchmark Achievement:** 85% feature parity with Outgrow/Interact (core features complete)
 
-### ⏳ Pending Modules (12/40)
-26. Pipeline / Deals
+### ⏳ Pending Modules (11/40)
 27. Referral & Affiliate Analytics Dashboard
 29. Content Calendar
 30. Influencer/Partner CRM
@@ -306,10 +305,10 @@
 ## Statistics
 
 - **Total Modules:** 40
-- **Completed:** 28 (70.0%)
+- **Completed:** 29 (72.5%)
 - **In Progress:** 0 (0%)
-- **Remaining:** 12 (30.0%)
-- **Completion Velocity:** 19 modules completed in current session
+- **Remaining:** 11 (27.5%)
+- **Completion Velocity:** 20 modules completed in current session
 
 ## Quality Standards
 
@@ -633,3 +632,21 @@ Each module must meet:
   - Dedicated lead scoring page route wrapper at `frontend/app/lead-scoring/page.tsx`.
   - Rich score distribution analytics, rule setup, and threshold management panels in `frontend/components/modules/lead-scoring/`.
 - **Commits:** 410c130
+
+#### Module 26: Pipeline / Deals ✅
+- **Status:** COMPLETE
+- **Completion Date:** 2026-07-18
+- **Benchmark:** Salesforce / HubSpot Deals
+- **Features:**
+  - Complete pipelines and stages CRUD management.
+  - Kanban Board visualization of deals organized by active stages.
+  - Drag-and-drop mechanics to transition deals between columns/stages.
+  - High-level sales performance stats: Active Deals, Pipeline Value, Average Size, Forecasted Value, and Win Rate.
+  - Dialog forms to create, edit, associate contacts, and delete deals.
+- **Backend:**
+  - Integrated `PipelineController` and `DealController` endpoints (listing pipelines, default settings, deals query filters).
+  - Fixed parent route auth context to correctly map `org_id` and `orgId` aliases in `req.user`.
+- **Frontend:**
+  - Dedicated pipeline deals page route at `frontend/app/pipeline-deals/page.tsx`.
+  - Registered routing and AppShell SPA redirection handlers.
+- **Commits:** defa6bb

@@ -20,6 +20,12 @@ const PLATFORM_CONFIG = {
   'whatsapp-business': { name: 'WhatsApp Business', color: '#25D366', icon: 'wa', authUrl: '#' },
   'bluesky':     { name: 'Bluesky',    color: '#0285FF', icon: 'bs', authUrl: '#' },
   'threads':     { name: 'Threads',    color: '#000000', icon: 'th', authUrl: '#' },
+  reddit:      { name: 'Reddit',     color: '#FF4500', icon: 'rd', authUrl: '#' },
+  discord:     { name: 'Discord',    color: '#5865F2', icon: 'dc', authUrl: '#' },
+  slack:       { name: 'Slack',      color: '#4A154B', icon: 'sl', authUrl: '#' },
+  medium:      { name: 'Medium',     color: '#000000', icon: 'md', authUrl: '#' },
+  snapchat:    { name: 'Snapchat',   color: '#FFFC00', icon: 'sc', authUrl: '#' },
+  mastodon:    { name: 'Mastodon',   color: '#6364FF', icon: 'ma', authUrl: '#' },
 };
 
 export default function AccountManager({ onRefresh }) {

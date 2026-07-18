@@ -223,6 +223,7 @@ const ROUTES = {
   'Influencer/Partner CRM': '/modules/influencer-crm',
   'Push Notification Marketing': '/modules/push-notification-marketing',
   'Membership / Community Platform': '/community',
+  'Customer Segmentation Engine': '/modules/customer-segmentation',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

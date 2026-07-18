@@ -7143,6 +7143,7 @@ export default function AppShell() {
       'influencer-partner-crm': '/modules/influencer-crm',
       'push-notification-marketing': '/modules/push-notification-marketing',
       'membership-community-platform': '/community',
+      'customer-segmentation-engine': '/modules/customer-segmentation',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

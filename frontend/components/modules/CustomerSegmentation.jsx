@@ -1,6 +1,8 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { Users, Target, TrendingUp, Filter, Plus, Play, Download, GitCompare, Copy } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 export default function CustomerSegmentation() {
   const [activeTab, setActiveTab] = useState('segments');
@@ -25,12 +27,10 @@ export default function CustomerSegmentation() {
     setLoading(true);
     try {
       if (activeTab === 'segments' || activeTab === 'advanced') {
-        const res = await fetch('/api/v1/segments');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/segments');
         setSegments(data.segments || []);
       } else if (activeTab === 'templates') {
-        const res = await fetch('/api/v1/segments/templates/list');
-        const data = await res.json();
+        const data = await apiFetch('/api/v1/segments/templates/list');
         setTemplates(data.templates || []);
       }
     } catch (error) {
@@ -41,15 +41,12 @@ export default function CustomerSegmentation() {
 
   const createSegment = async (segmentData) => {
     try {
-      const res = await fetch('/api/v1/segments', {
+      await apiFetch('/api/v1/segments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(segmentData)
       });
-      if (res.ok) {
-        setShowCreateModal(false);
-        loadData();
-      }
+      setShowCreateModal(false);
+      loadData();
     } catch (error) {
       console.error('Error creating segment:', error);
     }
@@ -57,14 +54,11 @@ export default function CustomerSegmentation() {
 
   const calculateSegment = async (segmentId) => {
     try {
-      const res = await fetch(`/api/v1/segments/${segmentId}/calculate`, {
+      const data = await apiFetch(`/api/v1/segments/${segmentId}/calculate`, {
         method: 'POST'
       });
-      if (res.ok) {
-        const data = await res.json();
-        alert(`Segment calculated: ${data.total} members (${data.added} added, ${data.removed} removed)`);
-        loadData();
-      }
+      alert(`Segment calculated: ${data.total} members (${data.added} added, ${data.removed} removed)`);
+      loadData();
     } catch (error) {
       console.error('Error calculating segment:', error);
     }
@@ -72,16 +66,12 @@ export default function CustomerSegmentation() {
 
   const previewSegment = async (criteria) => {
     try {
-      const res = await fetch('/api/v1/segments/preview', {
+      const data = await apiFetch('/api/v1/segments/preview', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ criteria, limit: 100 })
       });
-      if (res.ok) {
-        const data = await res.json();
-        setPreviewData(data.contacts || []);
-        setShowPreview(true);
-      }
+      setPreviewData(data.contacts || []);
+      setShowPreview(true);
     } catch (error) {
       console.error('Error previewing segment:', error);
     }
@@ -90,7 +80,7 @@ export default function CustomerSegmentation() {
   const deleteSegment = async (segmentId) => {
     if (!confirm('Delete this segment?')) return;
     try {
-      await fetch(`/api/v1/segments/${segmentId}`, { method: 'DELETE' });
+      await apiFetch(`/api/v1/segments/${segmentId}`, { method: 'DELETE' });
       loadData();
     } catch (error) {
       console.error('Error deleting segment:', error);
@@ -99,7 +89,7 @@ export default function CustomerSegmentation() {
 
   const exportSegment = async (segmentId) => {
     try {
-      const res = await fetch(`/api/v1/segments/${segmentId}/export`);
+      const res = await fetch(`/api/v1/segments/${segmentId}/export`, { credentials: 'include' });
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -113,13 +103,10 @@ export default function CustomerSegmentation() {
 
   const loadSegmentDetails = async (segmentId) => {
     try {
-      const [membersRes, analyticsRes] = await Promise.all([
-        fetch(`/api/v1/segments/${segmentId}/members`),
-        fetch(`/api/v1/segments/${segmentId}/analytics`)
+      const [membersData, analyticsData] = await Promise.all([
+        apiFetch(`/api/v1/segments/${segmentId}/members`),
+        apiFetch(`/api/v1/segments/${segmentId}/analytics`)
       ]);
-      
-      const membersData = await membersRes.json();
-      const analyticsData = await analyticsRes.json();
       
       setMembers(membersData.members || []);
       setAnalytics(analyticsData.analytics || []);
@@ -130,16 +117,13 @@ export default function CustomerSegmentation() {
 
   const createFromTemplate = async (templateId, name) => {
     try {
-      const res = await fetch('/api/v1/segments/templates/create-from', {
+      await apiFetch('/api/v1/segments/templates/create-from', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template_id: templateId, name })
       });
-      if (res.ok) {
-        alert('Segment created from template!');
-        setActiveTab('segments');
-        loadData();
-      }
+      alert('Segment created from template!');
+      setActiveTab('segments');
+      loadData();
     } catch (error) {
       console.error('Error creating from template:', error);
     }
@@ -147,8 +131,7 @@ export default function CustomerSegmentation() {
 
   const calculateOverlap = async (segmentId1, segmentId2) => {
     try {
-      const res = await fetch(`/api/v1/segments/${segmentId1}/overlap?segment_id_2=${segmentId2}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/segments/${segmentId1}/overlap?segment_id_2=${segmentId2}`);
       setOverlapData(data.overlap);
     } catch (error) {
       console.error('Error calculating overlap:', error);
@@ -157,8 +140,7 @@ export default function CustomerSegmentation() {
 
   const loadGrowthTrend = async (segmentId, days = 30) => {
     try {
-      const res = await fetch(`/api/v1/segments/${segmentId}/growth-trend?days=${days}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/v1/segments/${segmentId}/growth-trend?days=${days}`);
       setGrowthTrend(data.trend || []);
     } catch (error) {
       console.error('Error loading growth trend:', error);
@@ -170,15 +152,12 @@ export default function CustomerSegmentation() {
     if (!name) return;
     
     try {
-      const res = await fetch(`/api/v1/segments/${segmentId}/lookalike`, {
+      await apiFetch(`/api/v1/segments/${segmentId}/lookalike`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
       });
-      if (res.ok) {
-        alert('Lookalike segment created!');
-        loadData();
-      }
+      alert('Lookalike segment created!');
+      loadData();
     } catch (error) {
       console.error('Error creating lookalike:', error);
     }
@@ -186,12 +165,10 @@ export default function CustomerSegmentation() {
 
   const compareSegments = async (segmentIds) => {
     try {
-      const res = await fetch('/api/v1/segments/compare', {
+      const data = await apiFetch('/api/v1/segments/compare', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ segment_ids: segmentIds })
       });
-      const data = await res.json();
       setComparisonData(data.comparison);
     } catch (error) {
       console.error('Error comparing segments:', error);

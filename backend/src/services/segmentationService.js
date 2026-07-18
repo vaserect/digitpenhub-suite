@@ -481,9 +481,6 @@ class SegmentationService extends BaseService {
       [segmentId, memberCount, addedCount, removedCount]
     );
   }
-}
-
-module.exports = new SegmentationService();
 
   // ==================== ADVANCED FEATURES ====================
 

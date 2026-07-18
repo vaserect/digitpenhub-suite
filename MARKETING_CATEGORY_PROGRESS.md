@@ -1,12 +1,12 @@
 # Marketing Category Implementation Progress
 
 **Last Updated:** 2026-07-18  
-**Current Status:** Module 27 COMPLETE (30/40 modules done)  
+**Current Status:** Module 29 COMPLETE (31/40 modules done)  
 **Note:** Module ordering aligned with categories.data.js (canonical source of truth)
 
 ## Completion Status
 
-### ✅ Completed Modules (30/40)
+### ✅ Completed Modules (31/40)
 
 #### Module 1: CRM ✅
 - **Status:** COMPLETE (pre-existing, audited)
@@ -289,8 +289,7 @@
 - **Completion Report:** MODULE_16_QUIZ_BUILDER_COMPLETION_REPORT.md
 - **Benchmark Achievement:** 85% feature parity with Outgrow/Interact (core features complete)
 
-### ⏳ Pending Modules (10/40)
-29. Content Calendar
+### ⏳ Pending Modules (9/40)
 30. Influencer/Partner CRM
 32. Customer Segmentation Engine
 34. Event / Webinar Hosting
@@ -304,10 +303,10 @@
 ## Statistics
 
 - **Total Modules:** 40
-- **Completed:** 30 (75.0%)
+- **Completed:** 31 (77.5%)
 - **In Progress:** 0 (0%)
-- **Remaining:** 10 (25.0%)
-- **Completion Velocity:** 21 modules completed in current session
+- **Remaining:** 9 (22.5%)
+- **Completion Velocity:** 22 modules completed in current session
 
 ## Quality Standards
 
@@ -668,3 +667,17 @@ Each module must meet:
   - Dedicated Next.js analytics dashboard route at `frontend/app/modules/referral-affiliate-analytics/page.jsx`.
   - Sidebar SPA integration mappings.
 - **Commits:** 69bec20
+
+#### Module 29: Content Calendar ✅
+- **Status:** COMPLETE
+- **Completion Date:** 2026-07-18
+- **Benchmark:** Buffer / CoSchedule / HubSpot Calendar
+- **Features:**
+  - Standardized unified planner tabs (Calendar, Content list, Campaigns, Content Templates, Pending Approvals, Publishing Connections).
+  - Integrations for connections: Facebook, Twitter, LinkedIn, Instagram, WordPress, and Mailchimp.
+  - CRUD operations for content items, campaigns, and content templates.
+- **Backend:**
+  - Loaded `contentCalendar.js` router managing content lifecycle endpoints.
+- **Frontend:**
+  - Mapped Next.js page at `frontend/app/modules/content-calendar/page.jsx` utilizing the shared `useAuth` session hook and the global `apiFetch` helper.
+- **Commits:** 144c2ca

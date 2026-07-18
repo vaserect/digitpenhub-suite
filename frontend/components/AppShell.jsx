@@ -7139,6 +7139,7 @@ export default function AppShell() {
       'lead-scoring': '/lead-scoring',
       'pipeline-deals': '/pipeline-deals',
       'referral-affiliate-analytics': '/modules/referral-affiliate-analytics',
+      'content-calendar': '/modules/content-calendar',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

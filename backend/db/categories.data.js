@@ -219,6 +219,7 @@ const ROUTES = {
   'Lead Scoring': '/lead-scoring',
   'Pipeline / Deals': '/pipeline-deals',
   'Referral & Affiliate Analytics Dashboard': '/modules/referral-affiliate-analytics',
+  'Content Calendar': '/modules/content-calendar',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

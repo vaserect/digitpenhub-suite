@@ -7140,6 +7140,7 @@ export default function AppShell() {
       'pipeline-deals': '/pipeline-deals',
       'referral-affiliate-analytics': '/modules/referral-affiliate-analytics',
       'content-calendar': '/modules/content-calendar',
+      'influencer-partner-crm': '/modules/influencer-crm',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

@@ -220,6 +220,7 @@ const ROUTES = {
   'Pipeline / Deals': '/pipeline-deals',
   'Referral & Affiliate Analytics Dashboard': '/modules/referral-affiliate-analytics',
   'Content Calendar': '/modules/content-calendar',
+  'Influencer/Partner CRM': '/modules/influencer-crm',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

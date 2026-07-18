@@ -178,6 +178,7 @@ const ROUTES_CONFIG = [
   authRoute('/api/v1/appointments', 'appointments', 'Appointment scheduling'),
   moduleRoute('/api/v1/calendar', 'calendar', 'calendar', 'Calendar'),
   authRoute('/api/v1/content-calendar', 'contentCalendar', 'Content Calendar'),
+  authRoute('/api/v1/influencer-crm', 'influencerCRM', 'Influencer CRM'),
   moduleRoute('/api/v1/notes', 'notes', 'notes', 'Notes'),
   publicRoute('/api/v1/forms', 'forms', 'Form builder (mixed auth)'),
   authRoute('/api/v1/form-templates', 'formTemplates', 'Form templates'),

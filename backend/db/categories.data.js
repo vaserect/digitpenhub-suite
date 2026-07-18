@@ -224,6 +224,7 @@ const ROUTES = {
   'Push Notification Marketing': '/modules/push-notification-marketing',
   'Membership / Community Platform': '/community',
   'Customer Segmentation Engine': '/modules/customer-segmentation',
+  'Event / Webinar Hosting': '/modules/event-hosting',
   'AI Writer': '/modules/ai-writer',
   'AI Email Assistant': '/modules/ai-email-assistant',
   'AI Proposal Generator': '/modules/ai-proposal-generator',

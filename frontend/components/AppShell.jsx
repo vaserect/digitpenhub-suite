@@ -7144,6 +7144,7 @@ export default function AppShell() {
       'push-notification-marketing': '/modules/push-notification-marketing',
       'membership-community-platform': '/community',
       'customer-segmentation-engine': '/modules/customer-segmentation',
+      'event-webinar-hosting': '/modules/event-hosting',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

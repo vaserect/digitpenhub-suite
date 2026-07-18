@@ -10,28 +10,54 @@
 -- 1. ENHANCE EXISTING TABLES
 -- =====================================================
 
--- Add new fields to link_in_bio_pages
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS theme_id BIGINT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS meta_title TEXT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS meta_description TEXT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS og_image TEXT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS favicon_url TEXT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS custom_css TEXT;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS font_family TEXT DEFAULT 'Inter';
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS layout_style TEXT DEFAULT 'centered' CHECK (layout_style IN ('centered', 'left', 'grid'));
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS show_branding BOOLEAN DEFAULT TRUE;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS analytics_enabled BOOLEAN DEFAULT TRUE;
-ALTER TABLE link_in_bio_pages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+-- Create link_in_bio_pages if not exists
+CREATE TABLE IF NOT EXISTS link_in_bio_pages (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id            UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  bio               TEXT,
+  avatar_url        TEXT,
+  slug              TEXT NOT NULL,
+  bg_color          TEXT DEFAULT '#ffffff',
+  accent_color      TEXT DEFAULT '#2563eb',
+  status            TEXT DEFAULT 'active',
+  views             INTEGER DEFAULT 0,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  theme_id          BIGINT,
+  meta_title        TEXT,
+  meta_description  TEXT,
+  og_image          TEXT,
+  favicon_url       TEXT,
+  custom_css        TEXT,
+  font_family       TEXT DEFAULT 'Inter',
+  layout_style      TEXT DEFAULT 'centered' CHECK (layout_style IN ('centered', 'left', 'grid')),
+  show_branding     BOOLEAN DEFAULT TRUE,
+  analytics_enabled BOOLEAN DEFAULT TRUE,
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(org_id, slug)
+);
 
--- Add new fields to bio_links
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS is_priority BOOLEAN DEFAULT FALSE;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS schedule_start TIMESTAMPTZ;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS schedule_end TIMESTAMPTZ;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS category TEXT;
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS animation TEXT DEFAULT 'none' CHECK (animation IN ('none', 'fade', 'slide', 'bounce', 'pulse'));
-ALTER TABLE bio_links ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+-- Create bio_links if not exists
+CREATE TABLE IF NOT EXISTS bio_links (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  page_id           UUID NOT NULL REFERENCES link_in_bio_pages(id) ON DELETE CASCADE,
+  org_id            UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  url               TEXT NOT NULL,
+  icon              TEXT DEFAULT '🔗',
+  sort_order        INTEGER DEFAULT 0,
+  clicks            INTEGER DEFAULT 0,
+  is_active         BOOLEAN DEFAULT TRUE,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  thumbnail_url     TEXT,
+  description       TEXT,
+  is_priority       BOOLEAN DEFAULT FALSE,
+  schedule_start    TIMESTAMPTZ,
+  schedule_end      TIMESTAMPTZ,
+  category          TEXT,
+  animation         TEXT DEFAULT 'none' CHECK (animation IN ('none', 'fade', 'slide', 'bounce', 'pulse')),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- =====================================================
 -- 2. THEMES SYSTEM

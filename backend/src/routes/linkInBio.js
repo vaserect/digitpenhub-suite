@@ -7,9 +7,10 @@ const db = require('../db');
 
 const r = Router();
 
-// Public tracking endpoints (no auth required)
+// Public endpoints (no auth required)
 r.post('/track/page/:pageId', c.trackPageView);
 r.post('/track/link/:linkId', c.trackLinkClick);
+r.get('/public/:slug', c.getPublicPage);
 
 // All other routes require authentication
 r.use(requireAuth);

@@ -547,3 +547,63 @@ module.exports = {
   trackPageView,
   trackLinkClick
 };
+
+// ================================================================================================
+// PUBLIC ENDPOINTS (no auth required)
+// ================================================================================================
+
+async function getPublicPage(req, res) {
+  try {
+    const { slug } = req.params;
+    
+    // Get page by slug
+    const { rows: pageRows } = await db.query(
+      `SELECT p.*, t.name as theme_name
+       FROM link_in_bio_pages p
+       LEFT JOIN bio_themes t ON p.theme_id = t.id
+       WHERE p.slug = $1 AND p.status = 'active'`,
+      [slug]
+    );
+
+    if (!pageRows.length) {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+
+    const page = pageRows[0];
+
+    // Get active links for this page
+    const { rows: linkRows } = await db.query(
+      `SELECT bl.*, s.title as section_title
+       FROM bio_links bl
+       LEFT JOIN bio_link_sections s ON bl.section_id = s.id
+       WHERE bl.page_id = $1 AND bl.is_active = true
+       ORDER BY bl.is_priority DESC, bl.sort_order ASC, bl.created_at ASC`,
+      [page.id]
+    );
+
+    res.json({ page, links: linkRows });
+  } catch (error) {
+    console.error('getPublicPage error:', error);
+    res.status(500).json({ error: 'Failed to fetch page' });
+  }
+}
+
+module.exports = {
+  getStats,
+  listPages,
+  getPage,
+  createPage,
+  updatePage,
+  deletePage,
+  listLinks,
+  createLink,
+  updateLink,
+  deleteLink,
+  listThemes,
+  createTheme,
+  getPageAnalytics,
+  getLinkAnalytics,
+  trackPageView,
+  trackLinkClick,
+  getPublicPage
+};

@@ -12,6 +12,7 @@ import ValidationRuleBuilder from './ValidationRuleBuilder';
 import FieldDependencyBuilder from './FieldDependencyBuilder';
 import ImportExportModal from './ImportExportModal';
 import DraggableFieldRow from './DraggableFieldRow';
+import FieldGroupManager from './FieldGroupManager';
 
 const RECORD_TYPES = [
   { value: 'contact', label: 'CRM Contacts', aliases: ['crm_contact'] },
@@ -975,6 +976,12 @@ export default function CustomFieldsModule({ goHome }) {
           />
 
           <FieldDependencyBuilder
+
+          <FieldGroupManager
+            groups={draft.groups || []}
+            onGroupsChange={(grps) => setDraft(d => ({ ...d, groups: grps }))}
+            fields={fields}
+          />
             dependencies={draft.dependencies || []}
             onDependenciesChange={(deps) => setDraft(d => ({ ...d, dependencies: deps }))}
             availableFields={fields}

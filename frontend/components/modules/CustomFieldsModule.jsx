@@ -76,8 +76,6 @@ function emptyDraft() {
     dependencies: [],
   };
 }
-}
-
 function parseTemplateFields(fields) {
   if (Array.isArray(fields)) return fields;
   if (typeof fields === 'string') {
@@ -110,8 +108,6 @@ export default function CustomFieldsModule({ goHome }) {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
-  const recordTypeMeta = useMemo(
-  // Filter and search fields
   const filteredFields = useMemo(() => {
     let result = fields;
 
@@ -132,9 +128,6 @@ export default function CustomFieldsModule({ goHome }) {
 
     return result;
   }, [fields, filterType, searchQuery]);
-    () => RECORD_TYPES.find((r) => r.value === recordType) || RECORD_TYPES[0],
-    [recordType]
-  );
 
   const loadDefinitions = useCallback(async () => {
     setLoading(true);
@@ -400,7 +393,8 @@ export default function CustomFieldsModule({ goHome }) {
   };
 
   return (
-    <div className="panel">
+    <>
+      <div className="panel">
       <button className="back-link" type="button" onClick={goHome}>
         ← Workspace
       </button>
@@ -450,7 +444,6 @@ export default function CustomFieldsModule({ goHome }) {
               </option>
             ))}
           </select>
-        </div>
           {tab === 'definitions' && (
             <>
               <input
@@ -492,6 +485,7 @@ export default function CustomFieldsModule({ goHome }) {
               )}
             </>
           )}
+        </div>
       )}
 
       {loading ? (
@@ -541,6 +535,8 @@ export default function CustomFieldsModule({ goHome }) {
                         isDragging={draggedIndex === index}
                         dragOverIndex={dragOverIndex}
                       />
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )
@@ -695,6 +691,7 @@ export default function CustomFieldsModule({ goHome }) {
           )}
         </>
       )}
+      </div>
 
       <Modal
         isOpen={showForm}
@@ -976,20 +973,20 @@ export default function CustomFieldsModule({ goHome }) {
           />
 
           <FieldDependencyBuilder
+            dependencies={draft.dependencies || []}
+            onDependenciesChange={(deps) => setDraft(d => ({ ...d, dependencies: deps }))}
+            availableFields={fields}
+            currentFieldKey={editing?.key}
+          />
 
           <FieldGroupManager
             groups={draft.groups || []}
             onGroupsChange={(grps) => setDraft(d => ({ ...d, groups: grps }))}
             fields={fields}
           />
-            dependencies={draft.dependencies || []}
-            onDependenciesChange={(deps) => setDraft(d => ({ ...d, dependencies: deps }))}
-            availableFields={fields}
-            currentFieldKey={editing?.key}
-          />
         </form>
       </Modal>
-    </div>
+      
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
@@ -999,6 +996,6 @@ export default function CustomFieldsModule({ goHome }) {
           loadDefinitions();
         }}
       />
-
+    </>
   );
 }

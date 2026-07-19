@@ -7,7 +7,6 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import Button from './Button';
 import Modal from './Modal';
-import SearchModal from '../search/SearchModal';
 import { toast } from 'sonner';
 
 export const WorkspaceContext = createContext(null);
@@ -66,15 +65,6 @@ export default function WorkspaceLayout({ children }) {
   const [expandedCats, setExpandedCats] = useState({});
   const notifIntervalRef = useRef(null);
   const mainRef = useRef(null);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const handleOpenSearch = useCallback(() => {
-    setIsSearchOpen(true);
-  }, []);
-
-  const handleCloseSearch = useCallback(() => {
-    setIsSearchOpen(false);
-  }, []);
 
   function handleToggleCategory(key) {
     setExpandedCats(prev => ({ ...prev, [key]: !prev[key] }));
@@ -129,7 +119,6 @@ export default function WorkspaceLayout({ children }) {
     const handler = (e) => {
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'b') { e.preventDefault(); router.push('/billing'); return; }
-        if (e.key === 'k') { e.preventDefault(); handleOpenSearch(); return; }
         if (e.key === ',') { e.preventDefault(); router.push('/account'); return; }
         return;
       }
@@ -329,13 +318,6 @@ export default function WorkspaceLayout({ children }) {
           <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Loading workspace</div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pulling your modules, navigation, and current workspace settings.</div>
         </div>
-        {/* Global Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={handleCloseSearch}
-          theme={theme}
-        />
-
       </div>
     );
   }
@@ -349,13 +331,6 @@ export default function WorkspaceLayout({ children }) {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>{loadError}</div>
           <Button onClick={loadWorkspace}>Try again</Button>
         </div>
-        {/* Global Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={handleCloseSearch}
-          theme={theme}
-        />
-
       </div>
     );
   }
@@ -395,7 +370,6 @@ export default function WorkspaceLayout({ children }) {
           onSignOut={handleSignOut}
           onAccountClick={() => router.push('/account')}
           onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          onOpenSearch={handleOpenSearch}
           theme={theme}
           notifCount={notifCount}
           notifOpen={notifOpen}
@@ -452,13 +426,6 @@ export default function WorkspaceLayout({ children }) {
             </div>
           </Modal>
         )}
-        {/* Global Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={handleCloseSearch}
-          theme={theme}
-        />
-
       </div>
     </WorkspaceContext.Provider>
   );

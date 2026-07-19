@@ -1147,3 +1147,336 @@ async function bulkOperations(req, res) {
     client.release();
   }
 }
+
+// ============================================================================
+// Field Dependencies Management
+// ============================================================================
+
+/**
+ * Add or update dependencies for a custom field
+ * POST /api/v1/custom-fields/:fieldId/dependencies
+ */
+async function setFieldDependencies(req, res) {
+  const { fieldId } = req.params;
+  const { dependencies } = req.body;
+  const orgId = req.user.orgId;
+
+  try {
+    // Validate dependencies structure
+    if (!Array.isArray(dependencies)) {
+      return res.status(400).json({ error: 'dependencies must be an array' });
+    }
+
+    // Validate each dependency rule
+    const validConditionTypes = [
+      'equals', 'not_equals', 'contains', 'not_contains',
+      'greater_than', 'less_than', 'is_empty', 'is_not_empty',
+      'in_list', 'not_in_list'
+    ];
+    const validActions = ['show', 'hide', 'require', 'optional', 'enable', 'disable'];
+
+    for (const dep of dependencies) {
+      if (!dep.source_field || typeof dep.source_field !== 'string') {
+        return res.status(400).json({ error: 'Each dependency must have a source_field (string)' });
+      }
+      if (!validConditionTypes.includes(dep.condition_type)) {
+        return res.status(400).json({ 
+          error: `Invalid condition_type. Must be one of: ${validConditionTypes.join(', ')}` 
+        });
+      }
+      if (!validActions.includes(dep.action)) {
+        return res.status(400).json({ 
+          error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+        });
+      }
+    }
+
+    // Update field with dependencies
+    const result = await db.query(
+      `UPDATE custom_field_definitions 
+       SET dependencies = $1, updated_at = NOW()
+       WHERE id = $2 AND org_id = $3
+       RETURNING *`,
+      [JSON.stringify(dependencies), fieldId, orgId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    // Log the update
+    await logFieldUpdate(fieldId, orgId, req.user.id, {
+      action: 'dependencies_updated',
+      dependencies_count: dependencies.length
+    });
+
+    res.json({
+      success: true,
+      field: result.rows[0],
+      message: `${dependencies.length} dependencies configured`
+    });
+  } catch (error) {
+    console.error('Error setting field dependencies:', error);
+    res.status(500).json({ error: 'Failed to set field dependencies' });
+  }
+}
+
+/**
+ * Get dependencies for a custom field
+ * GET /api/v1/custom-fields/:fieldId/dependencies
+ */
+async function getFieldDependencies(req, res) {
+  const { fieldId } = req.params;
+  const orgId = req.user.orgId;
+
+  try {
+    const result = await db.query(
+      `SELECT id, key, label, dependencies 
+       FROM custom_field_definitions 
+       WHERE id = $1 AND org_id = $2`,
+      [fieldId, orgId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    res.json({
+      field_id: result.rows[0].id,
+      field_key: result.rows[0].key,
+      field_label: result.rows[0].label,
+      dependencies: result.rows[0].dependencies || []
+    });
+  } catch (error) {
+    console.error('Error getting field dependencies:', error);
+    res.status(500).json({ error: 'Failed to get field dependencies' });
+  }
+}
+
+/**
+ * Evaluate dependencies for fields with current values
+ * POST /api/v1/custom-fields/evaluate-dependencies
+ */
+async function evaluateDependencies(req, res) {
+  const { recordType, fieldValues } = req.body;
+  const orgId = req.user.orgId;
+
+  try {
+    if (!recordType || !fieldValues) {
+      return res.status(400).json({ 
+        error: 'recordType and fieldValues are required' 
+      });
+    }
+
+    // Get all field definitions for this record type
+    const fieldsResult = await db.query(
+      `SELECT * FROM custom_field_definitions 
+       WHERE org_id = $1 AND record_type = $2 AND is_active = true
+       ORDER BY sort_order`,
+      [orgId, recordType]
+    );
+
+    const fieldDefinitions = fieldsResult.rows;
+    
+    // Evaluate dependencies using the utility
+    const evaluationResults = evaluateAllDependencies(fieldDefinitions, fieldValues);
+
+    // Filter fields based on evaluation
+    const visibleFields = filterFieldsByDependencies(fieldDefinitions, fieldValues);
+
+    res.json({
+      success: true,
+      evaluation_results: evaluationResults,
+      visible_fields: visibleFields.map(f => ({
+        id: f.id,
+        key: f.key,
+        label: f.label,
+        visible: evaluationResults[f.key]?.visible ?? true,
+        required: evaluationResults[f.key]?.required ?? f.required,
+        enabled: evaluationResults[f.key]?.enabled ?? true
+      }))
+    });
+  } catch (error) {
+    console.error('Error evaluating dependencies:', error);
+    res.status(500).json({ error: 'Failed to evaluate dependencies' });
+  }
+}
+
+/**
+ * Remove all dependencies from a field
+ * DELETE /api/v1/custom-fields/:fieldId/dependencies
+ */
+async function removeFieldDependencies(req, res) {
+  const { fieldId } = req.params;
+  const orgId = req.user.orgId;
+
+  try {
+    const result = await db.query(
+      `UPDATE custom_field_definitions 
+       SET dependencies = '[]'::jsonb, updated_at = NOW()
+       WHERE id = $1 AND org_id = $2
+       RETURNING *`,
+      [fieldId, orgId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    await logFieldUpdate(fieldId, orgId, req.user.id, {
+      action: 'dependencies_removed'
+    });
+
+    res.json({
+      success: true,
+      message: 'Dependencies removed',
+      field: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error removing field dependencies:', error);
+    res.status(500).json({ error: 'Failed to remove field dependencies' });
+  }
+}
+
+module.exports = {
+  ...module.exports,
+  setFieldDependencies,
+  getFieldDependencies,
+  evaluateDependencies,
+  removeFieldDependencies
+};
+
+// ============================================================================
+// Custom Field Search and Filter
+// ============================================================================
+
+const { buildCustomFieldSearchQuery, buildCustomFieldSortClause } = require('../utils/customFieldSearch');
+
+/**
+ * Search records by custom field values
+ * POST /api/v1/custom-fields/:recordType/search
+ */
+async function searchByCustomFields(req, res) {
+  const { recordType } = req.params;
+  const { filters = [], sort_by, sort_direction = 'ASC', limit = 50, offset = 0 } = req.body;
+  const orgId = req.user.orgId;
+
+  try {
+    // Build search query
+    const { whereClause, params, nextParamIndex } = buildCustomFieldSearchQuery(filters, 3);
+    
+    // Build sort clause
+    let orderByClause = 'r.created_at DESC';
+    if (sort_by) {
+      orderByClause = buildCustomFieldSortClause(sort_by, sort_direction);
+    }
+
+    // Query to get records with custom field values
+    const query = `
+      SELECT 
+        r.*,
+        jsonb_object_agg(
+          COALESCE(cfd.key, 'null'), 
+          COALESCE(cfv.value, 'null'::jsonb)
+        ) FILTER (WHERE cfd.key IS NOT NULL) as custom_fields
+      FROM ${recordType}s r
+      LEFT JOIN custom_field_values cfv ON cfv.record_id = r.id AND cfv.record_type = $1
+      LEFT JOIN custom_field_definitions cfd ON cfd.id = cfv.field_id
+      WHERE r.org_id = $2 AND ${whereClause}
+      GROUP BY r.id
+      ORDER BY ${orderByClause}
+      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
+    `;
+
+    const result = await db.query(query, [recordType, orgId, ...params, limit, offset]);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(DISTINCT r.id) as total
+      FROM ${recordType}s r
+      LEFT JOIN custom_field_values cfv ON cfv.record_id = r.id AND cfv.record_type = $1
+      LEFT JOIN custom_field_definitions cfd ON cfd.id = cfv.field_id
+      WHERE r.org_id = $2 AND ${whereClause}
+    `;
+
+    const countResult = await db.query(countQuery, [recordType, orgId, ...params]);
+    const total = parseInt(countResult.rows[0]?.total || 0);
+
+    res.json({
+      success: true,
+      records: result.rows,
+      pagination: {
+        total,
+        limit,
+        offset,
+        has_more: offset + limit < total
+      },
+      filters_applied: filters.length
+    });
+  } catch (error) {
+    console.error('Error searching by custom fields:', error);
+    res.status(500).json({ error: 'Failed to search records' });
+  }
+}
+
+/**
+ * Get available filter options for a custom field
+ * GET /api/v1/custom-fields/:recordType/:fieldKey/filter-options
+ */
+async function getFilterOptions(req, res) {
+  const { recordType, fieldKey } = req.params;
+  const orgId = req.user.orgId;
+
+  try {
+    // Get field definition
+    const fieldResult = await db.query(
+      `SELECT field_type, options FROM custom_field_definitions 
+       WHERE org_id = $1 AND record_type = $2 AND key = $3`,
+      [orgId, recordType, fieldKey]
+    );
+
+    if (fieldResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    const field = fieldResult.rows[0];
+
+    // For select/multiselect, return predefined options
+    if (['select', 'multiselect'].includes(field.field_type)) {
+      return res.json({
+        field_key: fieldKey,
+        field_type: field.field_type,
+        options: field.options || []
+      });
+    }
+
+    // For other fields, get unique values from data
+    const valuesQuery = `
+      SELECT DISTINCT cfv.value->>'${fieldKey}' as value
+      FROM custom_field_values cfv
+      JOIN custom_field_definitions cfd ON cfd.id = cfv.field_id
+      WHERE cfd.org_id = $1 AND cfd.record_type = $2 AND cfd.key = $3
+        AND cfv.value->>'${fieldKey}' IS NOT NULL
+        AND cfv.value->>'${fieldKey}' != ''
+      ORDER BY value
+      LIMIT 100
+    `;
+
+    const valuesResult = await db.query(valuesQuery, [orgId, recordType, fieldKey]);
+
+    res.json({
+      field_key: fieldKey,
+      field_type: field.field_type,
+      unique_values: valuesResult.rows.map(r => r.value)
+    });
+  } catch (error) {
+    console.error('Error getting filter options:', error);
+    res.status(500).json({ error: 'Failed to get filter options' });
+  }
+}
+
+module.exports = {
+  ...module.exports,
+  searchByCustomFields,
+  getFilterOptions
+};

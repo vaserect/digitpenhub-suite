@@ -42,15 +42,6 @@ const FIELD_TYPES = [
   { value: 'rating', label: 'Rating', icon: '⭐' },
   { value: 'progress', label: 'Progress', icon: '📈' },
   { value: 'location', label: 'Location', icon: '📍' },
-]; // OLD: [
-  { value: 'text', label: 'Text', icon: '📝' },
-  { value: 'number', label: 'Number', icon: '🔢' },
-  { value: 'date', label: 'Date', icon: '📅' },
-  { value: 'select', label: 'Select', icon: '📋' },
-  { value: 'multiselect', label: 'Multi-Select', icon: '☑️' },
-  { value: 'checkbox', label: 'Checkbox', icon: '✅' },
-  { value: 'file', label: 'File', icon: '📎' },
-  { value: 'relation', label: 'Relation', icon: '🔗' },
 ];
 
 export default function CustomFieldsEnginePage() {

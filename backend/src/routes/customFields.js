@@ -51,6 +51,16 @@ router.get('/validation-templates', controller.listValidationTemplates);
 router.post('/:fieldId/validation-rules', controller.addValidationRule);
 router.delete('/:fieldId/validation-rules/:ruleId', controller.removeValidationRule);
 
+// Custom Field Search routes
+router.post('/:recordType/search', controller.searchByCustomFields);
+router.get('/:recordType/:fieldKey/filter-options', controller.getFilterOptions);
+
+// Field Dependencies routes
+router.post('/:fieldId/dependencies', controller.setFieldDependencies);
+router.get('/:fieldId/dependencies', controller.getFieldDependencies);
+router.delete('/:fieldId/dependencies', controller.removeFieldDependencies);
+router.post('/evaluate-dependencies', controller.evaluateDependencies);
+
 module.exports = router;
 
 // Import/Export routes
@@ -60,6 +70,16 @@ const importExportController = require('../controllers/customFieldsImportExport'
 
 router.get('/export', importExportController.exportFields);
 router.post('/import', upload.single('file'), importExportController.importFields);
+
+// Custom Field Search routes
+router.post('/:recordType/search', controller.searchByCustomFields);
+router.get('/:recordType/:fieldKey/filter-options', controller.getFilterOptions);
+
+// Field Dependencies routes
+router.post('/:fieldId/dependencies', controller.setFieldDependencies);
+router.get('/:fieldId/dependencies', controller.getFieldDependencies);
+router.delete('/:fieldId/dependencies', controller.removeFieldDependencies);
+router.post('/evaluate-dependencies', controller.evaluateDependencies);
 
 module.exports = router;
 

@@ -106,18 +106,15 @@ function SearchResultItem({ result, query, onClick }) {
       <div className="search-result-icon">
         <Icon size={18} />
       </div>
-            )}
       <div className="search-result-content">
         <div className="search-result-title">
           {highlightText(result.title, query)}
         </div>
-            )}
         {result.content && (
           <div className="search-result-description">
             {highlightText(result.content.substring(0, 120), query)}
             {result.content.length > 120 && '...'}
           </div>
-            )}
         )}
         <div className="search-result-meta">
           <span className="search-result-type">{entityName}</span>
@@ -130,14 +127,12 @@ function SearchResultItem({ result, query, onClick }) {
             </>
           )}
         </div>
-            )}
       </div>
-            )}
     </button>
   );
 }
 
-export default function SearchResults({ results, query, onResultClick, collapsedGroups = new Set(), onToggleGroup }) {
+export default function SearchResults({ results, query, onResultClick }) {
   const router = useRouter();
 
   if (!results || !results.results || results.results.length === 0) {
@@ -172,7 +167,6 @@ export default function SearchResults({ results, query, onResultClick, collapsed
           {results.total} {results.total === 1 ? 'result' : 'results'} found
         </h3>
       </div>
-            )}
 
       <div className="search-results-groups">
         {Object.entries(groupedResults).map(([entityType, items]) => {
@@ -190,7 +184,6 @@ export default function SearchResults({ results, query, onResultClick, collapsed
                   {items.length}
                 </span>
               </div>
-            )}
               <div className="search-results-group-items">
                 {items.map((result) => (
                   <SearchResultItem
@@ -201,13 +194,10 @@ export default function SearchResults({ results, query, onResultClick, collapsed
                   />
                 ))}
               </div>
-            )}
             </div>
-            )}
           );
         })}
       </div>
-            )}
 
       {results.total > results.results.length && (
         <div className="search-results-footer">
@@ -215,9 +205,7 @@ export default function SearchResults({ results, query, onResultClick, collapsed
             Showing {results.results.length} of {results.total} results
           </p>
         </div>
-            )}
       )}
     </div>
-            )}
   );
 }

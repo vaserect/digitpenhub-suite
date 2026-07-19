@@ -47,6 +47,12 @@ export default function GlobalSearch({ goHome }) {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(-1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [statusFilter, setStatusFilter] = useState([]);
+  const [ownerFilter, setOwnerFilter] = useState('');
+  const [sortBy, setSortBy] = useState('relevance');
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const searchInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const resultRefs = useRef([]);
@@ -127,6 +133,21 @@ export default function GlobalSearch({ goHome }) {
       if (selectedTypes.length > 0) {
         params.append('types', selectedTypes.join(','));
       }
+      if (dateFrom) {
+        params.append('dateFrom', dateFrom);
+      }
+      if (dateTo) {
+        params.append('dateTo', dateTo);
+      }
+      if (statusFilter.length > 0) {
+        params.append('status', statusFilter.join(','));
+      }
+      if (ownerFilter) {
+        params.append('owner', ownerFilter);
+      }
+      if (sortBy !== 'relevance') {
+        params.append('sortBy', sortBy);
+      }
 
       const data = await apiFetch(`/api/v1/search?${params.toString()}`);
       
@@ -167,6 +188,41 @@ export default function GlobalSearch({ goHome }) {
       }
     };
   }, [query, performSearch]);
+
+  // Persist filters in URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    if (selectedTypes.length > 0) params.set('types', selectedTypes.join(','));
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (statusFilter.length > 0) params.set('status', statusFilter.join(','));
+    if (ownerFilter) params.set('owner', ownerFilter);
+    if (sortBy !== 'relevance') params.set('sortBy', sortBy);
+
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  }, [query, selectedTypes, dateFrom, dateTo, statusFilter, ownerFilter, sortBy]);
+
+  // Load filters from URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlQuery = params.get('q');
+    const urlTypes = params.get('types');
+    const urlDateFrom = params.get('dateFrom');
+    const urlDateTo = params.get('dateTo');
+    const urlStatus = params.get('status');
+    const urlOwner = params.get('owner');
+    const urlSortBy = params.get('sortBy');
+
+    if (urlQuery) setQuery(urlQuery);
+    if (urlTypes) setSelectedTypes(urlTypes.split(','));
+    if (urlDateFrom) setDateFrom(urlDateFrom);
+    if (urlDateTo) setDateTo(urlDateTo);
+    if (urlStatus) setStatusFilter(urlStatus.split(','));
+    if (urlOwner) setOwnerFilter(urlOwner);
+    if (urlSortBy) setSortBy(urlSortBy);
+  }, []);
 
   // Focus search input on mount
   useEffect(() => {
@@ -508,6 +564,126 @@ export default function GlobalSearch({ goHome }) {
               <span>{type.label}</span>
             </button>
           ))}
+
+      {/* Advanced Filters */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'var(--text-muted)' }}>
+            ADVANCED FILTERS
+          </h3>
+          {(dateFrom || dateTo || statusFilter.length > 0 || ownerFilter || sortBy !== 'relevance') && (
+            <Button size="sm" variant="secondary" onClick={() => {
+              setDateFrom('');
+              setDateTo('');
+              setStatusFilter([]);
+              setOwnerFilter('');
+              setSortBy('relevance');
+            }}>
+              Clear filters
+            </Button>
+          )}
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          {/* Date Range Filter */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-muted)' }}>
+              DATE FROM
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                background: 'var(--bg-secondary)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-muted)' }}>
+              DATE TO
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                background: 'var(--bg-secondary)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+              }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-muted)' }}>
+              STATUS
+            </label>
+            <select
+              multiple
+              value={statusFilter}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setStatusFilter(selected);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                background: 'var(--bg-secondary)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+                minHeight: '38px',
+              }}
+            >
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+              <option value="draft">Draft</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: 4, color: 'var(--text-muted)' }}>
+              SORT BY
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                background: 'var(--bg-secondary)',
+                color: 'var(--text)',
+                fontSize: '0.875rem',
+              }}
+            >
+              <option value="relevance">Relevance</option>
+              <option value="date">Date (Newest)</option>
+              <option value="name">Name (A-Z)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
         </div>
       </div>
 
@@ -614,10 +790,22 @@ export default function GlobalSearch({ goHome }) {
               {Object.entries(results).map(([type, items]) => {
                 if (!items || items.length === 0) return null;
                 const typeConfig = getTypeConfig(type);
+                const isCollapsed = collapsedGroups.has(type);
 
                 return (
                   <div key={type} style={{ marginBottom: 32 }}>
                     <h3
+                      onClick={() => {
+                        setCollapsedGroups(prev => {
+                          const next = new Set(prev);
+                          if (next.has(type)) {
+                            next.delete(type);
+                          } else {
+                            next.add(type);
+                          }
+                          return next;
+                        });
+                      }}
                       style={{
                         fontSize: '1rem',
                         fontWeight: 600,
@@ -626,8 +814,13 @@ export default function GlobalSearch({ goHome }) {
                         alignItems: 'center',
                         gap: 8,
                         color: typeConfig.color,
+                        cursor: 'pointer',
+                        userSelect: 'none',
                       }}
                     >
+                      <span style={{ fontSize: '0.875rem', transition: 'transform 0.2s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                        ▼
+                      </span>
                       <span>{typeConfig.icon}</span>
                       <span>{typeConfig.label}</span>
                       <span style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--text-muted)' }}>
@@ -635,6 +828,7 @@ export default function GlobalSearch({ goHome }) {
                       </span>
                     </h3>
 
+                    {!isCollapsed && (
                     <div style={{ display: 'grid', gap: 12 }}>
                       {items.map((result) => {
                         const flatIndex = flatResults.findIndex(
@@ -704,6 +898,7 @@ export default function GlobalSearch({ goHome }) {
                         );
                       })}
                     </div>
+                    )}
                   </div>
                 );
               })}

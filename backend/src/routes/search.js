@@ -99,7 +99,7 @@ const SEARCH_TARGETS = [
 ];
 
 async function doSearch(req, res) {
-  const { q, types } = req.query;
+  const { q, types, dateFrom, dateTo, status, owner, sortBy = 'relevance' } = req.query;
   if (!q || q.trim().length < 2) {
     return res.json({ results: [] });
   }
@@ -111,24 +111,79 @@ async function doSearch(req, res) {
     targets = targets.filter((t) => allowed.includes(t.type));
   }
 
+  // Build filter conditions
+  const filters = {
+    dateFrom: dateFrom ? new Date(dateFrom) : null,
+    dateTo: dateTo ? new Date(dateTo) : null,
+    status: status ? status.split(',') : null,
+    owner: owner ? parseInt(owner) : null,
+    sortBy,
+  };
+
   const results = await Promise.all(
     targets.map(async (target) => {
       try {
-        const { rows } = await db.query(target.sql, [req.user.orgId, query]);
+        // Build dynamic SQL with filters
+        let sql = target.sql;
+        const params = [req.user.orgId, query];
+        let paramIndex = 3;
+
+        // Add date range filter (if table has created_at or updated_at)
+        if (filters.dateFrom && ['contact', 'invoice', 'project', 'task', 'document', 'note', 'ticket', 'article'].includes(target.type)) {
+          sql = sql.replace('LIMIT 10', `AND created_at >= $${paramIndex} LIMIT 10`);
+          params.push(filters.dateFrom);
+          paramIndex++;
+        }
+        if (filters.dateTo && ['contact', 'invoice', 'project', 'task', 'document', 'note', 'ticket', 'article'].includes(target.type)) {
+          sql = sql.replace('LIMIT 10', `AND created_at <= $${paramIndex} LIMIT 10`);
+          params.push(filters.dateTo);
+          paramIndex++;
+        }
+
+        // Add status filter
+        if (filters.status && ['invoice', 'project', 'task', 'ticket', 'article'].includes(target.type)) {
+          sql = sql.replace('LIMIT 10', `AND status = ANY($${paramIndex}) LIMIT 10`);
+          params.push(filters.status);
+          paramIndex++;
+        }
+
+        // Add owner filter (if table has owner_id or user_id)
+        if (filters.owner && ['project', 'task', 'document', 'note', 'ticket'].includes(target.type)) {
+          const ownerCol = target.type === 'ticket' ? 'assigned_to' : 'owner_id';
+          sql = sql.replace('LIMIT 10', `AND ${ownerCol} = $${paramIndex} LIMIT 10`);
+          params.push(filters.owner);
+          paramIndex++;
+        }
+
+        const { rows } = await db.query(sql, params);
         if (!rows.length) return null;
+
+        let items = rows.map((r) => ({
+          id: r.id,
+          title: r.title || r.full_name || r.name || r.subject || r.invoice_number,
+          subtitle: r.subtitle || r.slug || r.status || r.company || r.ref || '',
+          type: r.type || target.type,
+          ref: r.ref || null,
+          created_at: r.created_at || null,
+          status: r.status || null,
+        }));
+
+        // Apply sorting
+        if (filters.sortBy === 'date' && items[0]?.created_at) {
+          items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        } else if (filters.sortBy === 'name') {
+          items.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        }
+        // 'relevance' is default (database order)
+
         return {
           type: target.type,
           label: target.label,
           icon: target.icon,
-          items: rows.map((r) => ({
-            id: r.id,
-            title: r.title || r.full_name || r.name || r.subject || r.invoice_number,
-            subtitle: r.subtitle || r.slug || r.status || r.company || r.ref || '',
-            type: r.type || target.type,
-            ref: r.ref || null,
-          })),
+          items,
         };
-      } catch {
+      } catch (err) {
+        console.error(`Search error for ${target.type}:`, err.message);
         return null; // Table may not exist for this org
       }
     })
@@ -136,7 +191,7 @@ async function doSearch(req, res) {
 
   const filtered = results.filter(Boolean);
   const total = filtered.reduce((s, g) => s + g.items.length, 0);
-  res.json({ results: filtered, total, query: q.trim() });
+  res.json({ results: filtered, total, query: q.trim(), filters });
 }
 
 router.get('/', asyncHandler(doSearch));

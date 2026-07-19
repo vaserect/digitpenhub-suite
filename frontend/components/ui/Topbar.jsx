@@ -87,8 +87,16 @@ export default function Topbar({ title, subtitle, user, onSignOut, onAccountClic
         </div>
 
         <button className="ghost-btn topbar-signout" onClick={onSignOut} type="button">Sign out</button>
-        <button className="avatar-pill" type="button" onClick={onAccountClick} aria-label="Account & security" style={{ cursor: onAccountClick ? 'pointer' : 'default', border: 'none' }}>
-          {user ? user.initials || 'D' : 'D'}
+        <button className="avatar-pill" type="button" onClick={onAccountClick} aria-label="Account & security" style={{ cursor: onAccountClick ? 'pointer' : 'default', border: 'none', padding: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {user?.avatarUrl ? (
+            <img
+              src={`/api/v1/auth/avatar/${user.avatarUrl}`}
+              alt="Profile Avatar"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <span>{user ? user.initials || 'D' : 'D'}</span>
+          )}
         </button>
       </div>
     </header>

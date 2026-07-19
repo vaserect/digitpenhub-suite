@@ -12,7 +12,7 @@ export const metadata = {
     template: '%s | Digitpen Hub Suite',
   },
   description:
-    '97 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
+    '302 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
@@ -20,7 +20,7 @@ export const metadata = {
   openGraph: {
     title: 'Digitpen Hub Suite — Everything your business runs on, one login.',
     description:
-      '97 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
+      '302 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
     url: '/',
     type: 'website',
     siteName: 'Digitpen Hub Suite',
@@ -30,7 +30,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Digitpen Hub Suite — Everything your business runs on, one login.',
     description:
-      '97 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
+      '302 business tools — CRM, websites, email/SMS marketing, invoicing, HR, AI, SEO, online store, LMS and more — under one roof. Free CRM & invoicing included.',
   },
   robots: {
     index: true,

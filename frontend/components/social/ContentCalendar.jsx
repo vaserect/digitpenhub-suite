@@ -341,45 +341,33 @@ export default function ContentCalendar() {
         {dayEvents.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No posts scheduled for this day.</div>
         ) : (
-          <div style={{ position: 'relative', paddingLeft: 60 }}>
-            {/* Time gutter */}
-            {Array.from({ length: 24 }, (_, i) => (
-              <div key={i} style={{
-                position: 'absolute', left: 0, top: i * 60, fontSize: 11, color: '#94a3b8',
-                width: 50, textAlign: 'right', paddingRight: 8, borderTop: '1px solid #f1f5f9', paddingTop: 2,
-              }}>
-                {String(i).padStart(2, '0')}:00
-              </div>
-            ))}
-            {/* Events */}
-            <div style={{ minHeight: 24 * 60 }}>
-              {dayEvents.map(ev => {
-                const d = new Date(ev.scheduled_at);
-                const top = d.getHours() * 60 + d.getMinutes();
-                return (
-                  <div
-                    key={ev.target_id}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, ev.target_id)}
-                    onClick={() => openEditor(ev.post_id)}
-                    style={{
-                      position: 'absolute', left: 0, right: 0, top, minHeight: 40,
-                      margin: '2px 4px', padding: '6px 10px', borderRadius: 6, cursor: 'grab',
-                      backgroundColor: (PLATFORM_COLORS[ev.platform_slug] || '#666') + '15',
-                      borderLeft: `3px solid ${PLATFORM_COLORS[ev.platform_slug] || '#666'}`,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{ev.account_name}</div>
-                    <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                      {ev.content_text?.substring(0, 100) || 'No content'}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      {formatTime(d)} · {ev.platform_name}
-                    </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {dayEvents.map(ev => {
+              const d = new Date(ev.scheduled_at);
+              return (
+                <div
+                  key={ev.target_id}
+                  draggable
+                  onDragStart={(e) => onDragStart(e, ev.target_id)}
+                  onClick={() => openEditor(ev.post_id)}
+                  style={{
+                    padding: '12px 16px', borderRadius: 8, cursor: 'grab',
+                    backgroundColor: (PLATFORM_COLORS[ev.platform_slug] || '#666') + '12',
+                    border: '1px solid #e2e8f0',
+                    borderLeft: `4px solid ${PLATFORM_COLORS[ev.platform_slug] || '#666'}`,
+                    transition: 'transform 0.1s',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{ev.account_name}</span>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{formatTime(d)} · {ev.platform_name}</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ fontSize: 13, color: '#334155', marginTop: 4, lineHeight: 1.4 }}>
+                    {ev.content_text || 'No content'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

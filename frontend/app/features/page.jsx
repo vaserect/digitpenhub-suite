@@ -13,7 +13,7 @@ import MarketingFooter from '../../components/marketing/MarketingFooter';
 const DEFAULTS = {
   'features.hero.eyebrow': 'Features',
   'features.hero.title': 'Everything a growing business needs, under one roof.',
-  'features.hero.subtitle': "97 modules, grouped by what you're actually trying to do — market, sell, manage, and analyze — not by which team built them.",
+  'features.hero.subtitle': "302 modules, grouped by what you're actually trying to do — market, sell, manage, and analyze — not by which team built them.",
 };
 
 const GROUPS = [
@@ -55,6 +55,20 @@ export default function FeaturesPage() {
       .then((r) => r.json())
       .then((d) => { if (d.content) setContent((prev) => ({ ...prev, ...d.content })); })
       .catch(() => { console.error('Failed to load features content'); });
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/v1/modules/stats')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.totalModules) {
+          setContent(prev => ({
+            ...prev,
+            'features.hero.subtitle': prev['features.hero.subtitle'].replace('97 modules', `${d.totalModules} modules`).replace('302 modules', `${d.totalModules} modules`)
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (

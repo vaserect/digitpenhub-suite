@@ -61,8 +61,14 @@ export default function WorkspaceLayout({ children }) {
   const [notifList, setNotifList] = useState([]);
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [expandedCats, setExpandedCats] = useState({});
   const notifIntervalRef = useRef(null);
   const mainRef = useRef(null);
+
+  function handleToggleCategory(key) {
+    setExpandedCats(prev => ({ ...prev, [key]: !prev[key] }));
+  }
 
   useEffect(() => {
     setUpgradeHandler((data) => {
@@ -154,9 +160,16 @@ export default function WorkspaceLayout({ children }) {
   // Sync pathname to navigation state
   useEffect(() => {
     if (pathname === '/') {
-      setView('home');
-      setActiveCategoryKey(null);
-      setActiveModuleSlug(null);
+      const params = new URLSearchParams(window.location.search);
+      const moduleQuery = params.get('module');
+      if (moduleQuery) {
+        setView('module');
+        setActiveModuleSlug(moduleQuery);
+      } else {
+        setView('home');
+        setActiveCategoryKey(null);
+        setActiveModuleSlug(null);
+      }
     } else {
       setView('module');
       // Infer module slug from pathname
@@ -238,71 +251,37 @@ export default function WorkspaceLayout({ children }) {
       return next;
     });
 
-    const extracted = {
-      'crm': '/crm',
-      'lead-generation': '/lead-generation',
-      'landing-page-builder': '/modules/landing-page-builder',
-      'website-builder': '/website-builder',
-      'funnel-builder': '/funnel-builder',
-      'email-marketing': '/email-marketing',
-      'sms-marketing': '/sms-marketing',
-      'whatsapp-marketing': '/whatsapp-marketing',
-      'marketing-automation': '/modules/marketing-automation',
-      'affiliate-system': '/modules/affiliate-system',
-      'referral-program': '/referral-program',
-      'appointment-booking': '/appointment-booking',
-      'forms': '/forms',
-      'popup-builder': '/popup-builder',
-      'survey-builder': '/survey-builder',
-      'quiz-builder': '/quiz-builder',
-      'url-shortener': '/url-shortener',
-      'qr-code-generator': '/qr-code-generator',
-      'link-in-bio': '/link-in-bio',
-      'digital-business-cards': '/digital-business-cards',
-      'social-media-scheduler': '/social-media-scheduler',
-      'review-management': '/review-management',
-      'chatbot-builder': '/chatbot-builder',
-      'ad-campaign-manager': '/modules/ad-campaign-manager',
-      'lead-scoring': '/lead-scoring',
-      'pipeline-deals': '/pipeline-deals',
-      'content-calendar': '/modules/content-calendar',
-      'push-notification-marketing': '/modules/push-notification-marketing',
-      'ambassador-program': '/modules/ambassador-program',
-      'direct-mail-automation': '/modules/direct-mail-automation',
-      'brand-kit': '/brand-kit',
-      'certificate-generator': '/certificates',
-      'accounting': '/accounting',
-      'invoices': '/billing-invoices',
-      'quotations': '/quotations',
-      'expenses': '/expenses',
-      'payroll': '/payroll',
-      'inventory': '/inventory',
-      'asset-management': '/asset-management',
-      'hr': '/hr',
-      'recruitment': '/recruitment',
-      'project-management': '/project-management',
-      'task-management': '/tasks',
-      'help-desk': '/help-desk',
-      'knowledge-base': '/knowledge-base',
-      'document-management': '/document-management',
-      'certificates': '/certificates',
-      'marketplace': '/marketplace',
-      'coupons': '/coupons',
-      'subscriptions': '/subscriptions',
-      'digital-products': '/digital-products',
-      'delivery-tracking': '/delivery-tracking',
-      'calendar': '/calendar',
-      'notes': '/notes',
-      'time-tracking': '/time-tracking',
-      'business-dashboard': '/business-dashboard',
-      'custom-reports': '/custom-reports',
-      'password-manager': '/password-manager',
-      'color-palette-generator': '/color-palettes',
-      'notifications': '/community/notifications',
-    };
+    let targetPath = null;
+    for (const cat of categories) {
+      const mod = cat.modules?.find((m) => m.slug === slug);
+      if (mod) {
+        targetPath = mod.route;
+        break;
+      }
+    }
 
-    const targetPath = extracted[slug] || '/';
-    router.push(targetPath);
+    if (targetPath) {
+      router.push(targetPath);
+    } else {
+      const settingsMap = {
+        'notifications': '/community/notifications',
+        'account-security': '/account',
+        'billing-plans': '/billing',
+        'team-roles': '/team',
+        'white-label': '/white-label',
+        'api-keys': '/api-keys',
+        'integrations': '/integrations',
+        'feature-flags': '/feature-flags',
+        'team': '/team',
+        'billing': '/billing',
+        'account': '/account',
+      };
+      if (settingsMap[slug]) {
+        router.push(settingsMap[slug]);
+      } else {
+        router.push(`/?module=${slug}`);
+      }
+    }
     setNavOpen(false);
   }
 
@@ -357,8 +336,9 @@ export default function WorkspaceLayout({ children }) {
   }
 
   return (
-    <WorkspaceContext.Provider value={{
+     <WorkspaceContext.Provider value={{
       user,
+      setUser,
       categories,
       orgPlan,
       totalModules,
@@ -379,12 +359,14 @@ export default function WorkspaceLayout({ children }) {
       toggleNotifPanel,
       handleMarkRead,
       handleMarkAllRead,
+      view,
+      activeModuleSlug,
     }}>
       <div>
         <Topbar
           title="Digitpen Hub"
           subtitle="Business Suite workspace"
-          user={{ initials: initials(user?.fullName) }}
+          user={{ initials: initials(user?.fullName), avatarUrl: user?.avatarUrl }}
           onSignOut={handleSignOut}
           onAccountClick={() => router.push('/account')}
           onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -399,7 +381,7 @@ export default function WorkspaceLayout({ children }) {
         />
 
         <div className={["app-shell", navOpen ? 'nav-open' : '', sidebarCollapsed ? 'sidebar-collapsed' : ''].filter(Boolean).join(' ')}>
-          <Sidebar
+           <Sidebar
             moduleCategories={moduleCategories}
             view={view}
             activeCategoryKey={activeCategoryKey}
@@ -415,8 +397,10 @@ export default function WorkspaceLayout({ children }) {
             onWhiteLabel={() => router.push('/white-label')}
             pinnedSlugs={pinnedSlugs}
             onTogglePin={togglePin}
-            expandedCats={{}}
-            onToggleCategory={() => {}}
+            expandedCats={expandedCats}
+            onToggleCategory={handleToggleCategory}
+            sidebarSearch={sidebarSearch}
+            onSidebarSearchChange={setSidebarSearch}
           />
           <div className={["sidebar-backdrop", navOpen ? 'show' : ''].filter(Boolean).join(' ')} onClick={() => setNavOpen(false)} />
 

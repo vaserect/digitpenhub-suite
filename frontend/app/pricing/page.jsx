@@ -18,13 +18,14 @@ function formatNaira(amount) {
 const DEFAULTS = {
   'pricing.hero.eyebrow': 'Pricing',
   'pricing.hero.title': "Start on CRM and invoicing for free. Unlock the rest when you're ready.",
-  'pricing.hero.subtitle': "Free gets you a real CRM and invoicing, no card required. Starter and up unlock all 97 modules — the difference between plans is seats and usage limits, not which tools you're allowed to touch.",
+  'pricing.hero.subtitle': "Free gets you a real CRM and invoicing, no card required. Starter and up unlock all 302 modules — the difference between plans is seats and usage limits, not which tools you're allowed to touch.",
 };
 
 export default function PricingPage() {
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState(false);
   const [content, setContent] = useState(DEFAULTS);
+  const [totalModules, setTotalModules] = useState(302);
 
   useEffect(() => {
     fetch('/api/v1/billing/plans')
@@ -38,6 +39,21 @@ export default function PricingPage() {
       .then((r) => r.json())
       .then((d) => { if (d.content) setContent((prev) => ({ ...prev, ...d.content })); })
       .catch(() => { console.error('Failed to load content'); });
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/v1/modules/stats')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.totalModules) {
+          setTotalModules(d.totalModules);
+          setContent(prev => ({
+            ...prev,
+            'pricing.hero.subtitle': prev['pricing.hero.subtitle'].replace('97 modules', `${d.totalModules} modules`).replace('302 modules', `${d.totalModules} modules`)
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -66,7 +82,7 @@ export default function PricingPage() {
                   <div className="mkt-price-amount">{formatNaira(p.price_ngn)}<span>/month</span></div>
                   <div className="mkt-price-users">{p.max_users >= 999 ? 'Unlimited users' : `Up to ${p.max_users} user${p.max_users === 1 ? '' : 's'}`}</div>
                   <ul className="mkt-price-features">
-                    {features.length ? features.map((f, i) => <li key={i}>{f}</li>) : <li>All 97 modules included</li>}
+                    {features.length ? features.map((f, i) => <li key={i}>{f}</li>) : <li>All {totalModules} modules included</li>}
                   </ul>
                   <Link href="/signup" className="btn btn-primary w-full">
                     {p.price_ngn === 0 ? 'Start free' : 'Start free, upgrade anytime'}

@@ -1028,7 +1028,7 @@ async function createPrintTemplate(req, res) {
       });
     }
 
-    const { rows } = await db.query(
+    const { rows: resultRows } = await db.query(
       `INSERT INTO barcode_print_templates (
         org_id, name, description, paper_size, paper_width, paper_height,
         label_width, label_height, columns, rows,
@@ -1046,7 +1046,7 @@ async function createPrintTemplate(req, res) {
       ]
     );
 
-    res.status(201).json({ template: rows[0] });
+    res.status(201).json({ template: resultRows[0] });
   } catch (error) {
     logger.error('Error creating print template:', error);
     res.status(500).json({ error: 'Failed to create print template' });

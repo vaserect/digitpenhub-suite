@@ -34,6 +34,23 @@ const FIELD_TYPES = [
   { value: 'checkbox', label: 'Checkbox', icon: '✅' },
   { value: 'file', label: 'File', icon: '📎' },
   { value: 'relation', label: 'Relation', icon: '🔗' },
+  { value: 'currency', label: 'Currency', icon: '💰' },
+  { value: 'percent', label: 'Percent', icon: '📊' },
+  { value: 'url', label: 'URL', icon: '🔗' },
+  { value: 'email', label: 'Email', icon: '📧' },
+  { value: 'phone', label: 'Phone', icon: '📞' },
+  { value: 'rating', label: 'Rating', icon: '⭐' },
+  { value: 'progress', label: 'Progress', icon: '📈' },
+  { value: 'location', label: 'Location', icon: '📍' },
+]; // OLD: [
+  { value: 'text', label: 'Text', icon: '📝' },
+  { value: 'number', label: 'Number', icon: '🔢' },
+  { value: 'date', label: 'Date', icon: '📅' },
+  { value: 'select', label: 'Select', icon: '📋' },
+  { value: 'multiselect', label: 'Multi-Select', icon: '☑️' },
+  { value: 'checkbox', label: 'Checkbox', icon: '✅' },
+  { value: 'file', label: 'File', icon: '📎' },
+  { value: 'relation', label: 'Relation', icon: '🔗' },
 ];
 
 export default function CustomFieldsEnginePage() {
@@ -563,4 +580,97 @@ function CreateFieldModal({ recordType, editingField, onClose, onSuccess }) {
       </form>
     </Modal>
   );
+}
+
+// Enhanced field type form fields for CreateFieldModal
+function EnhancedFieldTypeInputs({ fieldType, formData, setFormData }) {
+  if (fieldType === 'currency') {
+    return (
+      <div>
+        <label className="block text-sm font-medium mb-1">Currency Code</label>
+        <select
+          value={formData.currencyCode || 'USD'}
+          onChange={(e) => setFormData(prev => ({ ...prev, currencyCode: e.target.value }))}
+          className="w-full px-3 py-2 border rounded-lg"
+        >
+          <option value="USD">USD - US Dollar</option>
+          <option value="EUR">EUR - Euro</option>
+          <option value="GBP">GBP - British Pound</option>
+          <option value="JPY">JPY - Japanese Yen</option>
+          <option value="CAD">CAD - Canadian Dollar</option>
+          <option value="AUD">AUD - Australian Dollar</option>
+        </select>
+      </div>
+    );
+  }
+
+  if (fieldType === 'rating') {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Min Value</label>
+          <input
+            type="number"
+            value={formData.minValue ?? 1}
+            onChange={(e) => setFormData(prev => ({ ...prev, minValue: Number(e.target.value) }))}
+            className="w-full px-3 py-2 border rounded-lg"
+            min="0"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Max Value</label>
+          <input
+            type="number"
+            value={formData.maxValue ?? 5}
+            onChange={(e) => setFormData(prev => ({ ...prev, maxValue: Number(e.target.value) }))}
+            className="w-full px-3 py-2 border rounded-lg"
+            min="1"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (fieldType === 'progress') {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Min Value</label>
+          <input
+            type="number"
+            value={formData.minValue ?? 0}
+            onChange={(e) => setFormData(prev => ({ ...prev, minValue: Number(e.target.value) }))}
+            className="w-full px-3 py-2 border rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Max Value</label>
+          <input
+            type="number"
+            value={formData.maxValue ?? 100}
+            onChange={(e) => setFormData(prev => ({ ...prev, maxValue: Number(e.target.value) }))}
+            className="w-full px-3 py-2 border rounded-lg"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (fieldType === 'phone') {
+    return (
+      <div>
+        <label className="block text-sm font-medium mb-1">Format Pattern (Optional)</label>
+        <input
+          type="text"
+          value={formData.formatPattern || ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, formatPattern: e.target.value }))}
+          placeholder="e.g., ^\+1\d{10}$ for US format"
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+        <p className="text-xs text-gray-500 mt-1">Regex pattern for validation</p>
+      </div>
+    );
+  }
+
+  return null;
 }

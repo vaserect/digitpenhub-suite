@@ -3,9 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '../../lib/api';
+import { useWorkspace } from '../../components/ui/WorkspaceLayout';
+import { toast } from 'sonner';
+
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function AccountPage() {
   const router = useRouter();
+  const workspace = useWorkspace();
   const [tab, setTab] = useState('profile');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,10 +58,50 @@ export default function AccountPage() {
     setSaving(true);
     setMsg('');
     try {
-      await apiFetch('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify({ fullName: nameDraft }) });
+      const data = await apiFetch('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify({ fullName: nameDraft }) });
       setMsg('Profile updated.');
+      if (workspace && data.user) {
+        workspace.setUser(data.user);
+      }
     } catch (err) { setMsg(err.message); }
     setSaving(false);
+  }
+
+  async function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File size exceeds 2MB limit.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setSaving(true);
+    setMsg('');
+    try {
+      const data = await apiFetch('/api/v1/auth/me/avatar', {
+        method: 'POST',
+        body: formData,
+        headers: {},
+      });
+      setUser(prev => ({ ...prev, avatarUrl: data.user.avatarUrl }));
+      if (workspace && data.user) {
+        workspace.setUser(data.user);
+      }
+      setMsg('Profile picture updated.');
+      toast.success('Avatar updated successfully');
+    } catch (err) {
+      setMsg(err.message);
+      toast.error('Failed to update avatar: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function changePassword(e) {
@@ -129,6 +177,35 @@ export default function AccountPage() {
         <form onSubmit={saveProfile}>
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header"><div className="card-title">Profile</div></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24, padding: '0 4px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--surface-muted)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {user?.avatarUrl ? (
+                  <img
+                    src={`/api/v1/auth/avatar/${user.avatarUrl}`}
+                    alt="Profile Avatar"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    {initials(user?.fullName)}
+                  </span>
+                )}
+              </div>
+              <div>
+                <label className="primary-btn" style={{ cursor: 'pointer', display: 'inline-block', fontSize: '0.85rem', padding: '6px 12px' }}>
+                  Upload Avatar
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  PNG, JPG, GIF or WEBP. Max 2MB.
+                </p>
+              </div>
+            </div>
             <div className="field">
               <label className="field-label">Full name</label>
               <input className="field-input" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} required />

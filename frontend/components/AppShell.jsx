@@ -7104,71 +7104,34 @@ export default function AppShell() {
       setNavOpen(false);
       return;
     }
-    // Extracted modules — navigate to real route instead of inline SPA
-    const extracted = {
-      'crm': '/crm',
-      'lead-generation': '/lead-generation',
-      'landing-page-builder': '/modules/landing-page-builder',
-      'website-builder': '/website-builder',
-      'funnel-builder': '/funnel-builder',
-      'email-marketing': '/email-marketing',
-      'sms-marketing': '/sms-marketing',
-      'whatsapp-marketing': '/whatsapp-marketing',
-      'marketing-automation': '/modules/marketing-automation',
-      'affiliate-system': '/modules/affiliate-system',
-      'referral-program': '/referral-program',
-      'appointment-booking': '/appointment-booking',
-      'forms': '/forms',
-      'popup-builder': '/popup-builder',
-      'survey-builder': '/survey-builder',
-      'quiz-builder': '/quiz-builder',
-      'url-shortener': '/url-shortener',
-      'qr-code-generator': '/qr-code-generator',
-      'link-in-bio': '/link-in-bio',
-      'digital-business-cards': '/digital-business-cards',
-      'social-media-scheduler': '/social-media-scheduler',
-      'review-management': '/review-management',
-      'chatbot-builder': '/chatbot-builder',
-      'ad-campaign-manager': '/modules/ad-campaign-manager',
-      'lead-scoring': '/lead-scoring',
-      'pipeline-deals': '/pipeline-deals',
-      'content-calendar': '/modules/content-calendar',
-      'push-notification-marketing': '/modules/push-notification-marketing',
-      'ambassador-program': '/modules/ambassador-program',
-      'direct-mail-automation': '/modules/direct-mail-automation',
-      'brand-kit': '/brand-kit',
-      'certificate-generator': '/certificates',
-      'accounting': '/accounting',
-      'invoices': '/billing-invoices',
-      'quotations': '/quotations',
-      'expenses': '/expenses',
-      'payroll': '/payroll',
-      'inventory': '/inventory',
-      'asset-management': '/asset-management',
-      'hr': '/hr',
-      'recruitment': '/recruitment',
-      'project-management': '/project-management',
-      'task-management': '/tasks',
-      'help-desk': '/help-desk',
-      'knowledge-base': '/knowledge-base',
-      'document-management': '/document-management',
-      'certificates': '/certificates',
-      'marketplace': '/marketplace',
-      'coupons': '/coupons',
-      'subscriptions': '/subscriptions',
-      'digital-products': '/digital-products',
-      'delivery-tracking': '/delivery-tracking',
-      'calendar': '/calendar',
-      'notes': '/notes',
-      'time-tracking': '/time-tracking',
-      'business-dashboard': '/business-dashboard',
-      'custom-reports': '/custom-reports',
-      'password-manager': '/password-manager',
-      'color-palette-generator': '/color-palettes',
+    let targetPath = null;
+    for (const cat of categories) {
+      const mod = cat.modules?.find((m) => m.slug === slug);
+      if (mod) {
+        targetPath = mod.route;
+        break;
+      }
+    }
+    if (targetPath) {
+      router.push(targetPath);
+      setNavOpen(false);
+      return;
+    }
+    const settingsMap = {
       'notifications': '/community/notifications',
+      'account-security': '/account',
+      'billing-plans': '/billing',
+      'team-roles': '/team',
+      'white-label': '/white-label',
+      'api-keys': '/api-keys',
+      'integrations': '/integrations',
+      'feature-flags': '/feature-flags',
+      'team': '/team',
+      'billing': '/billing',
+      'account': '/account',
     };
-    if (extracted[slug]) {
-      router.push(extracted[slug]);
+    if (settingsMap[slug]) {
+      router.push(settingsMap[slug]);
       setNavOpen(false);
       return;
     }

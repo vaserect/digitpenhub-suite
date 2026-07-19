@@ -55,8 +55,8 @@ async function createDefinition(req, res) {
     const { rows } = await db.query(
       `INSERT INTO custom_field_definitions
          (org_id, record_type, key, label, field_type, description, required,
-          default_value, validation, options, relation_record_type, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          default_value, validation, options, relation_record_type, sort_order, currency_code, min_value, max_value, format_pattern)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING id, record_type, key, label, field_type, description, required,
                  default_value, validation, options, relation_record_type,
                  sort_order, is_active, created_at, updated_at`,
@@ -64,6 +64,7 @@ async function createDefinition(req, res) {
         req.user.orgId, recordType, key, label, fieldType, description || null,
         !!required, toJsonb(defaultValue), toJsonb(validation, {}), toJsonb(options, []),
         relationRecordType || null, Number.isFinite(sortOrder) ? sortOrder : 0,
+        currencyCode || 'USD', minValue || null, maxValue || null, formatPattern || null,
       ]
     );
     res.status(201).json({ field: rows[0] });
@@ -91,7 +92,7 @@ async function updateDefinition(req, res) {
          validation = COALESCE($5, validation),
          options = COALESCE($6, options),
          relation_record_type = COALESCE($7, relation_record_type),
-         sort_order = COALESCE($8, sort_order),
+         sort_order = COALESCE($8, sort_order, currency_code, min_value, max_value, format_pattern),
          is_active = COALESCE($9, is_active),
          updated_at = NOW()
      WHERE id = $10 AND org_id = $11 AND record_type = $12

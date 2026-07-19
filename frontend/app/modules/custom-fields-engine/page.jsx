@@ -343,6 +343,33 @@ export default function CustomFieldsEnginePage() {
   }
 
   function renderAnalyticsTab() {
+    const [overallStats, setOverallStats] = useState(null);
+    const [fieldAnalytics, setFieldAnalytics] = useState([]);
+    const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+    useEffect(() => {
+      if (activeTab === 'analytics') {
+        loadAnalytics();
+      }
+    }, [activeTab, selectedRecordType]);
+
+    async function loadAnalytics() {
+      setLoadingAnalytics(true);
+      try {
+        const [overallData, fieldData] = await Promise.all([
+          apiFetch('/api/v1/custom-fields/analytics/overall'),
+          apiFetch(`/api/v1/custom-fields/analytics/${selectedRecordType}`),
+        ]);
+        setOverallStats(overallData);
+        setFieldAnalytics(fieldData.analytics || []);
+      } catch (err) {
+        console.error('Failed to load analytics:', err);
+        toast.error('Failed to load analytics');
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-6">
@@ -355,33 +382,122 @@ export default function CustomFieldsEnginePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-sm text-gray-600 mb-1">Total Fields</div>
-            <div className="text-2xl font-bold">{stats.totalFields}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600 mb-1">Active Fields</div>
-            <div className="text-2xl font-bold text-green-600">{stats.activeFields}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600 mb-1">Record Types</div>
-            <div className="text-2xl font-bold text-blue-600">{stats.recordTypes}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600 mb-1">Fields with Data</div>
-            <div className="text-2xl font-bold text-purple-600">{stats.fieldsWithData}</div>
-          </Card>
-        </div>
+        {loadingAnalytics ? (
+          <SkeletonRows count={5} />
+        ) : (
+          <>
+            {overallStats && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card className="p-4">
+                  <div className="text-sm text-gray-600 mb-1">Total Fields</div>
+                  <div className="text-2xl font-bold">{overallStats.total_fields}</div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-sm text-gray-600 mb-1">Record Types</div>
+                  <div className="text-2xl font-bold text-blue-600">{overallStats.record_types}</div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-sm text-gray-600 mb-1">Records with Fields</div>
+                  <div className="text-2xl font-bold text-purple-600">{overallStats.records_with_custom_fields}</div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-sm text-gray-600 mb-1">Created (30 days)</div>
+                  <div className="text-2xl font-bold text-green-600">{overallStats.fields_created_last_30_days}</div>
+                </Card>
+              </div>
+            )}
 
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Field Usage by Record Type</h3>
-          <EmptyState
-            icon={BarChart3}
-            title="Analytics coming soon"
-            description="Detailed usage statistics and insights will be available here"
-          />
-        </Card>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Field Usage for {RECORD_TYPES.find(rt => rt.value === selectedRecordType)?.label}</h3>
+                <select
+                  value={selectedRecordType}
+                  onChange={(e) => setSelectedRecordType(e.target.value)}
+                  className="px-3 py-2 border rounded-lg text-sm"
+                >
+                  {RECORD_TYPES.map(rt => (
+                    <option key={rt.value} value={rt.value}>{rt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {fieldAnalytics.length === 0 ? (
+                <EmptyState
+                  icon={BarChart3}
+                  title="No fields yet"
+                  description={`Create custom fields for ${RECORD_TYPES.find(rt => rt.value === selectedRecordType)?.label} to see usage analytics`}
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Field</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Type</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Records with Value</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Fill Rate</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Last Used</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fieldAnalytics.map(field => (
+                        <tr key={field.field_id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="font-medium">{field.field_label}</div>
+                            <div className="text-xs text-gray-500">{field.field_key}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                              {FIELD_TYPES.find(ft => ft.value === field.field_type)?.label || field.field_type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-sm">{field.records_with_value} / {field.total_records}</span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-600 h-2 rounded-full"
+                                  style={{ width: `${Math.min(field.fill_rate, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium">{field.fill_rate}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {field.last_used ? new Date(field.last_used).toLocaleDateString() : 'Never'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            {overallStats && overallStats.popular_field_types && overallStats.popular_field_types.length > 0 && (
+              <Card className="p-6">
+                <h3 className="font-semibold mb-4">Popular Field Types</h3>
+                <div className="space-y-3">
+                  {overallStats.popular_field_types.map((ft, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {FIELD_TYPES.find(t => t.value === ft.field_type)?.icon || '📝'}
+                        </span>
+                        <span className="font-medium">
+                          {FIELD_TYPES.find(t => t.value === ft.field_type)?.label || ft.field_type}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-600">{ft.count} fields</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     );
   }

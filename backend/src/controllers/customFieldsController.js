@@ -1,5 +1,10 @@
 const db = require('../db');
-const { FIELD_TYPES, validateCustomFieldValues, upsertCustomFieldValues, attachCustomFields } = require('../utils/customFields');
+const {
+  FIELD_TYPES,
+  validateCustomFieldValues,
+  upsertCustomFieldValues,
+  attachCustomFields,
+} = require('../utils/customFields');
 
 function toJsonb(value, fallback) {
   if (value === undefined || value === null) {
@@ -8,31 +13,44 @@ function toJsonb(value, fallback) {
   return JSON.stringify(value);
 }
 
-function validateDefinitionInput(body) {
+function validateDefinitionInput(body, { isUpdate = false } = {}) {
   const { key, label, fieldType } = body || {};
-  if (!key || !/^[a-z][a-z0-9_]*$/.test(key)) {
-    return 'key is required and must be lowercase snake_case (e.g. "renewal_date").';
-  }
-  if (!label) return 'label is required.';
-  if (!FIELD_TYPES.includes(fieldType)) {
+  if (!isUpdate) {
+    if (!key || !/^[a-z][a-z0-9_]*$/.test(key)) {
+      return 'key is required and must be lowercase snake_case (e.g. "renewal_date").';
+    }
+    if (!label) return 'label is required.';
+    if (!FIELD_TYPES.includes(fieldType)) {
+      return `fieldType must be one of: ${FIELD_TYPES.join(', ')}.`;
+    }
+  } else if (fieldType !== undefined && !FIELD_TYPES.includes(fieldType)) {
     return `fieldType must be one of: ${FIELD_TYPES.join(', ')}.`;
   }
-  if (fieldType === 'relation' && !body.relationRecordType) {
-    return 'relationRecordType is required when fieldType is "relation".';
+
+  const effectiveType = fieldType || body?.field_type;
+  if (effectiveType === 'relation' && !body.relationRecordType && !body.relation_record_type) {
+    if (!isUpdate) return 'relationRecordType is required when fieldType is "relation".';
   }
-  if (['select', 'multiselect'].includes(fieldType)) {
+  if (['select', 'multiselect'].includes(effectiveType)) {
     const opts = Array.isArray(body.options) ? body.options : [];
-    if (!opts.length) return 'options must be a non-empty array for select/multiselect fields.';
+    if (!isUpdate && !opts.length) {
+      return 'options must be a non-empty array for select/multiselect fields.';
+    }
   }
   return null;
 }
 
+const DEFINITION_SELECT = `
+  id, record_type, key, label, field_type, description, required,
+  default_value, validation, options, relation_record_type,
+  sort_order, is_active, currency_code, min_value, max_value, format_pattern,
+  created_at, updated_at
+`;
+
 async function listDefinitions(req, res) {
   const { recordType } = req.params;
   const { rows } = await db.query(
-    `SELECT id, record_type, key, label, field_type, description, required,
-            default_value, validation, options, relation_record_type,
-            sort_order, is_active, created_at, updated_at
+    `SELECT ${DEFINITION_SELECT}
      FROM custom_field_definitions
      WHERE org_id = $1 AND record_type = $2 AND is_active = true
      ORDER BY sort_order ASC, created_at ASC`,
@@ -47,24 +65,47 @@ async function createDefinition(req, res) {
   if (error) return res.status(400).json({ error });
 
   const {
-    key, label, fieldType, description, required, defaultValue,
-    validation, options, relationRecordType, sortOrder,
+    key,
+    label,
+    fieldType,
+    description,
+    required,
+    defaultValue,
+    validation,
+    options,
+    relationRecordType,
+    sortOrder,
+    currencyCode,
+    minValue,
+    maxValue,
+    formatPattern,
   } = req.body;
 
   try {
     const { rows } = await db.query(
       `INSERT INTO custom_field_definitions
          (org_id, record_type, key, label, field_type, description, required,
-          default_value, validation, options, relation_record_type, sort_order, currency_code, min_value, max_value, format_pattern)
+          default_value, validation, options, relation_record_type, sort_order,
+          currency_code, min_value, max_value, format_pattern)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-       RETURNING id, record_type, key, label, field_type, description, required,
-                 default_value, validation, options, relation_record_type,
-                 sort_order, is_active, created_at, updated_at`,
+       RETURNING ${DEFINITION_SELECT}`,
       [
-        req.user.orgId, recordType, key, label, fieldType, description || null,
-        !!required, toJsonb(defaultValue), toJsonb(validation, {}), toJsonb(options, []),
-        relationRecordType || null, Number.isFinite(sortOrder) ? sortOrder : 0,
-        currencyCode || 'USD', minValue || null, maxValue || null, formatPattern || null,
+        req.user.orgId,
+        recordType,
+        key,
+        label,
+        fieldType,
+        description || null,
+        !!required,
+        toJsonb(defaultValue),
+        toJsonb(validation, {}),
+        toJsonb(options, []),
+        relationRecordType || null,
+        Number.isFinite(sortOrder) ? sortOrder : 0,
+        currencyCode || 'USD',
+        minValue ?? null,
+        maxValue ?? null,
+        formatPattern || null,
       ]
     );
     res.status(201).json({ field: rows[0] });
@@ -78,9 +119,23 @@ async function createDefinition(req, res) {
 
 async function updateDefinition(req, res) {
   const { recordType, id } = req.params;
+  const error = validateDefinitionInput(req.body, { isUpdate: true });
+  if (error) return res.status(400).json({ error });
+
   const {
-    label, description, required, defaultValue, validation,
-    options, relationRecordType, sortOrder, isActive,
+    label,
+    description,
+    required,
+    defaultValue,
+    validation,
+    options,
+    relationRecordType,
+    sortOrder,
+    isActive,
+    currencyCode,
+    minValue,
+    maxValue,
+    formatPattern,
   } = req.body || {};
 
   const { rows } = await db.query(
@@ -92,21 +147,32 @@ async function updateDefinition(req, res) {
          validation = COALESCE($5, validation),
          options = COALESCE($6, options),
          relation_record_type = COALESCE($7, relation_record_type),
-         sort_order = COALESCE($8, sort_order, currency_code, min_value, max_value, format_pattern),
+         sort_order = COALESCE($8, sort_order),
          is_active = COALESCE($9, is_active),
+         currency_code = COALESCE($10, currency_code),
+         min_value = COALESCE($11, min_value),
+         max_value = COALESCE($12, max_value),
+         format_pattern = COALESCE($13, format_pattern),
          updated_at = NOW()
-     WHERE id = $10 AND org_id = $11 AND record_type = $12
-     RETURNING id, record_type, key, label, field_type, description, required,
-               default_value, validation, options, relation_record_type,
-               sort_order, is_active, created_at, updated_at`,
+     WHERE id = $14 AND org_id = $15 AND record_type = $16
+     RETURNING ${DEFINITION_SELECT}`,
     [
-      label ?? null, description ?? null, required ?? null,
+      label ?? null,
+      description ?? null,
+      required ?? null,
       defaultValue !== undefined ? JSON.stringify(defaultValue) : null,
       validation !== undefined ? JSON.stringify(validation) : null,
       options !== undefined ? JSON.stringify(options) : null,
       relationRecordType ?? null,
-      Number.isFinite(sortOrder) ? sortOrder : null, isActive ?? null,
-      id, req.user.orgId, recordType,
+      Number.isFinite(sortOrder) ? sortOrder : null,
+      isActive ?? null,
+      currencyCode ?? null,
+      minValue ?? null,
+      maxValue ?? null,
+      formatPattern ?? null,
+      id,
+      req.user.orgId,
+      recordType,
     ]
   );
   if (!rows.length) return res.status(404).json({ error: 'Field not found.' });
@@ -173,47 +239,72 @@ async function setRecordValues(req, res) {
   res.json({ values });
 }
 
-// ── Get records with custom fields attached (paginated) ──────────────────────
-// Returns records from the target table with their custom field values merged.
-// Requires the caller to know the underlying table name for the recordType.
+// Maps record_type keys used by the Custom Fields Engine to underlying tables.
 const RECORD_TABLES = {
   contact: 'contacts',
+  crm_contact: 'contacts',
   invoice: 'invoices',
+  quotation: 'quotations',
   project: 'projects',
   task: 'task_items',
-  lead: 'lead_forms',
+  lead: 'leads',
   product: 'digital_products',
   asset: 'assets',
+  inventory_item: 'inventory_items',
+  hr_employee: 'employees',
+  student: 'students',
 };
 
 async function getRecordsWithFields(req, res) {
   const { recordType } = req.params;
   const { page = 1, limit = 50, search } = req.query;
   const table = RECORD_TABLES[recordType];
-  if (!table) return res.status(400).json({ error: `Unsupported record type: ${recordType}. Supported: ${Object.keys(RECORD_TABLES).join(', ')}` });
+  if (!table) {
+    return res.status(400).json({
+      error: `Unsupported record type: ${recordType}. Supported: ${Object.keys(RECORD_TABLES).join(', ')}`,
+    });
+  }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
   const conditions = ['org_id = $1'];
   const params = [req.user.orgId];
   let idx = 2;
 
-  if (search) { conditions.push(`(name ILIKE $${idx} OR full_name ILIKE $${idx} OR email ILIKE $${idx})`); params.push(`%${search}%`); idx++; }
+  if (search) {
+    conditions.push(`(
+      COALESCE(name,'') ILIKE $${idx}
+      OR COALESCE(full_name,'') ILIKE $${idx}
+      OR COALESCE(email,'') ILIKE $${idx}
+    )`);
+    params.push(`%${search}%`);
+    idx += 1;
+  }
 
-  // Get base records
-  const { rows: records } = await db.query(
-    `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
-    [...params, parseInt(limit), offset]
-  );
+  let records = [];
+  let total = 0;
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM ${table}
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY created_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...params, parseInt(limit, 10), offset]
+    );
+    records = rows;
+    const { rows: countResult } = await db.query(
+      `SELECT count(*) AS cnt FROM ${table} WHERE ${conditions.join(' AND ')}`,
+      params
+    );
+    total = parseInt(countResult[0].cnt, 10);
+  } catch (err) {
+    // Table may not exist for every record type in every deployment.
+    if (err.code === '42P01' || err.code === '42703') {
+      return res.json({ records: [], fields: [], total: 0, page: parseInt(page, 10), limit: parseInt(limit, 10) });
+    }
+    throw err;
+  }
 
-  const { rows: countResult } = await db.query(
-    `SELECT count(*) AS cnt FROM ${table} WHERE ${conditions.join(' AND ')}`,
-    params
-  );
-
-  // Attach custom fields
   const enhanced = await attachCustomFields(records, recordType, req.user.orgId);
-
-  // Get field definitions for the response
   const { rows: definitions } = await db.query(
     `SELECT key, label, field_type FROM custom_field_definitions
      WHERE org_id = $1 AND record_type = $2 AND is_active = true ORDER BY sort_order`,
@@ -223,14 +314,12 @@ async function getRecordsWithFields(req, res) {
   res.json({
     records: enhanced,
     fields: definitions,
-    total: parseInt(countResult[0].cnt),
-    page: parseInt(page),
-    limit: parseInt(limit),
+    total,
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
   });
 }
 
-// ── Bulk set custom field values ─────────────────────────────────────────────
-// Sets the same custom field values on multiple records at once.
 async function bulkSetValues(req, res) {
   const { recordType } = req.params;
   const { recordIds, values } = req.body || {};
@@ -258,16 +347,24 @@ async function bulkSetValues(req, res) {
   res.json({ ok: true, count: recordIds.length });
 }
 
-// ── Export records with custom fields as CSV ─────────────────────────────────
 async function exportRecordsCsv(req, res) {
   const { recordType } = req.params;
   const table = RECORD_TABLES[recordType];
   if (!table) return res.status(400).json({ error: `Unsupported record type: ${recordType}.` });
 
-  const { rows: records } = await db.query(
-    `SELECT * FROM ${table} WHERE org_id = $1 ORDER BY created_at DESC LIMIT 5000`,
-    [req.user.orgId]
-  );
+  let records = [];
+  try {
+    const { rows } = await db.query(
+      `SELECT * FROM ${table} WHERE org_id = $1 ORDER BY created_at DESC LIMIT 5000`,
+      [req.user.orgId]
+    );
+    records = rows;
+  } catch (err) {
+    if (err.code === '42P01') {
+      return res.status(400).json({ error: `No data table available for record type ${recordType}.` });
+    }
+    throw err;
+  }
 
   const { rows: definitions } = await db.query(
     `SELECT key, label, field_type FROM custom_field_definitions
@@ -275,17 +372,16 @@ async function exportRecordsCsv(req, res) {
     [req.user.orgId, recordType]
   );
 
-  // Attach custom fields
   const enhanced = await attachCustomFields(records, recordType, req.user.orgId);
-
-  // Build CSV
-  const baseCols = Object.keys(records[0] || {}).filter(k => !['password_hash','totp_secret','totp_backup_codes'].includes(k));
-  const fieldCols = definitions.map(d => d.key);
+  const baseCols = Object.keys(records[0] || {}).filter(
+    (k) => !['password_hash', 'totp_secret', 'totp_backup_codes'].includes(k)
+  );
+  const fieldCols = definitions.map((d) => d.key);
   const allCols = [...baseCols, ...fieldCols];
 
   const lines = [allCols.join(',')];
   for (const record of enhanced) {
-    const row = allCols.map(col => {
+    const row = allCols.map((col) => {
       if (col in (record.customFields || {})) {
         return JSON.stringify(String(record.customFields[col] ?? '').replace(/"/g, '""'));
       }
@@ -299,6 +395,155 @@ async function exportRecordsCsv(req, res) {
   res.send(lines.join('\n'));
 }
 
+async function listTemplates(req, res) {
+  const { recordType } = req.query;
+  let query = 'SELECT * FROM custom_field_templates WHERE 1=1';
+  const params = [];
+
+  if (recordType) {
+    params.push(recordType);
+    query += ` AND record_type = $${params.length}`;
+  }
+
+  query += ' ORDER BY category, name';
+
+  try {
+    const { rows } = await db.query(query, params);
+    res.json({ templates: rows });
+  } catch (err) {
+    if (err.code === '42P01') {
+      return res.json({ templates: [] });
+    }
+    throw err;
+  }
+}
+
+async function applyTemplate(req, res) {
+  const { templateId } = req.params;
+  const { recordType } = req.body || {};
+
+  let template;
+  try {
+    const { rows } = await db.query('SELECT * FROM custom_field_templates WHERE id = $1', [templateId]);
+    template = rows[0];
+  } catch (err) {
+    if (err.code === '42P01') {
+      return res.status(404).json({ error: 'Field templates are not available yet.' });
+    }
+    throw err;
+  }
+
+  if (!template) {
+    return res.status(404).json({ error: 'Template not found' });
+  }
+
+  const fields = typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields;
+  const targetType = recordType || template.record_type;
+  const created = [];
+
+  for (const fieldDef of fields) {
+    try {
+      const { rows } = await db.query(
+        `INSERT INTO custom_field_definitions
+           (org_id, record_type, key, label, field_type, description, required,
+            default_value, validation, options, relation_record_type, sort_order,
+            currency_code, min_value, max_value, format_pattern)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         ON CONFLICT (org_id, record_type, key) DO NOTHING
+         RETURNING id, key, label`,
+        [
+          req.user.orgId,
+          targetType,
+          fieldDef.key,
+          fieldDef.label,
+          fieldDef.fieldType || fieldDef.field_type,
+          fieldDef.description || null,
+          fieldDef.required || false,
+          JSON.stringify(fieldDef.defaultValue ?? fieldDef.default_value ?? null),
+          JSON.stringify(fieldDef.validation || {}),
+          JSON.stringify(fieldDef.options || []),
+          fieldDef.relationRecordType || fieldDef.relation_record_type || null,
+          fieldDef.sortOrder || fieldDef.sort_order || 0,
+          fieldDef.currencyCode || fieldDef.currency_code || 'USD',
+          fieldDef.minValue ?? fieldDef.min_value ?? null,
+          fieldDef.maxValue ?? fieldDef.max_value ?? null,
+          fieldDef.formatPattern || fieldDef.format_pattern || null,
+        ]
+      );
+      if (rows.length > 0) created.push(rows[0]);
+    } catch (err) {
+      console.error('Error creating field from template:', err.message);
+    }
+  }
+
+  await db.query(
+    'UPDATE custom_field_templates SET usage_count = usage_count + 1 WHERE id = $1',
+    [templateId]
+  );
+
+  res.json({
+    message: `Applied template: ${created.length} fields created`,
+    created: created.length,
+    skipped: fields.length - created.length,
+    fields: created,
+  });
+}
+
+async function getAnalytics(req, res) {
+  const orgId = req.user.orgId;
+
+  const { rows: summary } = await db.query(
+    `SELECT
+       COUNT(*)::int AS total_fields,
+       COUNT(*) FILTER (WHERE is_active)::int AS active_fields,
+       COUNT(DISTINCT record_type)::int AS record_types
+     FROM custom_field_definitions
+     WHERE org_id = $1`,
+    [orgId]
+  );
+
+  const { rows: withData } = await db.query(
+    `SELECT COUNT(DISTINCT field_id)::int AS fields_with_data
+     FROM custom_field_values
+     WHERE org_id = $1 AND value IS NOT NULL AND value::text NOT IN ('null', '""', '[]', '{}')`,
+    [orgId]
+  );
+
+  const { rows: byType } = await db.query(
+    `SELECT record_type,
+            COUNT(*)::int AS field_count,
+            COUNT(*) FILTER (WHERE is_active)::int AS active_count
+     FROM custom_field_definitions
+     WHERE org_id = $1
+     GROUP BY record_type
+     ORDER BY field_count DESC`,
+    [orgId]
+  );
+
+  const { rows: topFields } = await db.query(
+    `SELECT d.key, d.label, d.record_type, d.field_type,
+            COUNT(v.id)::int AS value_count
+     FROM custom_field_definitions d
+     LEFT JOIN custom_field_values v ON v.field_id = d.id
+     WHERE d.org_id = $1 AND d.is_active = true
+     GROUP BY d.id
+     ORDER BY value_count DESC
+     LIMIT 10`,
+    [orgId]
+  );
+
+  res.json({
+    stats: {
+      totalFields: summary[0]?.total_fields || 0,
+      activeFields: summary[0]?.active_fields || 0,
+      recordTypes: summary[0]?.record_types || 0,
+      fieldsWithData: withData[0]?.fields_with_data || 0,
+    },
+    byRecordType: byType,
+    topFields,
+  });
+}
+
 module.exports = {
   FIELD_TYPES,
   listDefinitions,
@@ -310,86 +555,112 @@ module.exports = {
   getRecordsWithFields,
   bulkSetValues,
   exportRecordsCsv,
+  listTemplates,
+  applyTemplate,
+  getAnalytics,
 };
 
-// Template endpoints
-async function listTemplates(req, res) {
-  const { recordType } = req.query;
-  let query = 'SELECT * FROM custom_field_templates WHERE 1=1';
-  const params = [];
+// Analytics endpoints
+async function getFieldAnalytics(req, res) {
+  const { recordType } = req.params;
   
-  if (recordType) {
-    params.push(recordType);
-    query += ` AND record_type = $${params.length}`;
+  // Get all field definitions for this record type
+  const { rows: fields } = await db.query(
+    `SELECT id, key, label, field_type, created_at 
+     FROM custom_field_definitions 
+     WHERE org_id = $1 AND record_type = $2 AND is_active = true
+     ORDER BY created_at DESC`,
+    [req.user.orgId, recordType]
+  );
+  
+  // Get usage statistics for each field
+  const analytics = [];
+  for (const field of fields) {
+    const { rows: [stats] } = await db.query(
+      `SELECT 
+        COUNT(DISTINCT record_id) as records_with_value,
+        COUNT(*) as total_values,
+        MAX(updated_at) as last_used
+       FROM custom_field_values
+       WHERE field_id = $1 AND org_id = $2 AND value IS NOT NULL AND value != 'null'::jsonb`,
+      [field.id, req.user.orgId]
+    );
+    
+    // Get total record count for this type
+    let totalRecords = 0;
+    try {
+      const tableMap = {
+        'crm_contact': 'contacts',
+        'invoice': 'invoices',
+        'quotation': 'quotations',
+        'project': 'projects',
+        'task': 'tasks',
+        'inventory_item': 'inventory',
+        'hr_employee': 'hr_employees',
+        'student': 'students',
+      };
+      const tableName = tableMap[recordType];
+      if (tableName) {
+        const { rows: [count] } = await db.query(
+          `SELECT COUNT(*) as total FROM ${tableName} WHERE org_id = $1`,
+          [req.user.orgId]
+        );
+        totalRecords = parseInt(count.total);
+      }
+    } catch (err) {
+      console.error('Error getting total records:', err);
+    }
+    
+    const recordsWithValue = parseInt(stats.records_with_value || 0);
+    const fillRate = totalRecords > 0 ? (recordsWithValue / totalRecords * 100).toFixed(1) : 0;
+    
+    analytics.push({
+      field_id: field.id,
+      field_key: field.key,
+      field_label: field.label,
+      field_type: field.field_type,
+      created_at: field.created_at,
+      records_with_value: recordsWithValue,
+      total_records: totalRecords,
+      fill_rate: parseFloat(fillRate),
+      last_used: stats.last_used,
+    });
   }
   
-  query += ' ORDER BY category, name';
-  
-  const { rows } = await db.query(query, params);
-  res.json({ templates: rows });
+  res.json({ analytics });
 }
 
-async function applyTemplate(req, res) {
-  const { templateId } = req.params;
-  const { recordType } = req.body;
-  
-  const { rows: [template] } = await db.query(
-    'SELECT * FROM custom_field_templates WHERE id = $1',
-    [templateId]
+async function getOverallStats(req, res) {
+  // Get overall statistics across all record types
+  const { rows: [stats] } = await db.query(
+    `SELECT 
+      COUNT(DISTINCT d.id) as total_fields,
+      COUNT(DISTINCT d.record_type) as record_types,
+      COUNT(DISTINCT v.record_id) as records_with_custom_fields,
+      COUNT(DISTINCT CASE WHEN d.created_at > NOW() - INTERVAL '30 days' THEN d.id END) as fields_created_last_30_days
+     FROM custom_field_definitions d
+     LEFT JOIN custom_field_values v ON v.field_id = d.id
+     WHERE d.org_id = $1 AND d.is_active = true`,
+    [req.user.orgId]
   );
   
-  if (!template) {
-    return res.status(404).json({ error: 'Template not found' });
-  }
-  
-  const fields = JSON.parse(template.fields);
-  const created = [];
-  
-  for (const fieldDef of fields) {
-    try {
-      const { rows } = await db.query(
-        `INSERT INTO custom_field_definitions
-           (org_id, record_type, key, label, field_type, description, required,
-            default_value, validation, options, relation_record_type, sort_order,
-            currency_code, min_value, max_value, format_pattern)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-         ON CONFLICT (org_id, record_type, key) DO NOTHING
-         RETURNING id`,
-        [
-          req.user.orgId,
-          recordType || template.record_type,
-          fieldDef.key,
-          fieldDef.label,
-          fieldDef.fieldType,
-          fieldDef.description || null,
-          fieldDef.required || false,
-          JSON.stringify(fieldDef.defaultValue || null),
-          JSON.stringify(fieldDef.validation || {}),
-          JSON.stringify(fieldDef.options || []),
-          fieldDef.relationRecordType || null,
-          fieldDef.sortOrder || 0,
-          fieldDef.currencyCode || 'USD',
-          fieldDef.minValue || null,
-          fieldDef.maxValue || null,
-          fieldDef.formatPattern || null,
-        ]
-      );
-      if (rows.length > 0) created.push(rows[0]);
-    } catch (err) {
-      console.error('Error creating field from template:', err);
-    }
-  }
-  
-  // Increment usage count
-  await db.query(
-    'UPDATE custom_field_templates SET usage_count = usage_count + 1 WHERE id = $1',
-    [templateId]
+  // Get most used field types
+  const { rows: fieldTypes } = await db.query(
+    `SELECT field_type, COUNT(*) as count
+     FROM custom_field_definitions
+     WHERE org_id = $1 AND is_active = true
+     GROUP BY field_type
+     ORDER BY count DESC
+     LIMIT 5`,
+    [req.user.orgId]
   );
   
-  res.json({ 
-    message: `Applied template: ${created.length} fields created`,
-    created: created.length,
-    skipped: fields.length - created.length
+  res.json({
+    total_fields: parseInt(stats.total_fields || 0),
+    record_types: parseInt(stats.record_types || 0),
+    records_with_custom_fields: parseInt(stats.records_with_custom_fields || 0),
+    fields_created_last_30_days: parseInt(stats.fields_created_last_30_days || 0),
+    popular_field_types: fieldTypes,
   });
 }
 
@@ -402,4 +673,6 @@ module.exports = {
   updateRecordValues,
   listTemplates,
   applyTemplate,
+  getFieldAnalytics,
+  getOverallStats,
 };

@@ -5,6 +5,7 @@ const {
   upsertCustomFieldValues,
   attachCustomFields,
 } = require('../utils/customFields');
+const { validateAdvancedRules } = require('../utils/validationEngine');
 
 
 // ============================================================================
@@ -602,7 +603,6 @@ async function getAnalytics(req, res) {
 }
 
 module.exports = {
-  FIELD_TYPES,
   listDefinitions,
   createDefinition,
   updateDefinition,
@@ -615,6 +615,13 @@ module.exports = {
   listTemplates,
   applyTemplate,
   getAnalytics,
+  getFieldAnalytics,
+  getOverallStats,
+  listValidationTemplates,
+  getValidationTemplate,
+  addValidationRule,
+  removeValidationRule,
+  FIELD_TYPES,
 };
 
 // Analytics endpoints
@@ -727,10 +734,20 @@ module.exports = {
   updateDefinition,
   deleteDefinition,
   getRecordValues,
+  setRecordValues,
+  getRecordsWithFields,
+  bulkSetValues,
+  exportRecordsCsv,
   listTemplates,
   applyTemplate,
+  getAnalytics,
   getFieldAnalytics,
   getOverallStats,
+  listValidationTemplates,
+  getValidationTemplate,
+  addValidationRule,
+  removeValidationRule,
+  FIELD_TYPES,
 };
 
 // Validation rule template endpoints
@@ -821,7 +838,55 @@ module.exports = {
   getFieldAnalytics,
   getOverallStats,
   listValidationTemplates,
+  getValidationTemplate,
   addValidationRule,
   removeValidationRule,
   FIELD_TYPES,
 };
+
+// ============================================================================
+// Validation Template Management
+// ============================================================================
+
+async function listValidationTemplates(req, res) {
+  const { fieldType } = req.query;
+  
+  try {
+    let query = 'SELECT * FROM custom_field_validation_templates WHERE is_system = true';
+    const params = [];
+    
+    if (fieldType) {
+      query += ' AND field_type = $1';
+      params.push(fieldType);
+    }
+    
+    query += ' ORDER BY field_type, name';
+    
+    const { rows } = await db.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error listing validation templates:', err);
+    res.status(500).json({ error: 'Failed to list validation templates.' });
+  }
+}
+
+async function getValidationTemplate(req, res) {
+  const { templateId } = req.params;
+  
+  try {
+    const { rows } = await db.query(
+      'SELECT * FROM custom_field_validation_templates WHERE id = $1',
+      [templateId]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Validation template not found.' });
+    }
+    
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error getting validation template:', err);
+    res.status(500).json({ error: 'Failed to get validation template.' });
+  }
+}
+

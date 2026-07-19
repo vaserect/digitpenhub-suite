@@ -9,10 +9,10 @@
 const express = require('express');
 const router = express.Router();
 const searchController = require('../controllers/searchController');
-const { authenticate } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
 // All search routes require authentication
-router.use(authenticate);
+router.use(requireAuth);
 
 /**
  * @route   GET /api/v1/search

@@ -4,11 +4,11 @@
  */
 
 const BaseRepository = require('../base/BaseRepository');
-const db = require('../../config/database');
+const db = require('../../db');
 
 class SearchRepository extends BaseRepository {
   constructor() {
-    super('search_index');
+    super(db, 'search_index');
   }
 
   async search({ query, entityTypes, orgId, limit, offset, filters }) {

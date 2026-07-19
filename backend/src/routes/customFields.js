@@ -60,3 +60,49 @@ router.get('/export', importExportController.exportFields);
 router.post('/import', upload.single('file'), importExportController.importFields);
 
 module.exports = router;
+
+// Usage Analytics routes
+const usageTracker = require('../utils/fieldUsageTracker');
+
+router.get('/usage/stats/:recordType', async (req, res) => {
+  try {
+    const { recordType } = req.params;
+    const { days = 30 } = req.query;
+    const stats = await usageTracker.getFieldUsageStats(req.user.orgId, recordType, parseInt(days));
+    res.json({ stats });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/usage/summary', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const summary = await usageTracker.getUsageSummary(req.user.orgId, parseInt(days));
+    res.json({ summary });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/usage/unused/:recordType', async (req, res) => {
+  try {
+    const { recordType } = req.params;
+    const { days = 30 } = req.query;
+    const unused = await usageTracker.getUnusedFields(req.user.orgId, recordType, parseInt(days));
+    res.json({ unused });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/usage/trend/:recordType/:fieldKey', async (req, res) => {
+  try {
+    const { recordType, fieldKey } = req.params;
+    const { days = 30 } = req.query;
+    const trend = await usageTracker.getFieldUsageTrend(req.user.orgId, recordType, fieldKey, parseInt(days));
+    res.json({ trend });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

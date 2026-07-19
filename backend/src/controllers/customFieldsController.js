@@ -8,6 +8,7 @@ const {
 const { validateAdvancedRules } = require('../utils/validationEngine');
 const { validateFieldValues } = require('../utils/customFieldValidator');
 const { filterFieldsByDependencies } = require('../utils/fieldDependencyEvaluator');
+const { trackFieldValueSet, trackFieldValueRead } = require('../utils/fieldUsageTracker');
 
 
 // ============================================================================
@@ -287,6 +288,12 @@ async function getRecordValues(req, res) {
       values[field.key] = maskSensitiveValue(field, rawValue);
     }
   }
+  // Track field reads (non-blocking)
+  for (const field of visibleFields) {
+    if (dependencyFilteredKeys.has(field.key)) {
+      trackFieldValueRead(req.user.orgId, recordType, field.key, req.user.id).catch(() => {});
+    }
+  }
 
   res.json({ values });
 }
@@ -329,6 +336,10 @@ async function getRecordValues(req, res) {
     await client.query('BEGIN');
     await upsertCustomFieldValues(client, req.user.orgId, recordType, recordId, editableFields, defByKey);
     await client.query('COMMIT');
+    // Track field writes (non-blocking)
+    for (const fieldKey of Object.keys(editableFields)) {
+      trackFieldValueSet(req.user.orgId, recordType, fieldKey, req.user.id).catch(() => {});
+    }
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

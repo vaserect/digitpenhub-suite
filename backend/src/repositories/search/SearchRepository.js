@@ -338,6 +338,42 @@ class SearchRepository extends BaseRepository {
       throw new Error(`Delete saved search failed: ${error.message}`);
     }
   }
+
+  /**
+   * Phase 6-8: Search with caching and analytics
+   */
+  async searchWithCache({ query, entityTypes, orgId, limit, offset, filters, userId }) {
+    const SearchCacheRepository = require('./SearchCacheRepository');
+    const cacheRepo = new SearchCacheRepository();
+    
+    // Try cache first (Phase 8)
+    const cached = await cacheRepo.getCachedResults(orgId, query, filters, entityTypes);
+    if (cached) {
+      return JSON.parse(cached.results);
+    }
+    
+    // Cache miss - perform search
+    const startTime = Date.now();
+    const results = await this.search({ query, entityTypes, orgId, limit, offset, filters });
+    const searchDurationMs = Date.now() - startTime;
+    
+    // Cache results (15 min TTL)
+    await cacheRepo.cacheResults(orgId, query, filters, entityTypes, results, 15);
+    
+    // Track analytics (Phase 6)
+    if (userId) {
+      const SearchAnalyticsRepository = require('./SearchAnalyticsRepository');
+      const analyticsRepo = new SearchAnalyticsRepository();
+      await analyticsRepo.trackSearchEvent({
+        orgId, userId, query,
+        resultsCount: results.length,
+        searchDurationMs,
+        filtersUsed: filters
+      });
+    }
+    
+    return results;
+  }
 }
 
 module.exports = SearchRepository;

@@ -208,6 +208,34 @@ export default function CustomFieldsModule({ goHome }) {
     setOptionInput('');
     setShowForm(true);
   }
+  function cloneField(field) {
+    const clonedKey = `${field.key}_copy_${Date.now()}`;
+    setEditing(null); // Not editing existing, creating new
+    setDraft({
+      key: clonedKey,
+      label: `${field.label} (Copy)`,
+      fieldType: field.field_type || 'text',
+      description: field.description || '',
+      required: !!field.required,
+      options: Array.isArray(field.options) ? [...field.options] : [],
+      relationRecordType: field.relation_record_type || '',
+      sortOrder: (field.sort_order || 0) + 1,
+      currencyCode: field.currency_code || 'USD',
+      minValue: field.min_value ?? '',
+      maxValue: field.max_value ?? '',
+      formatPattern: field.format_pattern || '',
+      security: field.security ? { ...field.security } : {
+        visibility: ['owner', 'admin', 'member'],
+        editable: ['owner', 'admin'],
+        sensitive: false,
+        mask_value: false
+      },
+      validation_rules: field.validation_rules ? [...field.validation_rules] : [],
+      dependencies: field.dependencies ? [...field.dependencies] : [],
+    });
+    setOptionInput('');
+    setShowForm(true);
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -468,6 +496,9 @@ export default function CustomFieldsModule({ goHome }) {
                         <td style={{ whiteSpace: 'nowrap' }}>
                           <Button size="sm" variant="ghost" onClick={() => openEdit(field)}>
                             Edit
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => cloneField(field)}>
+                            Clone
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => handleDelete(field)}>
                             Delete

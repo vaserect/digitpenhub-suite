@@ -103,8 +103,31 @@ export default function CustomFieldsModule({ goHome }) {
   const [applyingTemplate, setApplyingTemplate] = useState(null);
   const [templateCategory, setTemplateCategory] = useState('all');
   const [showImportExport, setShowImportExport] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
   const recordTypeMeta = useMemo(
+  // Filter and search fields
+  const filteredFields = useMemo(() => {
+    let result = fields;
+
+    // Filter by type
+    if (filterType !== 'all') {
+      result = result.filter(f => f.field_type === filterType);
+    }
+
+    // Search by key or label
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(f => 
+        f.key.toLowerCase().includes(query) ||
+        f.label.toLowerCase().includes(query) ||
+        (f.description && f.description.toLowerCase().includes(query))
+      );
+    }
+
+    return result;
+  }, [fields, filterType, searchQuery]);
     () => RECORD_TYPES.find((r) => r.value === recordType) || RECORD_TYPES[0],
     [recordType]
   );
@@ -349,6 +372,47 @@ export default function CustomFieldsModule({ goHome }) {
             ))}
           </select>
         </div>
+          {tab === 'definitions' && (
+            <>
+              <input
+                type="text"
+                className="field-input"
+                placeholder="Search fields by key, label, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ maxWidth: 300 }}
+              />
+              <select
+                className="field-input"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{ maxWidth: 200 }}
+              >
+                <option value="all">All Types</option>
+                {FIELD_TYPES.map(ft => (
+                  <option key={ft.value} value={ft.value}>{ft.label}</option>
+                ))}
+              </select>
+              {(searchQuery || filterType !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilterType('all');
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </>
+          )}
       )}
 
       {loading ? (
@@ -384,7 +448,7 @@ export default function CustomFieldsModule({ goHome }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {fields.map((field) => (
+                    {filteredFields.map((field) => (
                       <tr key={field.id}>
                         <td style={{ fontWeight: 600 }}>{field.label}</td>
                         <td>

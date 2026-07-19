@@ -7146,6 +7146,7 @@ export default function AppShell() {
       'customer-segmentation-engine': '/modules/customer-segmentation',
       'event-webinar-hosting': '/modules/event-hosting',
       'ambassador-program': '/modules/ambassador-program',
+      'direct-mail-automation': '/modules/direct-mail-automation',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

@@ -218,6 +218,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/events', 'events', 'event-hosting', 'Event / Webinar Hosting'),
   moduleRoute('/api/v1/sales-playbook', 'salesPlaybook', 'sales-playbook', 'Sales Playbook / Battlecard Library'),
   publicRoute('/api/v1/ambassadors', 'ambassador', 'Ambassador Program (mixed auth)'),
+  moduleRoute('/api/v1/direct-mail', 'directMail', 'direct-mail-automation', 'Direct Mail Automation'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================

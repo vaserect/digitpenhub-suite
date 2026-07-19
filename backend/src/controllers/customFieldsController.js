@@ -311,3 +311,95 @@ module.exports = {
   bulkSetValues,
   exportRecordsCsv,
 };
+
+// Template endpoints
+async function listTemplates(req, res) {
+  const { recordType } = req.query;
+  let query = 'SELECT * FROM custom_field_templates WHERE 1=1';
+  const params = [];
+  
+  if (recordType) {
+    params.push(recordType);
+    query += ` AND record_type = $${params.length}`;
+  }
+  
+  query += ' ORDER BY category, name';
+  
+  const { rows } = await db.query(query, params);
+  res.json({ templates: rows });
+}
+
+async function applyTemplate(req, res) {
+  const { templateId } = req.params;
+  const { recordType } = req.body;
+  
+  const { rows: [template] } = await db.query(
+    'SELECT * FROM custom_field_templates WHERE id = $1',
+    [templateId]
+  );
+  
+  if (!template) {
+    return res.status(404).json({ error: 'Template not found' });
+  }
+  
+  const fields = JSON.parse(template.fields);
+  const created = [];
+  
+  for (const fieldDef of fields) {
+    try {
+      const { rows } = await db.query(
+        `INSERT INTO custom_field_definitions
+           (org_id, record_type, key, label, field_type, description, required,
+            default_value, validation, options, relation_record_type, sort_order,
+            currency_code, min_value, max_value, format_pattern)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         ON CONFLICT (org_id, record_type, key) DO NOTHING
+         RETURNING id`,
+        [
+          req.user.orgId,
+          recordType || template.record_type,
+          fieldDef.key,
+          fieldDef.label,
+          fieldDef.fieldType,
+          fieldDef.description || null,
+          fieldDef.required || false,
+          JSON.stringify(fieldDef.defaultValue || null),
+          JSON.stringify(fieldDef.validation || {}),
+          JSON.stringify(fieldDef.options || []),
+          fieldDef.relationRecordType || null,
+          fieldDef.sortOrder || 0,
+          fieldDef.currencyCode || 'USD',
+          fieldDef.minValue || null,
+          fieldDef.maxValue || null,
+          fieldDef.formatPattern || null,
+        ]
+      );
+      if (rows.length > 0) created.push(rows[0]);
+    } catch (err) {
+      console.error('Error creating field from template:', err);
+    }
+  }
+  
+  // Increment usage count
+  await db.query(
+    'UPDATE custom_field_templates SET usage_count = usage_count + 1 WHERE id = $1',
+    [templateId]
+  );
+  
+  res.json({ 
+    message: `Applied template: ${created.length} fields created`,
+    created: created.length,
+    skipped: fields.length - created.length
+  });
+}
+
+module.exports = {
+  listDefinitions,
+  createDefinition,
+  updateDefinition,
+  deleteDefinition,
+  getRecordValues,
+  updateRecordValues,
+  listTemplates,
+  applyTemplate,
+};

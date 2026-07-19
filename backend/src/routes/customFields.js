@@ -31,3 +31,7 @@ router.patch('/:recordType/bulk-values', bulkSetValues);
 router.get('/:recordType/export', exportRecordsCsv);
 
 module.exports = router;
+
+// Template routes
+router.get('/templates', controller.listTemplates);
+router.post('/templates/:templateId/apply', controller.applyTemplate);

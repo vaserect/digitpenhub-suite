@@ -208,6 +208,51 @@ export default function CustomFieldsEnginePage() {
   }
 
   function renderTemplatesTab() {
+    const [templates, setTemplates] = useState([]);
+    const [loadingTemplates, setLoadingTemplates] = useState(true);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [applyingTemplate, setApplyingTemplate] = useState(null);
+
+    useEffect(() => {
+      if (activeTab === 'templates') {
+        loadTemplates();
+      }
+    }, [activeTab, selectedRecordType]);
+
+    async function loadTemplates() {
+      setLoadingTemplates(true);
+      try {
+        const data = await apiFetch(`/api/v1/custom-fields/templates?recordType=${selectedRecordType}`);
+        setTemplates(data.templates || []);
+      } catch (err) {
+        console.error('Failed to load templates:', err);
+        toast.error('Failed to load templates');
+      } finally {
+        setLoadingTemplates(false);
+      }
+    }
+
+    async function handleApplyTemplate(templateId) {
+      setApplyingTemplate(templateId);
+      try {
+        const data = await apiFetch(`/api/v1/custom-fields/templates/${templateId}/apply`, {
+          method: 'POST',
+          body: JSON.stringify({ recordType: selectedRecordType }),
+        });
+        toast.success(data.message || 'Template applied successfully');
+        loadData();
+      } catch (err) {
+        toast.error(err.message || 'Failed to apply template');
+      } finally {
+        setApplyingTemplate(null);
+      }
+    }
+
+    const categories = ['all', ...new Set(templates.map(t => t.category))];
+    const filteredTemplates = selectedCategory === 'all' 
+      ? templates 
+      : templates.filter(t => t.category === selectedCategory);
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -216,17 +261,83 @@ export default function CustomFieldsEnginePage() {
             <div>
               <h2 className="text-lg font-semibold">Field Templates</h2>
               <p className="text-sm text-gray-600">
-                Pre-built field sets for common use cases
+                Pre-built field sets for common industries and use cases
               </p>
             </div>
           </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 border rounded-lg text-sm"
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {cat === 'all' ? 'All Categories' : cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <EmptyState
-          icon={FileText}
-          title="Field templates coming soon"
-          description="Quick-start templates for common industries and use cases will be available here"
-        />
+        {loadingTemplates ? (
+          <SkeletonRows count={5} />
+        ) : filteredTemplates.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No templates found"
+            description={`No templates available for ${RECORD_TYPES.find(rt => rt.value === selectedRecordType)?.label}`}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTemplates.map(template => (
+              <Card key={template.id} className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-1">{template.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+                        {template.category.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {JSON.parse(template.fields).length} fields
+                      </span>
+                      {template.usage_count > 0 && (
+                        <span className="text-xs text-gray-500">
+                          • Used {template.usage_count}x
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-3">
+                  <div className="text-xs font-medium text-gray-700 mb-2">Fields included:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {JSON.parse(template.fields).slice(0, 6).map((field, idx) => (
+                      <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                        {field.label}
+                      </span>
+                    ))}
+                    {JSON.parse(template.fields).length > 6 && (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                        +{JSON.parse(template.fields).length - 6} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  onClick={() => handleApplyTemplate(template.id)}
+                  disabled={applyingTemplate === template.id}
+                  className="w-full"
+                >
+                  {applyingTemplate === template.id ? 'Applying...' : 'Apply Template'}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

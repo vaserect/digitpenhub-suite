@@ -11,6 +11,7 @@ import { SkeletonRows } from '../ui/Skeleton';
 import ValidationRuleBuilder from './ValidationRuleBuilder';
 import FieldDependencyBuilder from './FieldDependencyBuilder';
 import ImportExportModal from './ImportExportModal';
+import DraggableFieldRow from './DraggableFieldRow';
 
 const RECORD_TYPES = [
   { value: 'contact', label: 'CRM Contacts', aliases: ['crm_contact'] },
@@ -105,6 +106,8 @@ export default function CustomFieldsModule({ goHome }) {
   const [showImportExport, setShowImportExport] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const recordTypeMeta = useMemo(
   // Filter and search fields
@@ -209,6 +212,53 @@ export default function CustomFieldsModule({ goHome }) {
     setShowForm(true);
   }
   function cloneField(field) {
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (index) => {
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = async (dropIndex) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const reorderedFields = [...filteredFields];
+    const [draggedField] = reorderedFields.splice(draggedIndex, 1);
+    reorderedFields.splice(dropIndex, 0, draggedField);
+
+    // Update sort_order for all affected fields
+    const updates = reorderedFields.map((field, idx) => ({
+      id: field.id,
+      sort_order: idx,
+    }));
+
+    try {
+      const response = await fetch(`/api/custom-fields/${recordType}/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ updates }),
+      });
+
+      if (!response.ok) throw new Error('Reorder failed');
+
+      // Reload to get updated order
+      await loadDefinitions();
+    } catch (error) {
+      console.error('Reorder error:', error);
+      alert('Failed to reorder fields');
+    } finally {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+    }
+  };
     const clonedKey = `${field.key}_copy_${Date.now()}`;
     setEditing(null); // Not editing existing, creating new
     setDraft({
@@ -476,37 +526,20 @@ export default function CustomFieldsModule({ goHome }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFields.map((field) => (
-                      <tr key={field.id}>
-                        <td style={{ fontWeight: 600 }}>{field.label}</td>
-                        <td>
-                          <code style={{ fontSize: '0.8rem' }}>{field.key}</code>
-                        </td>
-                        <td>
-                          <Badge variant="neutral">
-                            {FIELD_TYPES.find((ft) => ft.value === field.field_type)?.label || field.field_type}
-                          </Badge>
-                        </td>
-                        <td>{field.required ? 'Yes' : '—'}</td>
-                        <td style={{ maxWidth: 220, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {Array.isArray(field.options) && field.options.length
-                            ? field.options.slice(0, 4).join(', ') + (field.options.length > 4 ? '…' : '')
-                            : '—'}
-                        </td>
-                        <td style={{ whiteSpace: 'nowrap' }}>
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(field)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => cloneField(field)}>
-                            Clone
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => handleDelete(field)}>
-                            Delete
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                    {filteredFields.map((field, index) => (
+                      <DraggableFieldRow
+                        key={field.id}
+                        field={field}
+                        index={index}
+                        onEdit={openEdit}
+                        onClone={cloneField}
+                        onDelete={handleDelete}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        isDragging={draggedIndex === index}
+                        dragOverIndex={dragOverIndex}
+                      />
                 </table>
               </div>
             )

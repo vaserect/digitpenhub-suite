@@ -43,6 +43,7 @@ router.get('/:recordType/export', exportRecordsCsv);
 // Analytics routes
 router.get('/analytics/overall', controller.getOverallStats);
 router.get('/analytics/:recordType', controller.getFieldAnalytics);
+router.post('/:recordType/reorder', controller.reorderFields);
 
 // Validation rule routes
 router.get('/validation-templates', controller.listValidationTemplates);

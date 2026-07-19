@@ -952,3 +952,59 @@ async function getValidationTemplate(req, res) {
   }
 }
 
+
+/**
+ * Reorder fields by updating sort_order
+ */
+async function reorderFields(req, res) {
+  const { recordType } = req.params;
+  const { updates } = req.body;
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({ error: 'updates array is required' });
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const update of updates) {
+      await client.query(
+        `UPDATE custom_field_definitions 
+         SET sort_order = $1, updated_at = NOW()
+         WHERE id = $2 AND org_id = $3 AND record_type = $4`,
+        [update.sort_order, update.id, req.user.orgId, recordType]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, updated: updates.length });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Reorder error:', error);
+    res.status(500).json({ error: 'Failed to reorder fields' });
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = {
+  listDefinitions,
+  createDefinition,
+  updateDefinition,
+  deleteDefinition,
+  getRecordValues,
+  setRecordValues,
+  getRecordsWithFields,
+  bulkSetValues,
+  exportRecordsCsv,
+  listTemplates,
+  applyTemplate,
+  getAnalytics,
+  getOverallStats,
+  getFieldAnalytics,
+  listValidationTemplates,
+  addValidationRule,
+  removeValidationRule,
+  reorderFields,
+};

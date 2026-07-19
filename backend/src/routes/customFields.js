@@ -9,6 +9,7 @@ const {
   createDefinition,
   updateDefinition,
   deleteDefinition,
+  cloneField,
   getRecordValues,
   setRecordValues,
   getRecordsWithFields,
@@ -22,6 +23,7 @@ router.get('/:recordType', listDefinitions);
 router.post('/:recordType', createDefinition);
 router.patch('/:recordType/:id', updateDefinition);
 router.delete('/:recordType/:id', deleteDefinition);
+router.post('/:recordType/:id/clone', cloneField);
 
 router.get('/:recordType/values/:recordId', getRecordValues);
 router.put('/:recordType/values/:recordId', setRecordValues);

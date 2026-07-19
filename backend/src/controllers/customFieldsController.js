@@ -125,6 +125,107 @@ async function deleteDefinition(req, res) {
   res.status(204).end();
 }
 
+async function cloneField(req, res) {
+  const { recordType, id } = req.params;
+  const { newKey, newLabel } = req.body || {};
+
+  // Fetch the original field
+  const { rows: original } = await db.query(
+    `SELECT * FROM custom_field_definitions
+     WHERE id = $1 AND org_id = $2 AND record_type = $3 AND is_active = true`,
+    [id, req.user.orgId, recordType]
+  );
+
+  if (!original.length) {
+    return res.status(404).json({ error: 'Field not found.' });
+  }
+
+  const field = original[0];
+
+  // Generate unique key if not provided
+  let cloneKey = newKey;
+  if (!cloneKey) {
+    cloneKey = field.key + '_copy';
+    let suffix = 2;
+    while (true) {
+      const { rows: existing } = await db.query(
+        `SELECT id FROM custom_field_definitions
+         WHERE org_id = $1 AND record_type = $2 AND key = $3`,
+        [req.user.orgId, recordType, cloneKey]
+      );
+      if (!existing.length) break;
+      cloneKey = `${field.key}_${suffix}`;
+      suffix++;
+    }
+  }
+
+  // Validate the new key
+  if (!/^[a-z][a-z0-9_]*$/.test(cloneKey)) {
+    return res.status(400).json({ 
+      error: 'New key must be lowercase snake_case (e.g. "renewal_date").' 
+    });
+  }
+
+  // Check if new key already exists
+  const { rows: keyCheck } = await db.query(
+    `SELECT id FROM custom_field_definitions
+     WHERE org_id = $1 AND record_type = $2 AND key = $3`,
+    [req.user.orgId, recordType, cloneKey]
+  );
+
+  if (keyCheck.length) {
+    return res.status(409).json({ 
+      error: `A field with key "${cloneKey}" already exists for ${recordType}.` 
+    });
+  }
+
+  const cloneLabel = newLabel || `${field.label} (Copy)`;
+
+  try {
+    // Create the cloned field
+    const { rows: cloned } = await db.query(
+      `INSERT INTO custom_field_definitions
+         (org_id, record_type, key, label, field_type, description, required,
+          default_value, validation, options, relation_record_type, sort_order,
+          dependencies, security, validation_rules)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       RETURNING id, record_type, key, label, field_type, description, required,
+                 default_value, validation, options, relation_record_type,
+                 sort_order, is_active, created_at, updated_at, dependencies,
+                 security, validation_rules`,
+      [
+        req.user.orgId,
+        recordType,
+        cloneKey,
+        cloneLabel,
+        field.field_type,
+        field.description,
+        field.required,
+        field.default_value,
+        field.validation,
+        field.options,
+        field.relation_record_type,
+        field.sort_order + 1, // Place after original
+        field.dependencies || null,
+        field.security || null,
+        field.validation_rules || null,
+      ]
+    );
+
+    res.status(201).json({ 
+      field: cloned[0],
+      message: `Field cloned successfully as "${cloneKey}"` 
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: `A field with key "${cloneKey}" already exists for ${recordType}.` 
+      });
+    }
+    throw err;
+  }
+}
+
 async function getRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const { rows } = await db.query(
@@ -304,6 +405,7 @@ module.exports = {
   createDefinition,
   updateDefinition,
   deleteDefinition,
+  cloneField,
   getRecordValues,
   setRecordValues,
   getRecordsWithFields,

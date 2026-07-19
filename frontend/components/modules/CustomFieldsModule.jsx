@@ -10,6 +10,7 @@ import Badge from '../ui/Badge';
 import { SkeletonRows } from '../ui/Skeleton';
 import ValidationRuleBuilder from './ValidationRuleBuilder';
 import FieldDependencyBuilder from './FieldDependencyBuilder';
+import ImportExportModal from './ImportExportModal';
 
 const RECORD_TYPES = [
   { value: 'contact', label: 'CRM Contacts', aliases: ['crm_contact'] },
@@ -101,6 +102,7 @@ export default function CustomFieldsModule({ goHome }) {
   const [saving, setSaving] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(null);
   const [templateCategory, setTemplateCategory] = useState('all');
+  const [showImportExport, setShowImportExport] = useState(false);
 
   const recordTypeMeta = useMemo(
     () => RECORD_TYPES.find((r) => r.value === recordType) || RECORD_TYPES[0],
@@ -312,6 +314,9 @@ export default function CustomFieldsModule({ goHome }) {
         </div>
         {tab === 'definitions' && (
           <Button onClick={openCreate}>+ New Field</Button>
+        )}
+        {tab === 'definitions' && (
+          <Button variant="secondary" onClick={() => setShowImportExport(true)}>Import/Export</Button>
         )}
       </div>
 
@@ -850,5 +855,15 @@ export default function CustomFieldsModule({ goHome }) {
         </form>
       </Modal>
     </div>
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        recordType={recordType}
+        onImportComplete={() => {
+          setShowImportExport(false);
+          loadDefinitions();
+        }}
+      />
+
   );
 }

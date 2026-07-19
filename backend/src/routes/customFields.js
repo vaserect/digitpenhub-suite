@@ -50,3 +50,13 @@ router.post('/:fieldId/validation-rules', controller.addValidationRule);
 router.delete('/:fieldId/validation-rules/:ruleId', controller.removeValidationRule);
 
 module.exports = router;
+
+// Import/Export routes
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+const importExportController = require('../controllers/customFieldsImportExport');
+
+router.get('/export', importExportController.exportFields);
+router.post('/import', upload.single('file'), importExportController.importFields);
+
+module.exports = router;

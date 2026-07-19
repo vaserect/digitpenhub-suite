@@ -1153,11 +1153,8 @@ async function bulkOperations(req, res) {
 // ============================================================================
 
 /**
-/**
  * Add or update dependencies for a custom field
  * POST /api/v1/custom-fields/:fieldId/dependencies
- * 
- * Supports both simple and advanced (complex logic) dependencies
  */
 async function setFieldDependencies(req, res) {
   const { fieldId } = req.params;
@@ -1170,20 +1167,33 @@ async function setFieldDependencies(req, res) {
       return res.status(400).json({ error: 'dependencies must be an array' });
     }
 
-    // Import validation function
-    const { validateDependency } = require('../utils/fieldDependencyEvaluator');
+    // Validate each dependency rule
+    const validConditionTypes = [
+      'equals', 'not_equals', 'contains', 'not_contains',
+      'greater_than', 'less_than', 'is_empty', 'is_not_empty',
+      'in_list', 'not_in_list'
+    ];
+    const validActions = ['show', 'hide', 'require', 'optional', 'enable', 'disable'];
 
-    // Validate each dependency rule using the new validator
     for (const dep of dependencies) {
-      const validation = validateDependency(dep);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
+      if (!dep.source_field || typeof dep.source_field !== 'string') {
+        return res.status(400).json({ error: 'Each dependency must have a source_field (string)' });
+      }
+      if (!validConditionTypes.includes(dep.condition_type)) {
+        return res.status(400).json({ 
+          error: `Invalid condition_type. Must be one of: ${validConditionTypes.join(', ')}` 
+        });
+      }
+      if (!validActions.includes(dep.action)) {
+        return res.status(400).json({ 
+          error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+        });
       }
     }
 
     // Update field with dependencies
     const result = await db.query(
-      `UPDATE custom_field_definitions
+      `UPDATE custom_field_definitions 
        SET dependencies = $1, updated_at = NOW()
        WHERE id = $2 AND org_id = $3
        RETURNING *`,
@@ -1197,15 +1207,13 @@ async function setFieldDependencies(req, res) {
     // Log the update
     await logFieldUpdate(fieldId, orgId, req.user.id, {
       action: 'dependencies_updated',
-      dependencies_count: dependencies.length,
-      has_advanced_logic: dependencies.some(d => d.logic_operator || d.conditions)
+      dependencies_count: dependencies.length
     });
 
     res.json({
       success: true,
       field: result.rows[0],
-      message: `${dependencies.length} dependencies configured`,
-      advanced_features: dependencies.some(d => d.logic_operator || d.conditions)
+      message: `${dependencies.length} dependencies configured`
     });
   } catch (error) {
     console.error('Error setting field dependencies:', error);

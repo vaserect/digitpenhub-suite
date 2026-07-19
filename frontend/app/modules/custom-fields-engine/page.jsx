@@ -503,6 +503,46 @@ export default function CustomFieldsEnginePage() {
   }
 
   function renderSettingsTab() {
+    const [validationTemplates, setValidationTemplates] = useState([]);
+    const [selectedField, setSelectedField] = useState(null);
+    const [showValidationModal, setShowValidationModal] = useState(false);
+    const [loadingSettings, setLoadingSettings] = useState(true);
+
+    useEffect(() => {
+      if (activeTab === 'settings') {
+        loadSettings();
+      }
+    }, [activeTab]);
+
+    async function loadSettings() {
+      setLoadingSettings(true);
+      try {
+        const data = await apiFetch('/api/v1/custom-fields/validation-templates');
+        setValidationTemplates(data.templates || []);
+      } catch (err) {
+        console.error('Failed to load validation templates:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    }
+
+    async function handleAddValidationRule(fieldId, template) {
+      try {
+        await apiFetch(`/api/v1/custom-fields/${fieldId}/validation-rules`, {
+          method: 'POST',
+          body: JSON.stringify({
+            ruleType: template.rule_type,
+            ruleConfig: template.rule_config,
+          }),
+        });
+        toast.success('Validation rule added');
+        setShowValidationModal(false);
+        loadData();
+      } catch (err) {
+        toast.error(err.message || 'Failed to add validation rule');
+      }
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-6">
@@ -510,16 +550,54 @@ export default function CustomFieldsEnginePage() {
           <div>
             <h2 className="text-lg font-semibold">Settings</h2>
             <p className="text-sm text-gray-600">
-              Configure custom fields engine behavior
+              Configure validation rules and field behavior
             </p>
           </div>
         </div>
 
         <Card className="p-6">
+          <h3 className="font-semibold mb-4">Validation Rule Templates</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Pre-built validation rules you can apply to your custom fields
+          </p>
+
+          {loadingSettings ? (
+            <SkeletonRows count={5} />
+          ) : (
+            <div className="space-y-4">
+              {['text', 'number', 'currency', 'date', 'email', 'phone'].map(fieldType => {
+                const templates = validationTemplates.filter(t => t.field_type === fieldType);
+                if (templates.length === 0) return null;
+
+                return (
+                  <div key={fieldType}>
+                    <h4 className="font-medium mb-2 capitalize">{fieldType} Field Rules</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {templates.map(template => (
+                        <div key={template.id} className="p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="font-medium text-sm">{template.name}</div>
+                          <div className="text-xs text-gray-600">{template.description}</div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                              {template.rule_type}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="font-semibold mb-4">Field-Level Settings</h3>
           <EmptyState
             icon={Settings}
-            title="Settings coming soon"
-            description="Global settings and preferences will be available here"
+            title="Coming soon"
+            description="Field-level security, conditional logic, and advanced settings will be available here"
           />
         </Card>
       </div>

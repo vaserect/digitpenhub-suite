@@ -676,3 +676,91 @@ module.exports = {
   getFieldAnalytics,
   getOverallStats,
 };
+
+// Validation rule template endpoints
+async function listValidationTemplates(req, res) {
+  const { fieldType } = req.query;
+  let query = 'SELECT * FROM custom_field_validation_templates WHERE 1=1';
+  const params = [];
+  
+  if (fieldType) {
+    params.push(fieldType);
+    query += ` AND field_type = $${params.length}`;
+  }
+  
+  query += ' ORDER BY field_type, name';
+  
+  const { rows } = await db.query(query, params);
+  res.json({ templates: rows });
+}
+
+async function addValidationRule(req, res) {
+  const { fieldId } = req.params;
+  const { ruleType, ruleConfig } = req.body;
+  
+  // Get current validation rules
+  const { rows: [field] } = await db.query(
+    'SELECT validation_rules FROM custom_field_definitions WHERE id = $1 AND org_id = $2',
+    [fieldId, req.user.orgId]
+  );
+  
+  if (!field) {
+    return res.status(404).json({ error: 'Field not found' });
+  }
+  
+  const currentRules = field.validation_rules || [];
+  const newRule = {
+    id: require('crypto').randomUUID(),
+    rule_type: ruleType,
+    rule_config: ruleConfig,
+    created_at: new Date().toISOString(),
+  };
+  
+  const updatedRules = [...currentRules, newRule];
+  
+  await db.query(
+    'UPDATE custom_field_definitions SET validation_rules = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3',
+    [JSON.stringify(updatedRules), fieldId, req.user.orgId]
+  );
+  
+  res.json({ rule: newRule });
+}
+
+async function removeValidationRule(req, res) {
+  const { fieldId, ruleId } = req.params;
+  
+  const { rows: [field] } = await db.query(
+    'SELECT validation_rules FROM custom_field_definitions WHERE id = $1 AND org_id = $2',
+    [fieldId, req.user.orgId]
+  );
+  
+  if (!field) {
+    return res.status(404).json({ error: 'Field not found' });
+  }
+  
+  const currentRules = field.validation_rules || [];
+  const updatedRules = currentRules.filter(r => r.id !== ruleId);
+  
+  await db.query(
+    'UPDATE custom_field_definitions SET validation_rules = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3',
+    [JSON.stringify(updatedRules), fieldId, req.user.orgId]
+  );
+  
+  res.json({ success: true });
+}
+
+module.exports = {
+  listDefinitions,
+  createDefinition,
+  updateDefinition,
+  deleteDefinition,
+  getRecordValues,
+  updateRecordValues,
+  listTemplates,
+  applyTemplate,
+  getFieldAnalytics,
+  getOverallStats,
+  listValidationTemplates,
+  addValidationRule,
+  removeValidationRule,
+};

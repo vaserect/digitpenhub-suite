@@ -44,3 +44,8 @@ module.exports = router;
 // Analytics routes
 router.get('/analytics/overall', controller.getOverallStats);
 router.get('/analytics/:recordType', controller.getFieldAnalytics);
+
+// Validation rule routes
+router.get('/validation-templates', controller.listValidationTemplates);
+router.post('/:fieldId/validation-rules', controller.addValidationRule);
+router.delete('/:fieldId/validation-rules/:ruleId', controller.removeValidationRule);

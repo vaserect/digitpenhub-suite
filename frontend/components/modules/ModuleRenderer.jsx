@@ -21,6 +21,7 @@ import GdprModule from './GdprModule';
 import DunningModule from './DunningModule';
 import ContractsModule from './ContractsModule';
 import FeatureFlagsModule from './FeatureFlagsModule';
+import CustomFieldsModule from './CustomFieldsModule';
 import GenericModule from './GenericModule';
 import SettingsModule from './SettingsModule';
 import PlatformCoreModule from './PlatformCoreModule';
@@ -97,6 +98,9 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
   }
   if (moduleSlug === 'feature-flags') {
     return <FeatureFlagsModule goHome={goHome} />;
+  }
+  if (moduleSlug === 'custom-fields' || moduleSlug === 'custom-fields-engine') {
+    return <CustomFieldsModule goHome={goHome} />;
   }
   if (moduleSlug === 'payroll') {
     return <PayrollModule goHome={goHome} />;

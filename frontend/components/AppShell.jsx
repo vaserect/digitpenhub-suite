@@ -15192,7 +15192,10 @@ export default function AppShell() {
       {view === 'module' && (activeModuleSlug === 'forms' || activeModuleSlug === 'popup-builder' || activeModuleSlug === 'funnel-builder' || activeModuleSlug === 'quiz-builder' || activeModuleSlug === 'survey-builder') && (
         <MarketingFormsModule goHome={goHome} />
       )}
-      {view === 'module' && (activeModuleSlug === 'custom-fields' || activeModuleSlug === 'custom-fields-engine' || activeModuleSlug === 'inbox' || activeModuleSlug === 'unified-inbox' || activeModuleSlug === 'notification-center' || activeModuleSlug === 'notifications' || activeModuleSlug === 'permissions') && (
+      {view === 'module' && (activeModuleSlug === 'custom-fields' || activeModuleSlug === 'custom-fields-engine') && (
+        <CustomFieldsModule goHome={goHome} />
+      )}
+      {view === 'module' && (activeModuleSlug === 'inbox' || activeModuleSlug === 'unified-inbox' || activeModuleSlug === 'notification-center' || activeModuleSlug === 'notifications' || activeModuleSlug === 'permissions') && (
         <PlatformCoreModule goHome={goHome} />
       )}
 

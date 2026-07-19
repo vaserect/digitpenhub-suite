@@ -7148,6 +7148,7 @@ export default function AppShell() {
       'ambassador-program': '/modules/ambassador-program',
       'direct-mail-automation': '/modules/direct-mail-automation',
       'print-fulfillment-for-business-cards-signage': '/modules/print-fulfillment',
+      'creative-a-b-testing-studio': '/modules/ab-testing',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

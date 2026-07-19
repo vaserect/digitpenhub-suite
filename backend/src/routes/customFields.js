@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
+const controller = require('../controllers/customFieldsController');
 const {
   listDefinitions,
   createDefinition,
@@ -14,7 +15,7 @@ const {
   listTemplates,
   applyTemplate,
   getAnalytics,
-} = require('../controllers/customFieldsController');
+} = controller;
 
 router.use(requireAuth);
 
@@ -39,8 +40,6 @@ router.get('/:recordType/records', getRecordsWithFields);
 router.patch('/:recordType/bulk-values', bulkSetValues);
 router.get('/:recordType/export', exportRecordsCsv);
 
-module.exports = router;
-
 // Analytics routes
 router.get('/analytics/overall', controller.getOverallStats);
 router.get('/analytics/:recordType', controller.getFieldAnalytics);
@@ -49,3 +48,5 @@ router.get('/analytics/:recordType', controller.getFieldAnalytics);
 router.get('/validation-templates', controller.listValidationTemplates);
 router.post('/:fieldId/validation-rules', controller.addValidationRule);
 router.delete('/:fieldId/validation-rules/:ruleId', controller.removeValidationRule);
+
+module.exports = router;

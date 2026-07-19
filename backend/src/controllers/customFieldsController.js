@@ -7,6 +7,7 @@ const {
 } = require('../utils/customFields');
 const { validateAdvancedRules } = require('../utils/validationEngine');
 const { validateFieldValues } = require('../utils/customFieldValidator');
+const { filterFieldsByDependencies } = require('../utils/fieldDependencyEvaluator');
 
 
 // ============================================================================
@@ -252,11 +253,12 @@ async function deleteDefinition(req, res) {
 }
 
 async function getRecordValues(req, res) {
+async function getRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const userRole = req.user.role || 'member'; // Get user role from request
-  
+
   const { rows } = await db.query(
-    `SELECT d.id, d.key, d.field_type, d.security, v.value
+    `SELECT d.id, d.key, d.field_type, d.security, d.dependencies, v.value
      FROM custom_field_definitions d
      LEFT JOIN custom_field_values v
        ON v.field_id = d.id AND v.record_id = $3
@@ -264,19 +266,30 @@ async function getRecordValues(req, res) {
      ORDER BY d.sort_order ASC`,
     [req.user.orgId, recordType, recordId]
   );
-  
-  // Filter fields by role visibility and mask sensitive values
+
+  // First get all values for dependency evaluation
+  const allValues = {};
+  for (const field of rows) {
+    allValues[field.key] = field.value ?? null;
+  }
+
+  // Filter fields by dependencies
+  const dependencyFilteredFields = filterFieldsByDependencies(rows, allValues);
+  const dependencyFilteredKeys = new Set(dependencyFilteredFields.map(f => f.key));
+
+  // Then filter by role visibility and mask sensitive values
   const visibleFields = filterFieldsByRole(rows, userRole);
   const values = {};
   for (const field of visibleFields) {
-    const rawValue = field.value ?? null;
-    values[field.key] = maskSensitiveValue(field, rawValue);
+    // Only include if field passed dependency check
+    if (dependencyFilteredKeys.has(field.key)) {
+      const rawValue = field.value ?? null;
+      values[field.key] = maskSensitiveValue(field, rawValue);
+    }
   }
-  
+
   res.json({ values });
 }
-
-async function setRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const incoming = (req.body && req.body.values) || {};
   const userRole = req.user.role || 'member'; // Get user role from request

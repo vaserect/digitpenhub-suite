@@ -6,6 +6,7 @@ const {
   attachCustomFields,
 } = require('../utils/customFields');
 const { validateAdvancedRules } = require('../utils/validationEngine');
+const { validateFieldValues } = require('../utils/customFieldValidator');
 
 
 // ============================================================================
@@ -282,6 +283,19 @@ async function setRecordValues(req, res) {
 
   const { errors, defByKey } = await validateCustomFieldValues(req.user.orgId, recordType, incoming);
   if (errors.length) return res.status(400).json({ error: errors.join(' ') });
+
+  // Validate field values against validation rules
+  const fieldDefs = Object.values(defByKey);
+  const validationResult = validateFieldValues(incoming, fieldDefs);
+  if (!validationResult.valid) {
+    const validationErrors = [];
+    for (const [fieldKey, fieldErrors] of Object.entries(validationResult.errors)) {
+      const fieldDef = defByKey[fieldKey];
+      const label = fieldDef?.label || fieldKey;
+      validationErrors.push(`${label}: ${fieldErrors.join(', ')}`);
+    }
+    return res.status(400).json({ error: 'Validation failed', details: validationErrors });
+  }
 
   // Enforce field-level security: filter out fields user cannot edit
   const editableFields = {};

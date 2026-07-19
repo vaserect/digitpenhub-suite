@@ -9,6 +9,7 @@ import EmptyState from '../ui/EmptyState';
 import Badge from '../ui/Badge';
 import { SkeletonRows } from '../ui/Skeleton';
 import ValidationRuleBuilder from './ValidationRuleBuilder';
+import FieldDependencyBuilder from './FieldDependencyBuilder';
 
 const RECORD_TYPES = [
   { value: 'contact', label: 'CRM Contacts', aliases: ['crm_contact'] },
@@ -67,9 +68,11 @@ function emptyDraft() {
       editable: ['owner', 'admin'],
       sensitive: false,
       mask_value: false
-    validation_rules: [],
     },
+    validation_rules: [],
+    dependencies: [],
   };
+}
 }
 
 function parseTemplateFields(fields) {
@@ -206,6 +209,7 @@ export default function CustomFieldsModule({ goHome }) {
       formatPattern: draft.formatPattern || undefined,
       security: draft.security || {
       validation_rules: draft.validation_rules || [],
+      dependencies: draft.dependencies || [],
         visibility: ['owner', 'admin', 'member'],
         editable: ['owner', 'admin'],
         sensitive: false,
@@ -835,6 +839,13 @@ export default function CustomFieldsModule({ goHome }) {
             fieldType={draft.fieldType}
             rules={draft.validation_rules || []}
             onRulesChange={(rules) => setDraft(d => ({ ...d, validation_rules: rules }))}
+          />
+
+          <FieldDependencyBuilder
+            dependencies={draft.dependencies || []}
+            onDependenciesChange={(deps) => setDraft(d => ({ ...d, dependencies: deps }))}
+            availableFields={fields}
+            currentFieldKey={editing?.key}
           />
         </form>
       </Modal>

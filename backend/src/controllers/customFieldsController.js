@@ -6,6 +6,62 @@ const {
   attachCustomFields,
 } = require('../utils/customFields');
 
+
+// ============================================================================
+// Field-Level Security Functions
+// ============================================================================
+
+/**
+ * Filter fields based on user role and security settings
+ */
+function filterFieldsByRole(fields, userRole) {
+  return fields.filter(field => {
+    const security = field.security || {
+      visibility: ['owner', 'admin', 'member'],
+      editable: ['owner', 'admin'],
+      sensitive: false,
+      mask_value: false
+    };
+    return security.visibility.includes(userRole);
+  });
+}
+
+/**
+ * Check if user can edit a specific field
+ */
+function canEditField(field, userRole) {
+  const security = field.security || { editable: ['owner', 'admin'] };
+  return security.editable.includes(userRole);
+}
+
+/**
+ * Mask sensitive field values
+ */
+function maskSensitiveValue(field, value) {
+  const security = field.security || { sensitive: false, mask_value: false };
+  if (security.sensitive && security.mask_value && value) {
+    if (typeof value === 'string') {
+      return '****' + value.slice(-4);
+    }
+    return '****';
+  }
+  return value;
+}
+
+/**
+ * Add security metadata to field definitions
+ */
+function addSecurityMetadata(fields, userRole) {
+  return fields.map(field => ({
+    ...field,
+    _security: {
+      canEdit: canEditField(field, userRole),
+      isSensitive: field.security?.sensitive || false,
+      isReadOnly: !canEditField(field, userRole)
+    }
+  }));
+}
+
 function toJsonb(value, fallback) {
   if (value === undefined || value === null) {
     return fallback === undefined ? null : JSON.stringify(fallback);
@@ -43,7 +99,7 @@ function validateDefinitionInput(body, { isUpdate = false } = {}) {
 const DEFINITION_SELECT = `
   id, record_type, key, label, field_type, description, required,
   default_value, validation, options, relation_record_type,
-  sort_order, is_active, currency_code, min_value, max_value, format_pattern,
+  sort_order, is_active, currency_code, min_value, max_value, format_pattern, security,
   created_at, updated_at
 `;
 
@@ -79,6 +135,7 @@ async function createDefinition(req, res) {
     minValue,
     maxValue,
     formatPattern,
+    security,
   } = req.body;
 
   try {
@@ -86,8 +143,8 @@ async function createDefinition(req, res) {
       `INSERT INTO custom_field_definitions
          (org_id, record_type, key, label, field_type, description, required,
           default_value, validation, options, relation_record_type, sort_order,
-          currency_code, min_value, max_value, format_pattern)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+          currency_code, min_value, max_value, format_pattern, security)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING ${DEFINITION_SELECT}`,
       [
         req.user.orgId,

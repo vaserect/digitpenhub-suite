@@ -8,7 +8,6 @@ import Modal from '../ui/Modal';
 import EmptyState from '../ui/EmptyState';
 import Badge from '../ui/Badge';
 import { SkeletonRows } from '../ui/Skeleton';
-import ValidationRuleBuilder from './ValidationRuleBuilder';
 
 const RECORD_TYPES = [
   { value: 'contact', label: 'CRM Contacts', aliases: ['crm_contact'] },
@@ -67,7 +66,6 @@ function emptyDraft() {
       editable: ['owner', 'admin'],
       sensitive: false,
       mask_value: false
-    validation_rules: [],
     },
   };
 }
@@ -205,7 +203,6 @@ export default function CustomFieldsModule({ goHome }) {
           : Number(draft.maxValue),
       formatPattern: draft.formatPattern || undefined,
       security: draft.security || {
-      validation_rules: draft.validation_rules || [],
         visibility: ['owner', 'admin', 'member'],
         editable: ['owner', 'admin'],
         sensitive: false,
@@ -830,12 +827,6 @@ export default function CustomFieldsModule({ goHome }) {
               {saving ? 'Saving…' : editing ? 'Update Field' : 'Create Field'}
             </Button>
           </div>
-
-          <ValidationRuleBuilder
-            fieldType={draft.fieldType}
-            rules={draft.validation_rules || []}
-            onRulesChange={(rules) => setDraft(d => ({ ...d, validation_rules: rules }))}
-          />
         </form>
       </Modal>
     </div>

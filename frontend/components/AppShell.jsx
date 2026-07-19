@@ -7166,7 +7166,7 @@ export default function AppShell() {
       'document-management': '/documents',
       'commerce': '/commerce',
       'education': '/education',
-      'marketing-automation': '/marketing-automation',
+      'marketing-automation': '/modules/marketing-automation',
       'whatsapp-marketing': '/whatsapp-marketing',
       'sms-marketing': '/sms-marketing',
       'seo-audit': '/seo',

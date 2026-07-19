@@ -221,6 +221,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/direct-mail', 'directMail', 'direct-mail-automation', 'Direct Mail Automation'),
   moduleRoute('/api/v1/print-fulfillment', 'printFulfillment', 'print-fulfillment-for-business-cards-signage', 'Print Fulfillment'),
   moduleRoute('/api/v1/ab-testing', 'abTesting', 'creative-a-b-testing-studio', 'Creative A/B Testing Studio'),
+  moduleRoute('/api/v1/ugc-aggregator', 'ugcAggregator', 'ugc-creator-content-aggregator', 'UGC/Creator Content Aggregator'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================

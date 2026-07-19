@@ -7149,6 +7149,7 @@ export default function AppShell() {
       'direct-mail-automation': '/modules/direct-mail-automation',
       'print-fulfillment-for-business-cards-signage': '/modules/print-fulfillment',
       'creative-a-b-testing-studio': '/modules/ab-testing',
+      'ugc-creator-content-aggregator': '/modules/ugc-aggregator',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

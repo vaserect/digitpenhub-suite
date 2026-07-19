@@ -42,6 +42,7 @@ async function requireAuth(req, res, next) {
       role: session.role,
       roleId: session.role_id,
       orgId: session.org_id,
+      org_id: session.org_id,
       isSuperAdmin: session.is_super_admin,
       isContentAdmin: session.is_content_admin,
       totpEnabled: session.totp_enabled,

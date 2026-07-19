@@ -8,7 +8,7 @@ module.exports = {
       exec_mode: 'fork',
       env: { 
         NODE_ENV: 'production',
-        DATABASE_URL: 'postgresql://digitpenhub:digitpenhub@localhost:5432/digitpenhub',
+        DATABASE_URL: 'postgresql://digitpenhub:G6MmK49Peb9V7WCzYjlRI1H7ax4NLex7@localhost:5432/digitpenhub',
         FRONTEND_ORIGIN: 'https://suite.digitpenhub.com'
       },
       max_memory_restart: '300M',

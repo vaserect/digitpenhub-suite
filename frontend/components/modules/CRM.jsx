@@ -1,6 +1,5 @@
 'use client'
 import KanbanBoard from '../ui/KanbanBoard';
-import EmailIntegration from '../crm/EmailIntegration';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -506,40 +505,9 @@ export default function CRMModule({ goHome, showToast }) {
         confirmLabel="Delete"
       />
 
-      <Modal isOpen={!!crmDetailContact} onClose={() => setCrmDetailContact(null)} title={crmDetailContact?.full_name} description="Contact details" wide>
+      <Modal isOpen={!!crmDetailContact} onClose={() => setCrmDetailContact(null)} title={crmDetailContact?.full_name} description="Notes, tasks & tags" wide>
         {crmDetailContact && (
-          <>
-            <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-              <button
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '2px solid var(--primary)',
-                  cursor: 'pointer',
-                  fontWeight: 600
-                }}
-              >
-                📋 Activity
-              </button>
-              <button
-                style={{
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '2px solid transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)'
-                }}
-                onClick={() => {
-                  // Switch to email tab - for now just show in same view
-                  toast.info('Email integration available - check the Emails section below');
-                }}
-              >
-                📧 Emails
-              </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div>
               <h4 style={{ marginBottom: 8 }}>Tags</h4>
               <form onSubmit={handleAddCrmTag} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -612,19 +580,6 @@ export default function CRMModule({ goHome, showToast }) {
               )}
             </div>
           </div>
-
-          {/* Email Integration Section */}
-          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
-            <h4 style={{ marginBottom: 16 }}>📧 Email Communication</h4>
-            <EmailIntegration 
-              contactId={crmDetailContact.id}
-              onEmailSent={() => {
-                toast.success('Email sent successfully');
-                loadCrm();
-              }}
-            />
-          </div>
-        </>
         )}
       </Modal>
     </div>

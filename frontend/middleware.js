@@ -22,12 +22,13 @@ export function middleware(request) {
   const isPublicCard = pathname.startsWith('/card/');
   const isPublicQuiz = pathname.startsWith('/quiz/');
   const isPublicBarcode = pathname.startsWith('/barcode/');
+  const isPublicReview = pathname.startsWith('/reviews/');
   const isPublicSeoFile = pathname === '/robots.txt' || pathname === '/sitemap.xml';
   const isPublicTemplateImage = pathname.startsWith('/templates/');
   const isVerifyEmail = pathname.startsWith('/verify-email/');
   const hasSessionCookie = request.cookies.has('dph_session');
 
-  if (!hasSessionCookie && !isAuthPage && !isPublicMarketing && !isPublicInvoicePage && !isPublicLeadForm && !isPublicForm && !isPublicPage && !isPublicBooking && !isPublicInvite && !isPublicPortal && !isPublicStore && !isPublicQr && !isPublicCard && !isPublicQuiz && !isPublicBarcode && !isPublicSeoFile && !isPublicTemplateImage && !isVerifyEmail) {
+  if (!hasSessionCookie && !isAuthPage && !isPublicMarketing && !isPublicInvoicePage && !isPublicLeadForm && !isPublicForm && !isPublicPage && !isPublicBooking && !isPublicInvite && !isPublicPortal && !isPublicStore && !isPublicQr && !isPublicCard && !isPublicQuiz && !isPublicBarcode && !isPublicReview && !isPublicSeoFile && !isPublicTemplateImage && !isVerifyEmail) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

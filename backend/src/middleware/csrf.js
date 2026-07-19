@@ -24,6 +24,8 @@ function csrfProtection(req, res, next) {
   if (req.path.startsWith('/api/v1/leads/')) return next();
   if (req.path.startsWith('/api/v1/forms/')) return next();
   if (req.path.startsWith('/api/v1/pages/public')) return next();
+  if (req.path.startsWith('/api/v1/landing-pages/public')) return next();
+  if (req.path.startsWith('/api/v1/cms/public')) return next();
   if (req.path.startsWith('/api/v1/store-builder/public')) return next();
   if (req.path.startsWith('/api/v1/book/')) return next();
 

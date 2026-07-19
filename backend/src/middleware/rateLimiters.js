@@ -50,4 +50,17 @@ const publicSubmitLimiter = rateLimit({
   message: { error: 'Too many requests. Please try again later.' },
 });
 
-module.exports = { aiGenerationLimiter, bulkSendLimiter, uploadLimiter, publicSubmitLimiter };
+// ── General API baseline ─────────────────────────────────────────────────
+// Applies to every /api call as a safety net. Specialized limiters
+// (AI, bulk sends, uploads, public submits) are more restrictive and
+// override this because they sit closer to the handler in the chain.
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByOrg,
+  message: { error: "Too many requests. Please slow down." },
+});
+
+module.exports = { aiGenerationLimiter, bulkSendLimiter, uploadLimiter, publicSubmitLimiter, apiLimiter };

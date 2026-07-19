@@ -35,21 +35,21 @@ export default function SocialMediaSchedulerPage() {
   const fetchPosts = async () => {
     try {
       const p = await apiFetch('/api/v1/social-media/posts?limit=50');
-      setPosts(p.data || []);
+      setPosts(p.posts || []);
     } catch { toast.error('Failed to load posts'); }
   };
 
   const fetchMedia = async () => {
     try {
       const res = await apiFetch('/api/v1/social-media/media?limit=100');
-      setMediaItems(res.data || []);
+      setMediaItems(res.media || []);
     } catch {}
   };
 
   const fetchAccounts = async () => {
     try {
       const a = await apiFetch('/api/v1/social-media/accounts');
-      setAccounts(a.data || []);
+      setAccounts(a.accounts || []);
     } catch {}
   };
 

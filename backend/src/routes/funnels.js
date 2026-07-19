@@ -1,25 +1,37 @@
-const { Router } = require('express');
-const { requireAuth } = require('../middleware/auth');
-const { uploadLimiter } = require('../middleware/rateLimiters');
-const { bulkDeleteHandler } = require('../utils/bulkDelete');
-const db = require('../db');
-const asyncHandler = require('../utils/asyncHandler');
-const { listFunnels, getFunnel, createFunnel, updateFunnel, deleteFunnel, addStep, removeStep, reorderSteps } = require('../controllers/funnelsController');
+const express = require('express');
+const router = express.Router();
+const funnelsController = require('../controllers/funnelsController');
 
-const router = Router();
-router.use(requireAuth);
+// Templates (must be before /:id routes to avoid conflicts)
+router.get('/templates/list', funnelsController.listTemplates);
+router.post('/templates/:templateId/create', funnelsController.createFromTemplate);
 
-router.get('/', listFunnels);
-router.get('/export', async (req, res) => { const { sendCsv, autoColumns } = require('../utils/csv'); const { rows } = await db.query('SELECT id, name, status, created_at FROM funnels WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]); sendCsv(res, 'funnels.csv', rows, autoColumns(rows)); });
-router.get('/stats', async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM funnels WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
-router.post('/bulk-delete', uploadLimiter, bulkDeleteHandler('funnels'));
-router.get('/:id', getFunnel);
-router.post('/', uploadLimiter, createFunnel);
-router.put('/:id', uploadLimiter, updateFunnel);
-router.delete('/:id', uploadLimiter, deleteFunnel);
+// Funnel CRUD operations
+router.get('/', funnelsController.listFunnels);
+router.post('/', funnelsController.createFunnel);
+router.get('/:id', funnelsController.getFunnel);
+router.put('/:id', funnelsController.updateFunnel);
+router.delete('/:id', funnelsController.deleteFunnel);
 
-router.post('/:id/steps', uploadLimiter, addStep);
-router.delete('/:id/steps/:stepId', removeStep);
-router.put('/:id/steps/reorder', uploadLimiter, reorderSteps);
+// Funnel publishing
+router.post('/:id/publish', funnelsController.publishFunnel);
+
+// Funnel steps management
+router.post('/:id/steps', funnelsController.createStep);
+router.put('/:id/steps/:stepId', funnelsController.updateStep);
+router.delete('/:id/steps/:stepId', funnelsController.deleteStep);
+router.post('/:id/steps/reorder', funnelsController.reorderSteps);
+
+// Analytics
+router.get('/:id/analytics', funnelsController.getAnalytics);
+router.post('/:id/analytics/events', funnelsController.trackEvent);
+router.post('/:id/analytics/conversions', funnelsController.trackConversion);
+
+// A/B Testing
+router.post('/:id/ab-tests', funnelsController.createABTest);
+router.post('/:id/ab-tests/:testId/start', funnelsController.startABTest);
+router.post('/:id/ab-tests/:testId/stop', funnelsController.stopABTest);
+router.get('/:id/ab-tests/:testId/results', funnelsController.getABTestResults);
 
 module.exports = router;
+module.exports.router = router;

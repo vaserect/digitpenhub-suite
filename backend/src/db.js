@@ -8,7 +8,7 @@ const pool = new Pool({
   keepAlive: true,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  max: 10,
+    max: 50,
 });
 
 pool.on('error', (err) => {

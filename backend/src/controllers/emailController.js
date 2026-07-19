@@ -320,6 +320,8 @@ async function sendCampaign(req, res) {
 
   const campaignResult = await db.query(
     `SELECT c.id, c.subject, c.preview_text, c.body_html, c.status, c.list_id,
+            c.segment_id, c.ab_test_enabled, c.ab_test_subject_b, c.ab_test_body_b,
+            c.ab_test_split_pct, c.ab_test_metric, c.ab_test_duration_hours,
             o.name AS org_name
      FROM email_campaigns c
      JOIN organizations o ON o.id = c.org_id
@@ -335,11 +337,22 @@ async function sendCampaign(req, res) {
     return res.status(400).json({ error: 'Campaign body cannot be empty.' });
   }
 
-  const subscribersResult = await db.query(
-    `SELECT id, email, name FROM email_subscribers
-     WHERE list_id = $1 AND status = 'subscribed'`,
-    [campaign.list_id]
-  );
+  // Get subscribers from list or segment
+  let subscribersResult;
+  if (campaign.segment_id) {
+    subscribersResult = await db.query(
+      `SELECT s.id, s.email, s.name FROM email_subscribers s
+       JOIN email_segment_members sm ON sm.subscriber_id = s.id
+       WHERE sm.segment_id = $1 AND s.status = 'subscribed'`,
+      [campaign.segment_id]
+    );
+  } else {
+    subscribersResult = await db.query(
+      `SELECT id, email, name FROM email_subscribers
+       WHERE list_id = $1 AND status = 'subscribed'`,
+      [campaign.list_id]
+    );
+  }
 
   const subscribers = subscribersResult.rows;
   if (!subscribers.length) return res.status(400).json({ error: 'No subscribed contacts in this list.' });
@@ -376,9 +389,31 @@ async function sendCampaign(req, res) {
   let sent = 0;
   const errors = [];
 
+  // A/B testing logic
+  const isAbTest = campaign.ab_test_enabled && campaign.ab_test_subject_b;
+  const splitPct = campaign.ab_test_split_pct || 50;
+
   for (const sub of subscribers) {
     const unsubLink = `${baseUrl}/api/v1/email/unsubscribe/${sub.id}`;
-    const html = `${campaign.body_html}
+    
+    // Determine variant for A/B test
+    let variant = null;
+    let subject = campaign.subject;
+    let bodyHtml = campaign.body_html;
+    
+    if (isAbTest) {
+      // Random assignment based on split percentage
+      const random = Math.random() * 100;
+      if (random < splitPct) {
+        variant = 'a';
+      } else {
+        variant = 'b';
+        subject = campaign.ab_test_subject_b || campaign.subject;
+        bodyHtml = campaign.ab_test_body_b || campaign.body_html;
+      }
+    }
+    
+    const html = `${bodyHtml}
 <br><br>
 <p style="font-size:12px;color:#888;">
   You received this email because you subscribed to ${campaign.org_name}.<br>
@@ -389,13 +424,31 @@ async function sendCampaign(req, res) {
       await transport.sendMail({
         from: `"${campaign.org_name}" <${fromAddress}>`,
         to: sub.name ? `"${sub.name}" <${sub.email}>` : sub.email,
-        subject: campaign.subject,
+        subject: subject,
         html,
       });
+      
+      // Track send in email_sends table
+      await db.query(
+        `INSERT INTO email_sends (campaign_id, subscriber_id, variant, sent_at)
+         VALUES ($1, $2, $3, now())`,
+        [id, sub.id, variant]
+      );
+      
       sent++;
     } catch (err) {
       errors.push({ email: sub.email, error: err.message });
     }
+  }
+  
+  // Start A/B test timer if enabled
+  if (isAbTest && campaign.ab_test_duration_hours) {
+    await db.query(
+      `UPDATE email_campaigns 
+       SET ab_test_started_at = now()
+       WHERE id = $1`,
+      [id]
+    );
   }
 
   await db.query(

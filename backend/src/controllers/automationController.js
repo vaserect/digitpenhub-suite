@@ -1,6 +1,7 @@
 const db = require('../db');
 const { sendMail } = require('../utils/mailer');
 const { fetchWithTimeout } = require('../utils/aiReliability');
+const MarketingAutomationService = require('../services/MarketingAutomationService');
 
 // Executes one automation step for real, same honesty rules as Workflow
 // Automation's executeStep: only claim "ok" for a step that actually did
@@ -62,47 +63,8 @@ async function runStep(step, enrollment, orgId) {
 // enrollment per tick — keeps each tick fast and gives natural pacing
 // instead of an enrollment racing through 10 steps in one call.
 async function advanceEnrollments() {
-  const { rows: enrollments } = await db.query(
-    `SELECT ae.* FROM automation_enrollments ae
-     JOIN automation_workflows aw ON aw.id = ae.workflow_id
-     WHERE ae.status = 'active' AND aw.status = 'active'`
-  );
-  for (const enrollment of enrollments) {
-    try {
-      const { rows: steps } = await db.query(
-        `SELECT * FROM automation_steps WHERE workflow_id=$1 ORDER BY step_order`,
-        [enrollment.workflow_id]
-      );
-      if (enrollment.current_step >= steps.length) {
-        await db.query(`UPDATE automation_enrollments SET status='completed', updated_at=now() WHERE id=$1`, [enrollment.id]);
-        continue;
-      }
-      const step = steps[enrollment.current_step];
-
-      if (step.step_type === 'wait_days') {
-        const days = Number(step.config?.days) || 0;
-        const elapsedMs = Date.now() - new Date(enrollment.current_step_started_at).getTime();
-        if (elapsedMs < days * 24 * 60 * 60 * 1000) continue; // not yet — check again next tick
-        await db.query(
-          `UPDATE automation_enrollments SET current_step=current_step+1, current_step_started_at=now(), updated_at=now() WHERE id=$1`,
-          [enrollment.id]
-        );
-        continue;
-      }
-
-      const result = await runStep(step, enrollment, enrollment.org_id);
-      await db.query(
-        `INSERT INTO automation_step_runs (enrollment_id, step_id, step_type, ok, note) VALUES ($1,$2,$3,$4,$5)`,
-        [enrollment.id, step.id, step.step_type, result.ok, result.note]
-      );
-      await db.query(
-        `UPDATE automation_enrollments SET current_step=current_step+1, current_step_started_at=now(), updated_at=now() WHERE id=$1`,
-        [enrollment.id]
-      );
-    } catch (err) {
-      console.error(`automation enrollment ${enrollment.id} failed:`, err.message);
-    }
-  }
+  // Use new MarketingAutomationService for cross-channel support
+  return await MarketingAutomationService.advanceEnrollments();
 }
 
 async function listStepRuns(req, res) {
@@ -267,10 +229,370 @@ async function deleteEnrollment(req, res) {
   res.json({ ok: true });
 }
 
+// ── Templates ─────────────────────────────────────────────────────────────────
+
+async function listTemplates(req, res) {
+  const { category } = req.query;
+  let query = `SELECT * FROM automation_templates WHERE is_system = true`;
+  const params = [];
+  
+  if (category) {
+    query += ` AND category = $1`;
+    params.push(category);
+  }
+  
+  query += ` ORDER BY usage_count DESC, name ASC`;
+  
+  const { rows } = await db.query(query, params);
+  res.json({ templates: rows });
+}
+
+async function getTemplate(req, res) {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `SELECT * FROM automation_templates WHERE id = $1`,
+    [id]
+  );
+  
+  if (!rows.length) return res.status(404).json({ error: 'Template not found.' });
+  res.json({ template: rows[0] });
+}
+
+async function createFromTemplate(req, res) {
+  const { templateId, name } = req.body;
+  
+  if (!templateId) return res.status(400).json({ error: 'templateId is required.' });
+  
+  const { rows: templates } = await db.query(
+    `SELECT * FROM automation_templates WHERE id = $1`,
+    [templateId]
+  );
+  
+  if (!templates.length) return res.status(404).json({ error: 'Template not found.' });
+  
+  const template = templates[0];
+  
+  // Create workflow from template
+  const { rows: workflows } = await db.query(
+    `INSERT INTO automation_workflows (
+      org_id, name, trigger_type, trigger_config, status, 
+      goal_type, goal_config, category, template_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *`,
+    [
+      req.user.orgId,
+      name || template.name,
+      template.trigger_type,
+      template.trigger_config,
+      'draft',
+      template.goal_type,
+      template.goal_config,
+      template.category,
+      templateId
+    ]
+  );
+  
+  const workflow = workflows[0];
+  
+  // Create steps from template
+  const stepsConfig = template.steps_config;
+  for (const stepConfig of stepsConfig) {
+    await db.query(
+      `INSERT INTO automation_steps (
+        workflow_id, step_order, step_type, config, channel,
+        condition_type, condition_config, lead_score_change
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        workflow.id,
+        stepConfig.step_order,
+        stepConfig.step_type,
+        stepConfig.config || {},
+        stepConfig.channel || 'email',
+        stepConfig.condition_type,
+        stepConfig.condition_config || {},
+        stepConfig.lead_score_change || 0
+      ]
+    );
+  }
+  
+  // Update template usage count
+  await db.query(
+    `UPDATE automation_templates SET usage_count = usage_count + 1 WHERE id = $1`,
+    [templateId]
+  );
+  
+  res.status(201).json({ workflow });
+}
+
+// ── Triggers ──────────────────────────────────────────────────────────────────
+
+async function createTrigger(req, res) {
+  const { workflowId, contactEmail, contactPhone, triggerData } = req.body;
+  
+  if (!workflowId || !contactEmail) {
+    return res.status(400).json({ error: 'workflowId and contactEmail are required.' });
+  }
+  
+  const { rows } = await db.query(
+    `INSERT INTO automation_triggers (
+      org_id, workflow_id, trigger_type, contact_email, contact_phone, trigger_data
+    )
+    SELECT $1, $2, trigger_type, $3, $4, $5
+    FROM automation_workflows
+    WHERE id = $2 AND org_id = $1
+    RETURNING *`,
+    [req.user.orgId, workflowId, contactEmail, contactPhone, triggerData || {}]
+  );
+  
+  if (!rows.length) return res.status(404).json({ error: 'Workflow not found.' });
+  
+  res.status(201).json({ trigger: rows[0] });
+}
+
+async function processTriggers(req, res) {
+  const results = await MarketingAutomationService.processTriggers();
+  res.json({ results, processed: results.length });
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+async function getWorkflowAnalytics(req, res) {
+  const { workflowId } = req.params;
+  const { startDate, endDate } = req.query;
+  
+  const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const end = endDate || new Date().toISOString().split('T')[0];
+  
+  const analytics = await MarketingAutomationService.getAnalytics(
+    workflowId,
+    req.user.orgId,
+    start,
+    end
+  );
+  
+  const summary = await MarketingAutomationService.getWorkflowSummary(
+    workflowId,
+    req.user.orgId
+  );
+  
+  res.json({ analytics, summary });
+}
+
+async function getWorkflowSummary(req, res) {
+  const { workflowId } = req.params;
+  
+  const summary = await MarketingAutomationService.getWorkflowSummary(
+    workflowId,
+    req.user.orgId
+  );
+  
+  res.json({ summary });
+}
+
+// ── Goals ─────────────────────────────────────────────────────────────────────
+
+async function createGoal(req, res) {
+  const { workflowId } = req.params;
+  const { goalType, goalConfig } = req.body;
+  
+  if (!goalType || !goalConfig) {
+    return res.status(400).json({ error: 'goalType and goalConfig are required.' });
+  }
+  
+  // Verify workflow exists
+  const wf = await db.query(
+    `SELECT id FROM automation_workflows WHERE id = $1 AND org_id = $2`,
+    [workflowId, req.user.orgId]
+  );
+  
+  if (!wf.rows.length) return res.status(404).json({ error: 'Workflow not found.' });
+  
+  const { rows } = await db.query(
+    `INSERT INTO automation_goals (workflow_id, goal_type, goal_config)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [workflowId, goalType, goalConfig]
+  );
+  
+  res.status(201).json({ goal: rows[0] });
+}
+
+async function listGoals(req, res) {
+  const { workflowId } = req.params;
+  
+  const { rows } = await db.query(
+    `SELECT ag.* FROM automation_goals ag
+     JOIN automation_workflows aw ON aw.id = ag.workflow_id
+     WHERE ag.workflow_id = $1 AND aw.org_id = $2`,
+    [workflowId, req.user.orgId]
+  );
+  
+  res.json({ goals: rows });
+}
+
+// ── Split Tests ───────────────────────────────────────────────────────────────
+
+async function createSplitTest(req, res) {
+  const { stepId } = req.params;
+  const { variantAName, variantBName, variantAConfig, variantBConfig, splitPercentage } = req.body;
+  
+  if (!variantAName || !variantBName || !variantAConfig || !variantBConfig) {
+    return res.status(400).json({ error: 'All variant details are required.' });
+  }
+  
+  // Get step and verify ownership
+  const { rows: steps } = await db.query(
+    `SELECT s.*, w.org_id FROM automation_steps s
+     JOIN automation_workflows w ON w.id = s.workflow_id
+     WHERE s.id = $1 AND w.org_id = $2`,
+    [stepId, req.user.orgId]
+  );
+  
+  if (!steps.length) return res.status(404).json({ error: 'Step not found.' });
+  
+  const { rows } = await db.query(
+    `INSERT INTO automation_split_tests (
+      workflow_id, step_id, variant_a_name, variant_b_name,
+      variant_a_config, variant_b_config, split_percentage
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *`,
+    [
+      steps[0].workflow_id, stepId, variantAName, variantBName,
+      variantAConfig, variantBConfig, splitPercentage || 50
+    ]
+  );
+  
+  res.status(201).json({ splitTest: rows[0] });
+}
+
+async function getSplitTestResults(req, res) {
+  const { stepId } = req.params;
+  
+  const { rows } = await db.query(
+    `SELECT st.* FROM automation_split_tests st
+     JOIN automation_steps s ON s.id = st.step_id
+     JOIN automation_workflows w ON w.id = s.workflow_id
+     WHERE st.step_id = $1 AND w.org_id = $2`,
+    [stepId, req.user.orgId]
+  );
+  
+  if (!rows.length) return res.status(404).json({ error: 'Split test not found.' });
+  
+  const test = rows[0];
+  
+  // Calculate conversion rates
+  test.variant_a_conversion_rate = test.variant_a_count > 0
+    ? ((test.variant_a_goal_achieved / test.variant_a_count) * 100).toFixed(2)
+    : 0;
+  
+  test.variant_b_conversion_rate = test.variant_b_count > 0
+    ? ((test.variant_b_goal_achieved / test.variant_b_count) * 100).toFixed(2)
+    : 0;
+  
+  res.json({ splitTest: test });
+}
+
+// ── Contact Tags ──────────────────────────────────────────────────────────────
+
+async function getContactTags(req, res) {
+  const { contactEmail } = req.params;
+  
+  const { rows } = await db.query(
+    `SELECT * FROM automation_contact_tags 
+     WHERE org_id = $1 AND contact_email = $2
+     ORDER BY created_at DESC`,
+    [req.user.orgId, contactEmail]
+  );
+  
+  res.json({ tags: rows });
+}
+
+async function addContactTag(req, res) {
+  const { contactEmail } = req.params;
+  const { tag } = req.body;
+  
+  if (!tag) return res.status(400).json({ error: 'tag is required.' });
+  
+  const { rows } = await db.query(
+    `INSERT INTO automation_contact_tags (org_id, contact_email, tag, source)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (org_id, contact_email, tag) DO NOTHING
+     RETURNING *`,
+    [req.user.orgId, contactEmail, tag, 'manual']
+  );
+  
+  res.status(201).json({ tag: rows[0] || { tag, message: 'Tag already exists' } });
+}
+
+async function removeContactTag(req, res) {
+  const { contactEmail, tag } = req.params;
+  
+  await db.query(
+    `DELETE FROM automation_contact_tags 
+     WHERE org_id = $1 AND contact_email = $2 AND tag = $3`,
+    [req.user.orgId, contactEmail, tag]
+  );
+  
+  res.json({ ok: true });
+}
+
+// ── Lead Scoring ──────────────────────────────────────────────────────────────
+
+async function getLeadScoreHistory(req, res) {
+  const { contactEmail } = req.params;
+  const { limit = 50 } = req.query;
+  
+  const { rows } = await db.query(
+    `SELECT * FROM automation_lead_scores
+     WHERE org_id = $1 AND contact_email = $2
+     ORDER BY created_at DESC
+     LIMIT $3`,
+    [req.user.orgId, contactEmail, limit]
+  );
+  
+  res.json({ history: rows });
+}
+
+async function updateLeadScore(req, res) {
+  const { contactEmail } = req.params;
+  const { scoreChange, reason } = req.body;
+  
+  if (!scoreChange) return res.status(400).json({ error: 'scoreChange is required.' });
+  
+  // Get current score
+  const { rows: scores } = await db.query(
+    `SELECT COALESCE(SUM(score_change), 0) as total_score
+     FROM automation_lead_scores
+     WHERE org_id = $1 AND contact_email = $2`,
+    [req.user.orgId, contactEmail]
+  );
+  
+  const previousScore = parseInt(scores[0].total_score);
+  const newScore = previousScore + scoreChange;
+  
+  const { rows } = await db.query(
+    `INSERT INTO automation_lead_scores (
+      org_id, contact_email, score_change, reason, previous_score, new_score
+    ) VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *`,
+    [req.user.orgId, contactEmail, scoreChange, reason || 'Manual update', previousScore, newScore]
+  );
+  
+  res.status(201).json({ scoreUpdate: rows[0] });
+}
+
 module.exports = {
   getStats,
   listWorkflows, createWorkflow, updateWorkflow, deleteWorkflow,
   listSteps, createStep, updateStep, deleteStep,
   listEnrollments, createEnrollment, updateEnrollment, deleteEnrollment,
   listStepRuns, advanceEnrollments,
+  // New endpoints
+  listTemplates, getTemplate, createFromTemplate,
+  createTrigger, processTriggers,
+  getWorkflowAnalytics, getWorkflowSummary,
+  createGoal, listGoals,
+  createSplitTest, getSplitTestResults,
+  getContactTags, addContactTag, removeContactTag,
+  getLeadScoreHistory, updateLeadScore,
 };

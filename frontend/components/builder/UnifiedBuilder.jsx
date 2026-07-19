@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { useUndoRedo } from '@/lib/hooks/useUndoRedo';
+import { EXPANDED_BLOCK_DEFAULTS } from './ExpandedBlockTypes';
 import UnifiedSidebar from './UnifiedSidebar';
 import UnifiedCanvas from './UnifiedCanvas';
 import UnifiedToolbar from './UnifiedToolbar';
@@ -188,10 +189,11 @@ export default function UnifiedBuilder({
   };
 
   const handleAddBlock = (blockType) => {
+    const defaults = EXPANDED_BLOCK_DEFAULTS[blockType] || {};
     const newBlock = {
       id: `block_${Date.now()}`,
       type: blockType,
-      props: {},
+      props: defaults,
       children: []
     };
     
@@ -231,6 +233,10 @@ export default function UnifiedBuilder({
     const blockIndex = blocks.findIndex(b => b.id === blockId);
     const newBlocks = [...blocks];
     newBlocks.splice(blockIndex + 1, 0, duplicatedBlock);
+    setBlocks(newBlocks);
+  };
+
+  const handleReorderBlocks = (newBlocks) => {
     setBlocks(newBlocks);
   };
 
@@ -334,6 +340,7 @@ export default function UnifiedBuilder({
             onDeleteBlock={handleDeleteBlock}
             onDuplicateBlock={handleDuplicateBlock}
             onMoveBlock={handleMoveBlock}
+            onReorderBlocks={handleReorderBlocks}
             onAddBlock={(block, position) => {
               if (typeof block === 'string') {
                 handleAddBlock(block);

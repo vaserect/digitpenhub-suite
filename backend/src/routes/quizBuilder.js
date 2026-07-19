@@ -24,8 +24,23 @@ router.get('/:id', c.getQuiz);
 router.post('/', c.createQuiz);
 router.put('/:id', c.updateQuiz);
 router.delete('/:id', c.deleteQuiz);
+
+// Responses
 router.get('/:quizId/responses', c.listResponses);
 
+// Analytics
+router.get('/:quizId/analytics', c.getAnalytics);
+
+// Templates
+router.get('/templates/list', c.getTemplates);
+router.post('/templates/create-from', c.createFromTemplate);
+
+// Outcomes
+router.post('/:quizId/outcomes', c.createOutcome);
+router.put('/outcomes/:outcomeId', c.updateOutcome);
+router.delete('/outcomes/:outcomeId', c.deleteOutcome);
+
+// Bulk operations
 router.post("/bulk-delete", bulkDeleteHandler("quizzes"));
 router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM quizzes WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "quizzes.csv", rows, autoColumns(rows)); });
 

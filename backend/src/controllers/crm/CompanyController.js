@@ -11,8 +11,8 @@ const { ValidationError, NotFoundError } = require('../../utils/errors');
  * Handles HTTP requests for company management
  */
 class CompanyController {
-  constructor() {
-    this.companyService = new CompanyService();
+  constructor(companyService) {
+    this.companyService = companyService || new CompanyService();
   }
 
   /**
@@ -283,5 +283,4 @@ class CompanyController {
   }
 }
 
-// Export singleton instance
-module.exports = new CompanyController();
+module.exports = CompanyController;

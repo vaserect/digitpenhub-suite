@@ -1,5 +1,6 @@
 const db = require('../db');
 const { notify } = require('../utils/notify');
+const { trackActivity } = require('../utils/activityTracker');
 
 // ── Forms ──────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ async function getPublicForm(req, res) {
 async function submitForm(req, res) {
   const { id } = req.params;
   const formResult = await db.query(
-    `SELECT id, org_id, fields_json FROM lead_forms WHERE id = $1 AND is_active = true`,
+    `SELECT id, org_id, fields_json, name FROM lead_forms WHERE id = $1 AND is_active = true`,
     [id]
   );
   if (!formResult.rows.length) return res.status(404).json({ error: 'Form not found or inactive.' });
@@ -113,7 +114,8 @@ async function submitForm(req, res) {
   // Validate required fields defined on the form
   const fields = Array.isArray(form.fields_json) ? form.fields_json : [];
   for (const field of fields) {
-    if (field.required && (data[field.id] === undefined || data[field.id] === '' || data[field.id] === null)) {
+    const fieldId = field.id || field.key;
+    if (field.required && (data[fieldId] === undefined || data[fieldId] === '' || data[fieldId] === null)) {
       return res.status(400).json({ error: `"${field.label}" is required.` });
     }
   }
@@ -131,6 +133,116 @@ async function submitForm(req, res) {
     body: `Someone submitted "${form.name}".`,
     email: true,
   });
+
+  // Extract contact fields intelligently
+  let email = null;
+  let phone = null;
+  let fullName = null;
+  let company = null;
+
+  for (const field of fields) {
+    const fieldId = field.id || field.key;
+    const val = data[fieldId];
+    if (!val) continue;
+
+    const labelLower = (field.label || '').toLowerCase();
+    const typeLower = (field.type || '').toLowerCase();
+
+    if (typeLower === 'email' || labelLower.includes('email')) {
+      email = String(val).trim().toLowerCase();
+    } else if (typeLower === 'phone' || labelLower.includes('phone') || labelLower.includes('mobile')) {
+      phone = String(val).trim();
+    } else if (labelLower.includes('name')) {
+      fullName = String(val).trim();
+    } else if (labelLower.includes('company')) {
+      company = String(val).trim();
+    }
+  }
+
+  if (!fullName && email) {
+    fullName = email.split('@')[0];
+  }
+
+  if (email) {
+    try {
+      let contactId = null;
+      let isNewContact = false;
+
+      const contactCheck = await db.query(
+        `SELECT id, full_name, phone, company FROM contacts WHERE org_id = $1 AND email = $2`,
+        [form.org_id, email]
+      );
+
+      if (contactCheck.rows.length > 0) {
+        const existingContact = contactCheck.rows[0];
+        contactId = existingContact.id;
+        // Update contact with new details if they were empty
+        await db.query(
+          `UPDATE contacts 
+           SET last_touch_at = NOW(),
+               full_name = COALESCE($1, full_name),
+               phone = COALESCE($2, phone),
+               company = COALESCE($3, company)
+           WHERE id = $4`,
+          [fullName || null, phone || null, company || null, contactId]
+        );
+      } else {
+        isNewContact = true;
+        const insertRes = await db.query(
+          `INSERT INTO contacts (org_id, full_name, email, phone, company, stage, tags, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, 'new', $6, NOW(), NOW())
+           RETURNING id`,
+          [form.org_id, fullName || 'Anonymous Lead', email, phone || null, company || null, ['lead-form', form.name]]
+        );
+        contactId = insertRes.rows[0].id;
+      }
+
+      // Track activity on contact timeline
+      if (contactId) {
+        trackActivity(form.org_id, null, 'contact.form_submitted', {
+          contactId,
+          description: `Submitted lead form: ${form.name}`,
+          metadata: { formId: form.id, formName: form.name, submissionData: data }
+        });
+      }
+
+      // Trigger automation workflows for form_submitted
+      const formWorkflows = await db.query(
+        `SELECT id FROM automation_workflows 
+         WHERE org_id = $1 AND status = 'active' AND trigger_type = 'form_submitted'`,
+        [form.org_id]
+      );
+
+      for (const wf of formWorkflows.rows) {
+        await db.query(
+          `INSERT INTO automation_enrollments (org_id, workflow_id, contact_email, contact_name, status, enrolled_at)
+           VALUES ($1, $2, $3, $4, 'active', NOW())
+           ON CONFLICT DO NOTHING`,
+          [form.org_id, wf.id, email, fullName || 'Anonymous Lead']
+        );
+      }
+
+      // Trigger automation workflows for contact_created (if it was newly created)
+      if (isNewContact) {
+        const contactWorkflows = await db.query(
+          `SELECT id FROM automation_workflows 
+           WHERE org_id = $1 AND status = 'active' AND trigger_type = 'contact_created'`,
+          [form.org_id]
+        );
+
+        for (const wf of contactWorkflows.rows) {
+          await db.query(
+            `INSERT INTO automation_enrollments (org_id, workflow_id, contact_email, contact_name, status, enrolled_at)
+             VALUES ($1, $2, $3, $4, 'active', NOW())
+             ON CONFLICT DO NOTHING`,
+            [form.org_id, wf.id, email, fullName || 'Anonymous Lead']
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Failed to integrate CRM Contact from lead submission:', err);
+    }
+  }
 
   res.status(201).json({ ok: true, submissionId: rows[0].id });
 }

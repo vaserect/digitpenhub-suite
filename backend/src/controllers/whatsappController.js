@@ -193,9 +193,281 @@ async function exportContacts(req, res) {
   sendCsv(res, 'whatsapp-contacts.csv', rows, autoColumns(rows));
 }
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+async function getBroadcastAnalytics(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Get broadcast details
+    const { rows: broadcastRows } = await db.query(
+      `SELECT * FROM whatsapp_broadcasts WHERE id=$1 AND org_id=$2`,
+      [id, req.user.orgId]
+    );
+    
+    if (!broadcastRows.length) {
+      return res.status(404).json({ error: 'Broadcast not found.' });
+    }
+    
+    const broadcast = broadcastRows[0];
+    
+    // Get message stats
+    const { rows: statsRows } = await db.query(
+      `SELECT 
+         COUNT(*)::int as total_messages,
+         COUNT(*) FILTER (WHERE status='sent')::int as sent,
+         COUNT(*) FILTER (WHERE status='delivered')::int as delivered,
+         COUNT(*) FILTER (WHERE status='read')::int as read,
+         COUNT(*) FILTER (WHERE status='failed')::int as failed
+       FROM whatsapp_messages
+       WHERE broadcast_id=$1 AND org_id=$2`,
+      [id, req.user.orgId]
+    );
+    
+    // Get click stats
+    const { rows: clickRows } = await db.query(
+      `SELECT COUNT(DISTINCT contact_id)::int as unique_clicks,
+              COUNT(*)::int as total_clicks
+       FROM whatsapp_link_clicks wlc
+       JOIN whatsapp_messages wm ON wm.id = wlc.message_id
+       WHERE wm.broadcast_id=$1 AND wm.org_id=$2`,
+      [id, req.user.orgId]
+    );
+    
+    res.json({
+      broadcast: {
+        id: broadcast.id,
+        name: broadcast.name,
+        status: broadcast.status,
+        sent_at: broadcast.sent_at,
+        recipient_count: broadcast.recipient_count
+      },
+      stats: {
+        ...statsRows[0],
+        unique_clicks: clickRows[0].unique_clicks,
+        total_clicks: clickRows[0].total_clicks,
+        delivery_rate: statsRows[0].total_messages > 0 
+          ? ((statsRows[0].delivered / statsRows[0].total_messages) * 100).toFixed(2)
+          : 0,
+        read_rate: statsRows[0].delivered > 0
+          ? ((statsRows[0].read / statsRows[0].delivered) * 100).toFixed(2)
+          : 0,
+        click_rate: statsRows[0].delivered > 0
+          ? ((clickRows[0].unique_clicks / statsRows[0].delivered) * 100).toFixed(2)
+          : 0
+      }
+    });
+  } catch (error) {
+    console.error('Error getting broadcast analytics:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function getAnalyticsSummary(req, res) {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    let dateFilter = '';
+    const params = [req.user.orgId];
+    
+    if (startDate && endDate) {
+      dateFilter = `AND date >= $2 AND date <= $3`;
+      params.push(startDate, endDate);
+    }
+    
+    const { rows } = await db.query(
+      `SELECT 
+         metric_type,
+         SUM(metric_value)::int as total
+       FROM whatsapp_analytics
+       WHERE org_id=$1 ${dateFilter}
+       GROUP BY metric_type`,
+      params
+    );
+    
+    const summary = {};
+    rows.forEach(row => {
+      summary[row.metric_type] = row.total;
+    });
+    
+    res.json({ summary });
+  } catch (error) {
+    console.error('Error getting analytics summary:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// ── Link Tracking ─────────────────────────────────────────────────────────────
+
+async function trackLinkClick(req, res) {
+  try {
+    const { shortUrl } = req.params;
+    const { messageId, contactId } = req.query;
+    
+    if (!messageId || !contactId) {
+      return res.status(400).json({ error: 'Message ID and Contact ID are required.' });
+    }
+    
+    // Get original URL
+    const { rows: messageRows } = await db.query(
+      `SELECT content FROM whatsapp_messages WHERE id=$1 AND org_id=$2`,
+      [messageId, req.user.orgId]
+    );
+    
+    if (!messageRows.length) {
+      return res.status(404).json({ error: 'Message not found.' });
+    }
+    
+    // Record click
+    await db.query(
+      `INSERT INTO whatsapp_link_clicks 
+       (org_id, message_id, contact_id, original_url, short_url, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        req.user.orgId,
+        messageId,
+        contactId,
+        messageRows[0].content,
+        shortUrl,
+        req.ip,
+        req.get('user-agent')
+      ]
+    );
+    
+    // Update broadcast clicked count if applicable
+    await db.query(
+      `UPDATE whatsapp_broadcasts 
+       SET clicked_count = clicked_count + 1
+       WHERE id = (SELECT broadcast_id FROM whatsapp_messages WHERE id=$1)`,
+      [messageId]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error tracking link click:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// ── Quick Replies ─────────────────────────────────────────────────────────────
+
+async function listQuickReplies(req, res) {
+  try {
+    const { category } = req.query;
+    
+    let query = `SELECT * FROM whatsapp_quick_replies WHERE org_id=$1`;
+    const params = [req.user.orgId];
+    
+    if (category) {
+      query += ` AND category=$2`;
+      params.push(category);
+    }
+    
+    query += ` ORDER BY shortcut`;
+    
+    const { rows } = await db.query(query, params);
+    res.json({ quickReplies: rows });
+  } catch (error) {
+    console.error('Error listing quick replies:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function createQuickReply(req, res) {
+  try {
+    const { shortcut, message, category } = req.body;
+    
+    if (!shortcut?.trim()) {
+      return res.status(400).json({ error: 'Shortcut is required.' });
+    }
+    
+    if (!message?.trim()) {
+      return res.status(400).json({ error: 'Message is required.' });
+    }
+    
+    const { rows } = await db.query(
+      `INSERT INTO whatsapp_quick_replies (org_id, shortcut, message, category, created_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [req.user.orgId, shortcut.trim(), message.trim(), category || null, req.user.id]
+    );
+    
+    res.status(201).json({ quickReply: rows[0] });
+  } catch (error) {
+    if (error.code === '23505') { // Unique violation
+      return res.status(400).json({ error: 'Shortcut already exists.' });
+    }
+    console.error('Error creating quick reply:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function updateQuickReply(req, res) {
+  try {
+    const { id } = req.params;
+    const { shortcut, message, category } = req.body;
+    
+    const updates = [];
+    const vals = [];
+    let i = 1;
+    
+    if (shortcut !== undefined) {
+      updates.push(`shortcut=$${i++}`);
+      vals.push(shortcut.trim());
+    }
+    
+    if (message !== undefined) {
+      updates.push(`message=$${i++}`);
+      vals.push(message.trim());
+    }
+    
+    if (category !== undefined) {
+      updates.push(`category=$${i++}`);
+      vals.push(category || null);
+    }
+    
+    if (!updates.length) {
+      return res.status(400).json({ error: 'Nothing to update.' });
+    }
+    
+    updates.push(`updated_at=NOW()`);
+    vals.push(id, req.user.orgId);
+    
+    const { rows } = await db.query(
+      `UPDATE whatsapp_quick_replies SET ${updates.join(',')} 
+       WHERE id=$${i} AND org_id=$${i + 1} RETURNING *`,
+      vals
+    );
+    
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Quick reply not found.' });
+    }
+    
+    res.json({ quickReply: rows[0] });
+  } catch (error) {
+    console.error('Error updating quick reply:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+async function deleteQuickReply(req, res) {
+  try {
+    await db.query(
+      `DELETE FROM whatsapp_quick_replies WHERE id=$1 AND org_id=$2`,
+      [req.params.id, req.user.orgId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting quick reply:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
 module.exports = {
   getStats,
   listContacts, exportContacts, createContact, updateContact, deleteContact, bulkDeleteWhatsappContacts,
   listTemplates, createTemplate, updateTemplate, deleteTemplate,
   listBroadcasts, createBroadcast, updateBroadcast, deleteBroadcast, sendBroadcast,
+  getBroadcastAnalytics, getAnalyticsSummary, trackLinkClick,
+  listQuickReplies, createQuickReply, updateQuickReply, deleteQuickReply,
 };

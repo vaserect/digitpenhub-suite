@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiFetch, setUpgradeHandler } from '../lib/api';
 import Sidebar from './ui/Sidebar';
 import Topbar from './ui/Topbar';
@@ -1939,7 +1939,7 @@ export default function AppShell() {
     function pollCount() {
       apiFetch('/api/v1/notifications/unread-count')
         .then((d) => setNotifCount(d.count || 0))
-        .catch(() => {});
+        .catch((e) => console.error(e));
     }
     pollCount();
     notifIntervalRef.current = setInterval(pollCount, 30000);
@@ -2192,18 +2192,18 @@ export default function AppShell() {
     if (opening && notifList.length === 0) {
       apiFetch('/api/v1/notifications')
         .then((d) => setNotifList(d.notifications || []))
-        .catch(() => {});
+        .catch((e) => console.error(e));
     }
   }
 
   function handleMarkRead(id) {
-    apiFetch(`/api/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
+    apiFetch(`/api/v1/notifications/${id}/read`, { method: 'PATCH' }).catch((e) => console.error(e));
     setNotifList((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
     setNotifCount((c) => Math.max(0, c - 1));
   }
 
   function handleMarkAllRead() {
-    apiFetch('/api/v1/notifications/mark-all-read', { method: 'POST' }).catch(() => {});
+    apiFetch('/api/v1/notifications/mark-all-read', { method: 'POST' }).catch((e) => console.error(e));
     setNotifList((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setNotifCount(0);
   }
@@ -2226,19 +2226,19 @@ export default function AppShell() {
 
   function openBilling() {
     setView('billing');
-    if (!billingLoaded) loadBilling().catch(() => {});
+    if (!billingLoaded) loadBilling().catch((e) => console.error(e));
     setNavOpen(false);
   }
 
   function openAccount() {
     setView('account');
-    if (!acctLoaded) loadAccount().catch(() => {});
+    if (!acctLoaded) loadAccount().catch((e) => console.error(e));
     setNavOpen(false);
   }
 
   function openWhiteLabel() {
     setView('white-label');
-    if (!wlLoaded) loadWhiteLabel().catch(() => {});
+    if (!wlLoaded) loadWhiteLabel().catch((e) => console.error(e));
     setNavOpen(false);
   }
 
@@ -2835,7 +2835,7 @@ export default function AppShell() {
     setEditingBlock(null);
     setBlockDraft({});
     setPageAnalytics(null);
-    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch(() => {});
+    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch((e) => console.error(e));
   }
 
   async function handleSaveLandingPage() {
@@ -2913,7 +2913,7 @@ export default function AppShell() {
       setAutoSteps(stepsRes.steps || []);
       setAutoDetailEnrollments(enrRes.enrollments || []);
       if (emailLists.length === 0) {
-        apiFetch('/api/v1/email/lists').then((r) => setEmailLists(r.lists || [])).catch(() => {});
+        apiFetch('/api/v1/email/lists').then((r) => setEmailLists(r.lists || [])).catch((e) => console.error(e));
       }
     } finally { setAutoDetailLoaded(true); }
   }
@@ -5740,7 +5740,7 @@ export default function AppShell() {
   function openWebsiteBuilder() {
     setView('module');
     setActiveModuleSlug('website-builder');
-    if (!pagesLoaded) loadPages().catch(() => {});
+    if (!pagesLoaded) loadPages().catch((e) => console.error(e));
   }
 
   function openPageEditor(page) {
@@ -5749,7 +5749,7 @@ export default function AppShell() {
     setEditingBlock(null);
     setBlockDraft({});
     setPageAnalytics(null);
-    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch(() => {});
+    apiFetch(`/api/v1/pages/${page.id}/analytics`).then(setPageAnalytics).catch((e) => console.error(e));
   }
 
   function reorderBlocks(dragIdx, dropIdx) {
@@ -6109,8 +6109,8 @@ export default function AppShell() {
   function openFunnelBuilder() {
     setView('module');
     setActiveModuleSlug('funnel-builder');
-    if (!funnelsLoaded) loadFunnels().catch(() => {});
-    if (!pagesLoaded) loadPages().catch(() => {});
+    if (!funnelsLoaded) loadFunnels().catch((e) => console.error(e));
+    if (!pagesLoaded) loadPages().catch((e) => console.error(e));
   }
 
   async function handleCreateFunnel(e) {
@@ -7104,6 +7104,74 @@ export default function AppShell() {
       setNavOpen(false);
       return;
     }
+    // Extracted modules — navigate to real route instead of inline SPA
+    const extracted = {
+      'crm': '/crm',
+      'review-management': '/review-management',
+      'invoices': '/billing-invoices',
+      'email-marketing': '/email-marketing',
+      'project-management': '/project-management',
+      'lead-generation': '/lead-generation',
+      'website-builder': '/website-builder',
+      'funnel-builder': '/funnel-builder',
+      'hr': '/hr',
+      'recruitment': '/recruitment',
+      'inventory': '/inventory',
+      'calendar': '/calendar',
+      'knowledge-base': '/knowledge-base',
+      'help-desk': '/help-desk',
+      'expenses': '/expenses',
+      'contracts': '/contracts',
+      'quotations': '/quotations',
+      'url-shortener': '/url-shortener',
+      'task-management': '/tasks',
+      'time-tracking': '/time-tracking',
+      'notes': '/notes',
+      'coupons': '/coupons',
+      'forms': '/forms',
+      'payroll': '/payroll',
+      'accounting': '/accounting',
+      'subscriptions': '/subscriptions',
+      'appointment-booking': '/appointments',
+      'affiliate-system': '/affiliates',
+      'referral-program': '/referrals',
+      'ad-campaign-manager': '/modules/ad-campaign-manager',
+      'lead-scoring': '/lead-scoring',
+      'pipeline-deals': '/pipeline-deals',
+      'referral-affiliate-analytics': '/modules/referral-affiliate-analytics',
+      'content-calendar': '/modules/content-calendar',
+      'influencer-partner-crm': '/modules/influencer-crm',
+      'push-notification-marketing': '/modules/push-notification-marketing',
+      'membership-community-platform': '/community',
+      'customer-segmentation-engine': '/modules/customer-segmentation',
+      'event-webinar-hosting': '/modules/event-hosting',
+      'delivery-tracking': '/delivery-tracking',
+      'password-manager': '/password-manager',
+      'certificate-generator': '/certificates',
+      'color-palette-generator': '/color-palettes',
+      'custom-reports': '/custom-reports',
+      'brand-kit': '/brand-kit',
+      'digital-products': '/digital-products',
+      'asset-management': '/asset-management',
+      'document-management': '/documents',
+      'commerce': '/commerce',
+      'education': '/education',
+      'marketing-automation': '/marketing-automation',
+      'whatsapp-marketing': '/whatsapp-marketing',
+      'sms-marketing': '/sms-marketing',
+      'seo-audit': '/seo',
+      'rank-tracking': '/seo',
+      'keyword-research': '/seo',
+      'backlink-monitoring': '/seo',
+      'local-seo': '/seo',
+      'page-speed': '/seo',
+      'ai-content-optimizer': '/seo',
+    };
+    if (extracted[slug]) {
+      router.push(extracted[slug]);
+      setNavOpen(false);
+      return;
+    }
     setActiveModuleSlug(slug);
     setView('module');
     setNavOpen(false);
@@ -7117,89 +7185,89 @@ export default function AppShell() {
       } catch {}
     }
     // Fire-and-forget tracking
-    apiFetch('/api/v1/analytics/track', { method: 'POST', body: JSON.stringify({ name: 'module.open', properties: { slug } }) }).catch(() => {});
+    apiFetch('/api/v1/analytics/track', { method: 'POST', body: JSON.stringify({ name: 'module.open', properties: { slug } }) }).catch((e) => console.error(e));
     if (slug === 'crm' && !crmLoaded) loadCrm().catch(() => showToast());
     if ((slug === 'pm' || slug === 'project-management') && !pmLoaded) loadPm().catch(() => showToast());
     if (slug === 'invoices' && !invoicesLoaded) loadInvoices().catch(() => showToast());
     if (slug === 'email-marketing' && !emailLoaded) loadEmail().catch(() => showToast());
     if (slug === 'lead-generation' && !leadsLoaded) loadLeads().catch(() => showToast());
     if (slug === 'business-dashboard' && !analyticsLoaded) loadAnalytics().catch(() => showToast());
-    if (slug === 'website-builder') { if (!pagesLoaded) loadPages().catch(() => {}); }
-    if (slug === 'funnel-builder') { if (!funnelsLoaded) loadFunnels().catch(() => {}); if (!pagesLoaded) loadPages().catch(() => {}); }
-    if (slug === 'hr' && !hrLoaded) loadHr().catch(() => {});
-    if (slug === 'appointment-booking' && !apptLoaded) loadAppointments().catch(() => {});
-    if (slug === 'expenses' && !expLoaded) loadExpenses().catch(() => {});
-    if (slug === 'recruitment' && !recruitLoaded) loadRecruitment().catch(() => {});
-    if (slug === 'accounting'   && !accLoaded)     loadAccounting().catch(() => {});
-    if (slug === 'client-portal' && !portalLoaded) loadPortal().catch(() => {});
-    if (slug === 'landing-page-builder' && !lpLoaded) loadLandingPages().catch(() => {});
-    if (slug === 'marketing-automation' && !autoLoaded) loadAutomation().catch(() => {});
-    if (slug === 'whatsapp-marketing'   && !waLoaded)   loadWhatsapp().catch(() => {});
-    if (slug === 'affiliate-system'     && !affLoaded)  loadAffiliates().catch(() => {});
-    if (slug === 'referral-program'     && !refLoaded)  loadReferrals().catch(() => {});
-    if (slug === 'inventory'            && !invLoaded)  loadInventory().catch(() => {});
-    if (slug === 'pos'                  && !posLoaded)  loadPos().catch(() => {});
-    if (slug === 'quotations'           && !quoteLoaded) loadQuotations().catch(() => {});
-    if (slug === 'task-management'      && !tmLoaded)   loadTasks().catch(() => {});
-    if (slug === 'forms'                && !fbLoaded)   loadForms().catch(() => {});
-    if (slug === 'survey-builder'       && !fbLoaded)   loadForms().catch(() => {});
-    if (slug === 'help-desk'            && !hdLoaded)   loadHelpdesk().catch(() => {});
-    if (slug === 'sms-marketing'        && !smsLoaded)  loadSms().catch(() => {});
-    if (slug === 'calendar'             && !calLoaded)  loadCalendar().catch(() => {});
-    if (slug === 'time-tracking'        && !ttLoaded)   loadTimeTracking().catch(() => {});
-    if (slug === 'notes'                && !notesLoaded) loadNotes().catch(() => {});
-    if (slug === 'knowledge-base'       && !kbLoaded)    loadKnowledgeBase().catch(() => {});
-    if (slug === 'coupons'              && !couponLoaded) loadCoupons().catch(() => {});
-    if (slug === 'url-shortener'        && !urlLoaded)  loadUrlShortener().catch(() => {});
-    if (slug === 'asset-management'     && !assetLoaded) loadAssets().catch(() => {});
-    if (slug === 'order-management'     && !orderLoaded) loadOrders().catch(() => {});
-    if (slug === 'document-management'  && !docLoaded)  loadDocuments().catch(() => {});
-    if (slug === 'payroll'              && !payLoaded)   loadPayroll().catch(() => {});
-    if (slug === 'subscriptions'        && !subLoaded)   loadSubscriptions().catch(() => {});
-    if (slug === 'delivery-tracking'    && !delLoaded)   loadDelivery().catch(() => {});
-    if (slug === 'brand-kit'            && !bkLoaded)    loadBrandKit().catch(() => {});
-    if (slug === 'password-manager'     && !pwLoaded)    loadPasswordManager().catch(() => {});
-    if (slug === 'digital-products'     && !dpLoaded)    loadDigitalProducts().catch(() => {});
-    if (slug === 'qr-code-generator'    && !qrLoaded)    loadQrCodes().catch(() => {});
-    if (slug === 'custom-reports'       && !crLoaded)    loadCustomReports().catch(() => {});
+    if (slug === 'website-builder') { if (!pagesLoaded) loadPages().catch((e) => console.error(e)); }
+    if (slug === 'funnel-builder') { if (!funnelsLoaded) loadFunnels().catch((e) => console.error(e)); if (!pagesLoaded) loadPages().catch((e) => console.error(e)); }
+    if (slug === 'hr' && !hrLoaded) loadHr().catch((e) => console.error(e));
+    if (slug === 'appointment-booking' && !apptLoaded) loadAppointments().catch((e) => console.error(e));
+    if (slug === 'expenses' && !expLoaded) loadExpenses().catch((e) => console.error(e));
+    if (slug === 'recruitment' && !recruitLoaded) loadRecruitment().catch((e) => console.error(e));
+    if (slug === 'accounting'   && !accLoaded)     loadAccounting().catch((e) => console.error(e));
+    if (slug === 'client-portal' && !portalLoaded) loadPortal().catch((e) => console.error(e));
+    if (slug === 'landing-page-builder' && !lpLoaded) loadLandingPages().catch((e) => console.error(e));
+    if (slug === 'marketing-automation' && !autoLoaded) loadAutomation().catch((e) => console.error(e));
+    if (slug === 'whatsapp-marketing'   && !waLoaded)   loadWhatsapp().catch((e) => console.error(e));
+    if (slug === 'affiliate-system'     && !affLoaded)  loadAffiliates().catch((e) => console.error(e));
+    if (slug === 'referral-program'     && !refLoaded)  loadReferrals().catch((e) => console.error(e));
+    if (slug === 'inventory'            && !invLoaded)  loadInventory().catch((e) => console.error(e));
+    if (slug === 'pos'                  && !posLoaded)  loadPos().catch((e) => console.error(e));
+    if (slug === 'quotations'           && !quoteLoaded) loadQuotations().catch((e) => console.error(e));
+    if (slug === 'task-management'      && !tmLoaded)   loadTasks().catch((e) => console.error(e));
+    if (slug === 'forms'                && !fbLoaded)   loadForms().catch((e) => console.error(e));
+    if (slug === 'survey-builder'       && !fbLoaded)   loadForms().catch((e) => console.error(e));
+    if (slug === 'help-desk'            && !hdLoaded)   loadHelpdesk().catch((e) => console.error(e));
+    if (slug === 'sms-marketing'        && !smsLoaded)  loadSms().catch((e) => console.error(e));
+    if (slug === 'calendar'             && !calLoaded)  loadCalendar().catch((e) => console.error(e));
+    if (slug === 'time-tracking'        && !ttLoaded)   loadTimeTracking().catch((e) => console.error(e));
+    if (slug === 'notes'                && !notesLoaded) loadNotes().catch((e) => console.error(e));
+    if (slug === 'knowledge-base'       && !kbLoaded)    loadKnowledgeBase().catch((e) => console.error(e));
+    if (slug === 'coupons'              && !couponLoaded) loadCoupons().catch((e) => console.error(e));
+    if (slug === 'url-shortener'        && !urlLoaded)  loadUrlShortener().catch((e) => console.error(e));
+    if (slug === 'asset-management'     && !assetLoaded) loadAssets().catch((e) => console.error(e));
+    if (slug === 'order-management'     && !orderLoaded) loadOrders().catch((e) => console.error(e));
+    if (slug === 'document-management'  && !docLoaded)  loadDocuments().catch((e) => console.error(e));
+    if (slug === 'payroll'              && !payLoaded)   loadPayroll().catch((e) => console.error(e));
+    if (slug === 'subscriptions'        && !subLoaded)   loadSubscriptions().catch((e) => console.error(e));
+    if (slug === 'delivery-tracking'    && !delLoaded)   loadDelivery().catch((e) => console.error(e));
+    if (slug === 'brand-kit'            && !bkLoaded)    loadBrandKit().catch((e) => console.error(e));
+    if (slug === 'password-manager'     && !pwLoaded)    loadPasswordManager().catch((e) => console.error(e));
+    if (slug === 'digital-products'     && !dpLoaded)    loadDigitalProducts().catch((e) => console.error(e));
+    if (slug === 'qr-code-generator'    && !qrLoaded)    loadQrCodes().catch((e) => console.error(e));
+    if (slug === 'custom-reports'       && !crLoaded)    loadCustomReports().catch((e) => console.error(e));
     // Batch 4
-    if (slug === 'sales-dashboard'      && !sdLoaded)   loadSalesDashboard().catch(() => {});
-    if (slug === 'marketing-dashboard'  && !mdLoaded)   loadMarketingDashboard().catch(() => {});
-    if (slug === 'website-analytics'    && !waLoaded2)  loadWebsiteAnalytics().catch(() => {});
-    if (slug === 'performance-reports'  && !prLoaded)   loadPerformanceReports().catch(() => {});
-    if (slug === 'digital-business-cards' && !dbcLoaded) loadDigitalBusinessCards().catch(() => {});
-    if (slug === 'link-in-bio'          && !libLoaded)  loadLinkInBio().catch(() => {});
-    if (slug === 'certificate-generator' && !certLoaded) loadCertificates().catch(() => {});
-    if (slug === 'barcode-generator'    && !bcLoaded)   loadBarcodes().catch(() => {});
-    if (slug === 'color-palette-generator' && !cpLoaded) loadColorPalettes().catch(() => {});
+    if (slug === 'sales-dashboard'      && !sdLoaded)   loadSalesDashboard().catch((e) => console.error(e));
+    if (slug === 'marketing-dashboard'  && !mdLoaded)   loadMarketingDashboard().catch((e) => console.error(e));
+    if (slug === 'website-analytics'    && !waLoaded2)  loadWebsiteAnalytics().catch((e) => console.error(e));
+    if (slug === 'performance-reports'  && !prLoaded)   loadPerformanceReports().catch((e) => console.error(e));
+    if (slug === 'digital-business-cards' && !dbcLoaded) loadDigitalBusinessCards().catch((e) => console.error(e));
+    if (slug === 'link-in-bio'          && !libLoaded)  loadLinkInBio().catch((e) => console.error(e));
+    if (slug === 'certificate-generator' && !certLoaded) loadCertificates().catch((e) => console.error(e));
+    if (slug === 'barcode-generator'    && !bcLoaded)   loadBarcodes().catch((e) => console.error(e));
+    if (slug === 'color-palette-generator' && !cpLoaded) loadColorPalettes().catch((e) => console.error(e));
     // Batch 5
-    if (slug === 'quiz-builder'         && !qbLoaded)   loadQuizBuilder().catch(() => {});
-    if (slug === 'popup-builder'        && !pbLoaded)   loadPopupBuilder().catch(() => {});
-    if (slug === 'ai-writer'            && aiDocLoadedType !== 'writer') loadAiDocuments('writer').catch(() => {});
-    if (slug === 'ai-email-assistant'   && aiDocLoadedType !== 'email') loadAiDocuments('email').catch(() => {});
-    if (slug === 'ai-proposal-generator' && aiDocLoadedType !== 'proposal') loadAiDocuments('proposal').catch(() => {});
-    if (slug === 'ai-blog-generator'    && aiDocLoadedType !== 'blog') loadAiDocuments('blog').catch(() => {});
-    if (slug === 'ai-chatbot-builder'   && !cbLoaded)   loadChatbotBuilder().catch(() => {});
-    if (slug === 'ai-meeting-notes'     && !mnLoaded)   loadMeetingNotes().catch(() => {});
-    if (slug === 'ai-knowledge-base'    && !aiKbLoaded)  loadAiKnowledgeBase().catch(() => {});
-    if (slug === 'ai-customer-support'  && !csLoaded)   loadAiCustomerSupport().catch(() => {});
-    if (slug === 'ai-translator'        && !trLoaded)   loadAiTranslator().catch(() => {});
+    if (slug === 'quiz-builder'         && !qbLoaded)   loadQuizBuilder().catch((e) => console.error(e));
+    if (slug === 'popup-builder'        && !pbLoaded)   loadPopupBuilder().catch((e) => console.error(e));
+    if (slug === 'ai-writer'            && aiDocLoadedType !== 'writer') loadAiDocuments('writer').catch((e) => console.error(e));
+    if (slug === 'ai-email-assistant'   && aiDocLoadedType !== 'email') loadAiDocuments('email').catch((e) => console.error(e));
+    if (slug === 'ai-proposal-generator' && aiDocLoadedType !== 'proposal') loadAiDocuments('proposal').catch((e) => console.error(e));
+    if (slug === 'ai-blog-generator'    && aiDocLoadedType !== 'blog') loadAiDocuments('blog').catch((e) => console.error(e));
+    if (slug === 'ai-chatbot-builder'   && !cbLoaded)   loadChatbotBuilder().catch((e) => console.error(e));
+    if (slug === 'ai-meeting-notes'     && !mnLoaded)   loadMeetingNotes().catch((e) => console.error(e));
+    if (slug === 'ai-knowledge-base'    && !aiKbLoaded)  loadAiKnowledgeBase().catch((e) => console.error(e));
+    if (slug === 'ai-customer-support'  && !csLoaded)   loadAiCustomerSupport().catch((e) => console.error(e));
+    if (slug === 'ai-translator'        && !trLoaded)   loadAiTranslator().catch((e) => console.error(e));
     // Batch 6
-    if (slug === 'rank-tracking'        && !rankLoaded) loadRankKeywords().catch(() => {});
-    if (slug === 'seo-audit'            && !auditLoaded) loadAudits().catch(() => {});
-    if (slug === 'backlink-monitoring'  && !blLoaded)   loadBlDomains().catch(() => {});
+    if (slug === 'rank-tracking'        && !rankLoaded) loadRankKeywords().catch((e) => console.error(e));
+    if (slug === 'seo-audit'            && !auditLoaded) loadAudits().catch((e) => console.error(e));
+    if (slug === 'backlink-monitoring'  && !blLoaded)   loadBlDomains().catch((e) => console.error(e));
     // Batch 7
-    if (slug === 'cloud-storage'        && !stLoaded)   loadStorage('cloud').catch(() => {});
-    if (slug === 'file-manager'         && !fmLoaded)   loadStorage('fm').catch(() => {});
-    if (slug === 'workflow-automation'  && !wfLoaded)   loadWorkflows().catch(() => {});
-    if (slug === 'marketplace'          && !mpLoaded)   loadMarketplace().catch(() => {});
+    if (slug === 'cloud-storage'        && !stLoaded)   loadStorage('cloud').catch((e) => console.error(e));
+    if (slug === 'file-manager'         && !fmLoaded)   loadStorage('fm').catch((e) => console.error(e));
+    if (slug === 'workflow-automation'  && !wfLoaded)   loadWorkflows().catch((e) => console.error(e));
+    if (slug === 'marketplace'          && !mpLoaded)   loadMarketplace().catch((e) => console.error(e));
     // Batch 8
-    if (slug === 'certificates'         && !c8CertLoaded) loadCertificatesModule().catch(() => {});
-    if (slug === 'learning-management-system' && !lmsLoaded) loadLms().catch(() => {});
-    if (['school-management','student-portal','teacher-portal','parent-portal'].includes(slug) && !schoolLoaded) loadSchool().catch(() => {});
-    if (slug === 'assignments'          && !asgLoaded)   loadAssignments().catch(() => {});
-    if (slug === 'cbt-platform'         && !cbtLoaded)   loadCbt().catch(() => {});
-    if (slug === 'online-store-builder' && !storeLoaded) loadStoreBuilder().catch(() => {});
+    if (slug === 'certificates'         && !c8CertLoaded) loadCertificatesModule().catch((e) => console.error(e));
+    if (slug === 'learning-management-system' && !lmsLoaded) loadLms().catch((e) => console.error(e));
+    if (['school-management','student-portal','teacher-portal','parent-portal'].includes(slug) && !schoolLoaded) loadSchool().catch((e) => console.error(e));
+    if (slug === 'assignments'          && !asgLoaded)   loadAssignments().catch((e) => console.error(e));
+    if (slug === 'cbt-platform'         && !cbtLoaded)   loadCbt().catch((e) => console.error(e));
+    if (slug === 'online-store-builder' && !storeLoaded) loadStoreBuilder().catch((e) => console.error(e));
   }
 
   async function loadCertificatesModule() {
@@ -11020,7 +11088,7 @@ export default function AppShell() {
                   activeKey={expTab}
                   onChange={(t) => {
                     setExpTab(t);
-                    if (t === 'summary') apiFetch(`/api/v1/expenses/summary?year=${summaryYear}`).then((r) => setMonthlySummary(r.months || [])).catch(() => {});
+                    if (t === 'summary') apiFetch(`/api/v1/expenses/summary?year=${summaryYear}`).then((r) => setMonthlySummary(r.months || [])).catch((e) => console.error(e));
                   }}
                 />
               </div>
@@ -11180,7 +11248,7 @@ export default function AppShell() {
                     <label style={{ fontSize: '0.82rem', fontWeight: 600 }}>Year:</label>
                     <select className="form-input" style={{ width: 'auto' }} value={summaryYear} onChange={(e) => {
                       setSummaryYear(Number(e.target.value));
-                      apiFetch(`/api/v1/expenses/summary?year=${e.target.value}`).then((r) => setMonthlySummary(r.months || [])).catch(() => {});
+                      apiFetch(`/api/v1/expenses/summary?year=${e.target.value}`).then((r) => setMonthlySummary(r.months || [])).catch((e) => console.error(e));
                     }}>
                       {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
                     </select>
@@ -20484,7 +20552,7 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
           <div className="module-head">
             <button className="back-link" onClick={() => { if (wfTab!=='list') { setWfTab('list'); setWfEditing(null); } else setView('home'); }}>← {wfTab!=='list' ? 'Back to Workflows' : 'Back'}</button>
             <h2>Workflow Automation</h2>
-            {wfTab==='list' && <button className="btn-primary" style={{ marginLeft:'auto', fontSize:'0.85rem' }} onClick={() => { setWfDraft({ name:'',description:'',triggerType:'manual',triggerConfig:{},steps:[],isActive:true }); setWfEditing(null); setWfTab('edit'); if (!crmLoaded) loadCrm().catch(() => {}); }}>+ New Workflow</button>}
+            {wfTab==='list' && <button className="btn-primary" style={{ marginLeft:'auto', fontSize:'0.85rem' }} onClick={() => { setWfDraft({ name:'',description:'',triggerType:'manual',triggerConfig:{},steps:[],isActive:true }); setWfEditing(null); setWfTab('edit'); if (!crmLoaded) loadCrm().catch((e) => console.error(e)); }}>+ New Workflow</button>}
           </div>
 
           {wfTab === 'list' && (
@@ -20494,7 +20562,7 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
                 <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>⚙</div>
                 <div style={{ fontWeight:600, marginBottom:'0.25rem' }}>No workflows yet</div>
                 <div style={{ fontSize:'0.88rem', marginBottom:'1.25rem' }}>Automate repetitive tasks by chaining triggers and actions into a workflow.</div>
-                <button className="btn-primary" onClick={() => { setWfDraft({ name:'',description:'',triggerType:'manual',triggerConfig:{},steps:[],isActive:true }); setWfEditing(null); setWfTab('edit'); if (!crmLoaded) loadCrm().catch(() => {}); }}>Create your first workflow</button>
+                <button className="btn-primary" onClick={() => { setWfDraft({ name:'',description:'',triggerType:'manual',triggerConfig:{},steps:[],isActive:true }); setWfEditing(null); setWfTab('edit'); if (!crmLoaded) loadCrm().catch((e) => console.error(e)); }}>Create your first workflow</button>
               </div>
             ) : (
               <div className="table-wrap">
@@ -20511,7 +20579,7 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
                         <td style={{ fontSize:'0.78rem', color:'var(--muted)' }}>{wf.last_run_at ? new Date(wf.last_run_at).toLocaleString() : 'Never'}</td>
                         <td>
                           <div style={{ display:'flex', gap:'0.4rem' }}>
-                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { setWfEditing(wf); setWfDraft({ name:wf.name, description:wf.description||'', triggerType:wf.trigger_type, triggerConfig:wf.trigger_config||{}, steps:Array.isArray(wf.steps)?wf.steps:[], isActive:wf.is_active }); setWfTab('edit'); if (!crmLoaded) loadCrm().catch(() => {}); }}>Edit</button>
+                            <button className="btn-ghost" style={{ fontSize:'0.75rem' }} onClick={() => { setWfEditing(wf); setWfDraft({ name:wf.name, description:wf.description||'', triggerType:wf.trigger_type, triggerConfig:wf.trigger_config||{}, steps:Array.isArray(wf.steps)?wf.steps:[], isActive:wf.is_active }); setWfTab('edit'); if (!crmLoaded) loadCrm().catch((e) => console.error(e)); }}>Edit</button>
                             <button className="btn-ghost" style={{ fontSize:'0.75rem' }} disabled={wfRunning===wf.id} onClick={async () => {
                               setWfRunning(wf.id); setWfRunLog([]);
                               const d = await apiFetch(`/api/v1/workflows/${wf.id}/run`, { method:'POST' });

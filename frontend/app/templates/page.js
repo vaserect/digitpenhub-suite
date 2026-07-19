@@ -25,15 +25,15 @@ export default function TemplatesLibrary() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/site-templates`, {
+      const response = await fetch(`/api/v1/builder/templates`, {
         credentials: 'include',
       });
       
       if (!response.ok) throw new Error('Failed to fetch templates');
       
       const data = await response.json();
-      setTemplates(data.data || []);
-      setFilteredTemplates(data.data || []);
+      setTemplates(data.templates || []);
+      setFilteredTemplates(data.templates || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
     } finally {

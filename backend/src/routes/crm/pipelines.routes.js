@@ -4,8 +4,9 @@
 
 const express = require('express');
 const router = express.Router();
-const PipelineController = require('../../controllers/crm/PipelineController');
-const auth = require('../../middleware/auth');
+const PipelineControllerClass = require('../../controllers/crm/PipelineController');
+const PipelineController = new PipelineControllerClass();
+const { requireAuth: auth } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { checkPermission } = require('../../middleware/rbac');
 

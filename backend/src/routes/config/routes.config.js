@@ -64,15 +64,18 @@ const ROUTES_CONFIG = [
   authRoute('/api/v1/billing', 'billing', 'Billing and subscriptions'),
   authRoute('/api/v1/admin', 'admin', 'Admin panel'),
   authRoute('/api/v1/notifications', 'notifications', 'Notifications'),
+  authRoute('/api/v1/push-notifications', 'pushNotification', 'Push Notification Marketing'),
   authRoute('/api/v1/white-label', 'whiteLabel', 'White label settings'),
   authRoute('/api/v1/content', 'content', 'Content management'),
   
   // ============================================================================
   // CRM MODULE
   // ============================================================================
+  moduleRoute('/api/v1/crm/companies', 'crm/companies.routes', 'crm', 'CRM Companies API'),
+  moduleRoute('/api/v1/crm/deals', 'crm/deals.routes', 'crm', 'CRM Deals API'),
+  moduleRoute('/api/v1/crm/pipelines', 'crm/pipelines.routes', 'crm', 'CRM Pipelines API'),
   publicRoute('/api/v1/crm', 'crm', 'CRM endpoints (mixed auth)'),
   authRoute('/api/v1/crm', 'crmUpgrades', 'CRM upgrade features'),
-  authRoute('/api/v1/crm/email', 'crm/email', 'CRM email integration'),
   authRoute('/api/v1/custom-fields', 'customFields', 'Custom fields management'),
   
   // ============================================================================
@@ -96,18 +99,33 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/email', 'email', 'Email marketing (mixed auth)'),
   authRoute('/api/v1/email', 'emailUpgrades', 'Email upgrade features'),
-  authRoute('/api/v1/leads', 'leads', 'Lead management'),
+  authRoute('/api/v1/email/segments', 'emailSegments', 'Email segmentation'),
+  authRoute('/api/v1/email/automations', 'emailAutomations', 'Email automation workflows'),
+  publicRoute('/api/v1/leads', 'leads', 'Lead management'),
   moduleRoute('/api/v1/automation', 'automation', 'marketing-automation', 'Marketing automation'),
+  authRoute('/api/v1/automation/analytics', 'automationAnalytics', 'Automation analytics', [requireModuleAccess('marketing-automation')]),
   moduleRoute('/api/v1/sms', 'sms', 'sms-marketing', 'SMS marketing'),
+  authRoute('/api/v1/sms/segments', 'smsSegments', 'SMS segmentation', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/automations', 'smsAutomations', 'SMS automation workflows', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/conversations', 'smsConversations', 'SMS conversations', [requireModuleAccess('sms-marketing')]),
+  authRoute('/api/v1/sms/keywords', 'smsKeywords', 'SMS keywords', [requireModuleAccess('sms-marketing')]),
   moduleRoute('/api/v1/whatsapp', 'whatsapp', 'whatsapp-marketing', 'WhatsApp marketing'),
+  authRoute('/api/v1/whatsapp/segments', 'whatsappSegments', 'WhatsApp segmentation', [requireModuleAccess('whatsapp-marketing')]),
+  authRoute('/api/v1/whatsapp/automations', 'whatsappAutomations', 'WhatsApp automation workflows', [requireModuleAccess('whatsapp-marketing')]),
+  authRoute('/api/v1/whatsapp/conversations', 'whatsappConversations', 'WhatsApp conversations', [requireModuleAccess('whatsapp-marketing')]),
   moduleRoute('/api/v1/social-media', 'socialMedia', 'social-media-scheduler', 'Social Media Scheduler'),
   
   // ============================================================================
   // WEBSITE BUILDER ECOSYSTEM
   // ============================================================================
-  publicRoute('/api/v1/pages', 'pages', 'Website pages (mixed auth)'),
+  // Funnels MUST come before pages to avoid route conflicts (pages has /:id catch-all)
   moduleRoute('/api/v1/funnels', 'funnels', 'funnel-builder', 'Funnel builder'),
   moduleRoute('/api/v1/funnel-templates', 'funnelTemplates', 'funnel-builder', 'Funnel templates'),
+  publicRoute('/api/v1/pages', 'pages', 'Website pages (mixed auth)'),
+  publicRoute('/api/v1/landing-pages', 'landingPages', 'Landing page builder (mixed auth)'),
+  authRoute('/api/v1/cms', 'cms', 'CMS Collections'),
+  authRoute('/api/v1/interactions', 'interactions', 'Website Builder Interactions & Animations'),
+  authRoute('/api/v1/responsive', 'responsive', 'Responsive Breakpoints System'),
   publicRoute('/api/v1/builder/themes', 'builder-themes', 'Builder themes'),
   publicRoute('/api/v1/builder/components', 'builder-components', 'Builder components'),
   publicRoute('/api/v1/builder/sections', 'builder-sections', 'Builder sections'),
@@ -115,6 +133,7 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/builder/sites', 'builder-sites', 'Builder sites'),
   publicRoute('/api/v1/builder/assets', 'builder-assets', 'Builder assets'),
   publicRoute('/api/v1/pexels', 'pexels.routes', 'Pexels integration'),
+  authRoute('/api/v1/builder/components', 'componentsController', 'Component Variants System'),
   publicRoute('/api/v1/components', 'components', 'Component library'),
   publicRoute('/api/v1/sections', 'sections', 'Section library'),
   
@@ -158,6 +177,8 @@ const ROUTES_CONFIG = [
   // ============================================================================
   authRoute('/api/v1/appointments', 'appointments', 'Appointment scheduling'),
   moduleRoute('/api/v1/calendar', 'calendar', 'calendar', 'Calendar'),
+  authRoute('/api/v1/content-calendar', 'contentCalendar', 'Content Calendar'),
+  authRoute('/api/v1/influencer-crm', 'influencerCRM', 'Influencer CRM'),
   moduleRoute('/api/v1/notes', 'notes', 'notes', 'Notes'),
   publicRoute('/api/v1/forms', 'forms', 'Form builder (mixed auth)'),
   authRoute('/api/v1/form-templates', 'formTemplates', 'Form templates'),
@@ -188,10 +209,15 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/qr-codes', 'qrCodes', 'QR code generator (mixed auth)'),
   publicRoute('/api/v1/barcodes', 'barcodes', 'Barcode generator (mixed auth)'),
   publicRoute('/api/v1/biz-cards', 'digitalBusinessCards', 'Digital business cards (mixed auth)'),
-  moduleRoute('/api/v1/link-in-bio', 'linkInBio', 'link-in-bio', 'Link in bio'),
+  publicRoute('/api/v1/link-in-bio', 'linkInBio', 'Link in bio (mixed auth)'),
+  publicRoute('/api/v1/reviews', 'reviews', 'Review management (mixed auth)'),
   moduleRoute('/api/v1/certificates', 'certificates', 'certificate-generator', 'Certificate generator'),
   moduleRoute('/api/v1/color-palettes', 'colorPalettes', 'color-palette-generator', 'Color palette generator'),
+  moduleRoute('/api/v1/ad-campaigns', 'adCampaign', 'ad-campaign-manager', 'Ad Campaign Manager'),
   
+  moduleRoute('/api/v1/events', 'events', 'event-hosting', 'Event / Webinar Hosting'),
+  moduleRoute('/api/v1/sales-playbook', 'salesPlaybook', 'sales-playbook', 'Sales Playbook / Battlecard Library'),
+  moduleRoute('/api/v1/ambassador', 'ambassador.routes', 'ambassador-program', 'Ambassador Program'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================
@@ -246,6 +272,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/customer-subs', 'subscriptions', 'subscriptions', 'Customer subscriptions'),
   moduleRoute('/api/v1/affiliates', 'affiliates', 'affiliate-system', 'Affiliate system'),
   moduleRoute('/api/v1/referrals', 'referrals', 'referral-program', 'Referral program'),
+  moduleRoute('/api/v1/lead-scoring', 'leadScoring', 'lead-scoring', 'Lead scoring system'),
   
   // ============================================================================
   // ADVANCED FEATURES
@@ -277,7 +304,7 @@ const ROUTES_CONFIG = [
   // REMAINING MODULES
   // ============================================================================
   authRoute('/api/v1/support', 'remainingYellow', 'Support features'),
-  authRoute('/api/v1/community', 'greenModules', 'Community features'),
+  authRoute('/api/v1/community', 'community', 'Community/Membership Platform'),
   
   // ============================================================================
   // SUPER ADMIN

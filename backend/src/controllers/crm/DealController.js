@@ -11,8 +11,8 @@ const { ValidationError, NotFoundError } = require('../../utils/errors');
  * Handles HTTP requests for deal management
  */
 class DealController {
-  constructor() {
-    this.dealService = new DealService();
+  constructor(dealService) {
+    this.dealService = dealService || new DealService();
   }
 
   /**
@@ -269,5 +269,4 @@ class DealController {
   }
 }
 
-// Export singleton instance
-module.exports = new DealController();
+module.exports = DealController;

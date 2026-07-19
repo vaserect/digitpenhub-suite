@@ -3,6 +3,7 @@
 // Date: 2026-07-16
 
 const BaseRepository = require('../base/BaseRepository');
+const db = require('../../db');
 const logger = require('../../utils/logger');
 
 /**
@@ -11,7 +12,7 @@ const logger = require('../../utils/logger');
  */
 class CompanyRepository extends BaseRepository {
   constructor() {
-    super('crm_companies');
+    super(db, 'crm_companies');
   }
 
   /**
@@ -75,7 +76,7 @@ class CompanyRepository extends BaseRepository {
     const query = `
       SELECT 
         c.*,
-        u.first_name || ' ' || u.last_name AS owner_name,
+        u.full_name AS owner_name,
         (SELECT COUNT(*) FROM contacts WHERE company_id = c.id AND deleted_at IS NULL) AS contact_count,
         (SELECT COUNT(*) FROM crm_deals WHERE company_id = c.id AND deleted_at IS NULL) AS deal_count,
         (SELECT SUM(amount) FROM crm_deals WHERE company_id = c.id AND status = 'won') AS total_revenue,
@@ -167,7 +168,7 @@ class CompanyRepository extends BaseRepository {
     const dataQuery = `
       SELECT 
         c.*,
-        u.first_name || ' ' || u.last_name AS owner_name,
+        u.full_name AS owner_name,
         (SELECT COUNT(*) FROM contacts WHERE company_id = c.id AND deleted_at IS NULL) AS contact_count,
         (SELECT COUNT(*) FROM crm_deals WHERE company_id = c.id AND deleted_at IS NULL) AS deal_count
       FROM crm_companies c

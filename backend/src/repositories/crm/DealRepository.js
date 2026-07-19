@@ -3,6 +3,7 @@
 // Date: 2026-07-16
 
 const BaseRepository = require('../base/BaseRepository');
+const db = require('../../db');
 const logger = require('../../utils/logger');
 
 /**
@@ -11,7 +12,7 @@ const logger = require('../../utils/logger');
  */
 class DealRepository extends BaseRepository {
   constructor() {
-    super('crm_deals');
+    super(db, 'crm_deals');
   }
 
   /**
@@ -72,21 +73,21 @@ class DealRepository extends BaseRepository {
     const query = `
       SELECT 
         d.*,
-        c.first_name || ' ' || c.last_name AS contact_name,
+        c.full_name AS contact_name,
         c.email AS contact_email,
         comp.name AS company_name,
         p.name AS pipeline_name,
         s.name AS stage_name,
         s.probability AS stage_probability,
         s.color AS stage_color,
-        u.first_name || ' ' || u.last_name AS owner_name,
+        u.full_name AS owner_name,
         (SELECT COUNT(*) FROM crm_deal_products WHERE deal_id = d.id) AS product_count,
         (SELECT SUM(total_price) FROM crm_deal_products WHERE deal_id = d.id) AS products_total
       FROM crm_deals d
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN crm_companies comp ON d.company_id = comp.id
       LEFT JOIN crm_pipelines p ON d.pipeline_id = p.id
-      LEFT JOIN crm_pipeline_stages s ON d.stage_id = s.id
+      LEFT JOIN crm_stages s ON d.stage_id = s.id
       LEFT JOIN users u ON d.owner_id = u.id
       WHERE d.id = $1 AND d.org_id = $2 AND d.deleted_at IS NULL
     `;
@@ -178,17 +179,17 @@ class DealRepository extends BaseRepository {
     const dataQuery = `
       SELECT 
         d.*,
-        c.first_name || ' ' || c.last_name AS contact_name,
+        c.full_name AS contact_name,
         comp.name AS company_name,
         p.name AS pipeline_name,
         s.name AS stage_name,
         s.color AS stage_color,
-        u.first_name || ' ' || u.last_name AS owner_name
+        u.full_name AS owner_name
       FROM crm_deals d
       LEFT JOIN contacts c ON d.contact_id = c.id
       LEFT JOIN crm_companies comp ON d.company_id = comp.id
       LEFT JOIN crm_pipelines p ON d.pipeline_id = p.id
-      LEFT JOIN crm_pipeline_stages s ON d.stage_id = s.id
+      LEFT JOIN crm_stages s ON d.stage_id = s.id
       LEFT JOIN users u ON d.owner_id = u.id
       WHERE ${whereClause}
       ORDER BY d.${sortBy} ${sortOrder}

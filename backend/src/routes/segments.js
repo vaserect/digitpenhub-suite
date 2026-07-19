@@ -1,41 +1,36 @@
-const { bulkDeleteHandler } = require('../utils/bulkDelete');
-const { sendCsv, autoColumns } = require('../utils/csv');
-const db = require('../db');
-const { Router } = require('express');
-const { requireAuth } = require('../middleware/auth');
-const asyncHandler = require('../utils/asyncHandler');
+const express = require('express');
+const router = express.Router();
+const segmentationController = require('../controllers/segmentationController');
 
-const router = Router();
-router.use(requireAuth);
+// ==================== SEGMENTS ====================
+router.post('/', segmentationController.createSegment);
+router.get('/', segmentationController.getSegments);
+router.get('/:id', segmentationController.getSegment);
+router.put('/:id', segmentationController.updateSegment);
+router.delete('/:id', segmentationController.deleteSegment);
 
-router.get('/', asyncHandler(async (req, res) => {
-  const { rows } = await db.query(
-    `SELECT * FROM segments WHERE org_id = $1 ORDER BY name`, [req.user.orgId]
-  );
-  res.json({ segments: rows });
-}));
+// ==================== CALCULATION ====================
+router.post('/:id/calculate', segmentationController.calculateSegment);
+router.post('/preview', segmentationController.previewSegment);
 
-router.post('/', asyncHandler(async (req, res) => {
-  const { name, description, criteria } = req.body || {};
-  if (!name?.trim()) return res.status(400).json({ error: 'name is required.' });
-  const { rows } = await db.query(
-    `INSERT INTO segments (org_id, name, description, criteria_json)
-     VALUES ($1, $2, $3, $4) RETURNING *`,
-    [req.user.orgId, name.trim(), description || null, JSON.stringify(criteria || {})]
-  );
-  res.status(201).json({ segment: rows[0] });
-}));
+// ==================== MEMBERS ====================
+router.get('/:id/members', segmentationController.getSegmentMembers);
 
-router.delete('/:id', asyncHandler(async (req, res) => {
-  const { rowCount } = await db.query(
-    `DELETE FROM segments WHERE id = $1 AND org_id = $2`, [req.params.id, req.user.orgId]
-  );
-  if (!rowCount) return res.status(404).json({ error: 'Not found.' });
-  res.json({ ok: true });
-}));
+// ==================== ANALYTICS ====================
+router.get('/:id/analytics', segmentationController.getSegmentAnalytics);
+router.get('/:id/growth-trend', segmentationController.getSegmentGrowthTrend);
 
-router.post("/bulk-delete", bulkDeleteHandler("segments"));
-router.get("/export", async (req, res) => { const { rows } = await db.query("SELECT * FROM segments WHERE org_id = $1", [req.user.orgId]); sendCsv(res, "segments.csv", rows, autoColumns(rows)); });
-router.get("/stats", async (req, res) => { const { rows } = await db.query("SELECT count(*)::int AS total FROM segments WHERE org_id = $1", [req.user.orgId]); res.json({ stats: rows[0] }); });
+// ==================== TEMPLATES ====================
+router.get('/templates/list', segmentationController.getTemplates);
+router.post('/templates/create-from', segmentationController.createFromTemplate);
+
+// ==================== ADVANCED FEATURES ====================
+router.get('/:id/overlap', segmentationController.getSegmentOverlap);
+router.post('/:id/lookalike', segmentationController.createLookalikeSegment);
+router.post('/compare', segmentationController.compareSegments);
+
+// ==================== BULK OPERATIONS ====================
+router.post('/bulk-delete', segmentationController.bulkDelete);
+router.get('/:id/export', segmentationController.exportSegment);
 
 module.exports = router;

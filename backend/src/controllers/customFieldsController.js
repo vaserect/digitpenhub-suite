@@ -9,6 +9,7 @@ const { validateAdvancedRules } = require('../utils/validationEngine');
 const { validateFieldValues } = require('../utils/customFieldValidator');
 const { filterFieldsByDependencies } = require('../utils/fieldDependencyEvaluator');
 const { trackFieldValueSet, trackFieldValueRead } = require('../utils/fieldUsageTracker');
+const { logFieldCreation, logFieldUpdate, logFieldDeletion } = require('../utils/fieldHistoryTracker');
 
 
 // ============================================================================
@@ -170,6 +171,8 @@ async function createDefinition(req, res) {
       ]
     );
     res.status(201).json({ field: rows[0] });
+    // Log field creation
+    logFieldCreation(req.user.orgId, recordType, rows[0].id, key, rows[0], req.user.id).catch(() => {});
   } catch (err) {
     if (err.code === '23505') {
       return res.status(409).json({ error: `A field with key "${key}" already exists for ${recordType}.` });
@@ -198,6 +201,15 @@ async function updateDefinition(req, res) {
     maxValue,
     formatPattern,
   } = req.body || {};
+
+  // Fetch old field data for history tracking
+  const { rows: oldRows } = await db.query(
+    `SELECT * FROM custom_field_definitions WHERE id = $1 AND org_id = $2 AND record_type = $3`,
+    [id, req.user.orgId, recordType]
+  );
+  
+  if (!oldRows.length) return res.status(404).json({ error: 'Field not found.' });
+  const oldField = oldRows[0];
 
   const { rows } = await db.query(
     `UPDATE custom_field_definitions
@@ -236,12 +248,26 @@ async function updateDefinition(req, res) {
       recordType,
     ]
   );
+  
   if (!rows.length) return res.status(404).json({ error: 'Field not found.' });
+  
+  // Log field update
+  logFieldUpdate(req.user.orgId, recordType, id, oldField.key, oldField, rows[0], req.user.id).catch(() => {});
+  
   res.json({ field: rows[0] });
 }
-
 async function deleteDefinition(req, res) {
   const { recordType, id } = req.params;
+  
+  // Fetch field data before deletion for history tracking
+  const { rows: fieldRows } = await db.query(
+    `SELECT * FROM custom_field_definitions WHERE id = $1 AND org_id = $2 AND record_type = $3`,
+    [id, req.user.orgId, recordType]
+  );
+  
+  if (!fieldRows.length) return res.status(404).json({ error: 'Field not found.' });
+  const fieldData = fieldRows[0];
+  
   const { rows } = await db.query(
     `UPDATE custom_field_definitions
      SET is_active = false, updated_at = NOW()
@@ -249,7 +275,12 @@ async function deleteDefinition(req, res) {
      RETURNING id`,
     [id, req.user.orgId, recordType]
   );
+  
   if (!rows.length) return res.status(404).json({ error: 'Field not found.' });
+  
+  // Log field deletion
+  logFieldDeletion(req.user.orgId, recordType, id, fieldData.key, fieldData, req.user.id).catch(() => {});
+  
   res.status(204).end();
 }
 

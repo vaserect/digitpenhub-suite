@@ -107,3 +107,28 @@ router.get('/usage/trend/:recordType/:fieldKey', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Field History routes
+const historyTracker = require('../utils/fieldHistoryTracker');
+
+router.get('/history/:recordType/:fieldKey', async (req, res) => {
+  try {
+    const { recordType, fieldKey } = req.params;
+    const { limit = 50 } = req.query;
+    const history = await historyTracker.getFieldHistory(req.user.orgId, recordType, fieldKey, parseInt(limit));
+    res.json({ history });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/history/:recordType', async (req, res) => {
+  try {
+    const { recordType } = req.params;
+    const { limit = 100 } = req.query;
+    const history = await historyTracker.getAllFieldHistory(req.user.orgId, recordType, parseInt(limit));
+    res.json({ history });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

@@ -1038,4 +1038,112 @@ module.exports = {
   addValidationRule,
   removeValidationRule,
   reorderFields,
+  bulkOperations,
 };
+
+/**
+ * Bulk operations on field definitions
+ */
+async function bulkOperations(req, res) {
+  const { recordType } = req.params;
+  const { operation, field_ids, updates } = req.body;
+
+  if (!operation || !Array.isArray(field_ids) || field_ids.length === 0) {
+    return res.status(400).json({ error: 'operation and field_ids array are required' });
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    let affectedCount = 0;
+
+    switch (operation) {
+      case 'delete':
+        // Soft delete multiple fields
+        const { rowCount: deleteCount } = await client.query(
+          `UPDATE custom_field_definitions 
+           SET is_active = false, updated_at = NOW()
+           WHERE id = ANY($1) AND org_id = $2 AND record_type = $3`,
+          [field_ids, req.user.orgId, recordType]
+        );
+        affectedCount = deleteCount;
+        break;
+
+      case 'activate':
+        const { rowCount: activateCount } = await client.query(
+          `UPDATE custom_field_definitions 
+           SET is_active = true, updated_at = NOW()
+           WHERE id = ANY($1) AND org_id = $2 AND record_type = $3`,
+          [field_ids, req.user.orgId, recordType]
+        );
+        affectedCount = activateCount;
+        break;
+
+      case 'deactivate':
+        const { rowCount: deactivateCount } = await client.query(
+          `UPDATE custom_field_definitions 
+           SET is_active = false, updated_at = NOW()
+           WHERE id = ANY($1) AND org_id = $2 AND record_type = $3`,
+          [field_ids, req.user.orgId, recordType]
+        );
+        affectedCount = deactivateCount;
+        break;
+
+      case 'update':
+        // Bulk update specific properties
+        if (!updates || typeof updates !== 'object') {
+          throw new Error('updates object is required for update operation');
+        }
+
+        const updateFields = [];
+        const updateValues = [];
+        let paramIndex = 1;
+
+        if (updates.required !== undefined) {
+          updateFields.push(`required = $${paramIndex++}`);
+          updateValues.push(updates.required);
+        }
+        if (updates.sort_order !== undefined) {
+          updateFields.push(`sort_order = $${paramIndex++}`);
+          updateValues.push(updates.sort_order);
+        }
+        if (updates.security !== undefined) {
+          updateFields.push(`security = $${paramIndex++}`);
+          updateValues.push(JSON.stringify(updates.security));
+        }
+
+        if (updateFields.length === 0) {
+          throw new Error('No valid update fields provided');
+        }
+
+        updateFields.push(`updated_at = NOW()`);
+        updateValues.push(field_ids, req.user.orgId, recordType);
+
+        const { rowCount: updateCount } = await client.query(
+          `UPDATE custom_field_definitions 
+           SET ${updateFields.join(', ')}
+           WHERE id = ANY($${paramIndex}) AND org_id = $${paramIndex + 1} AND record_type = $${paramIndex + 2}`,
+          updateValues
+        );
+        affectedCount = updateCount;
+        break;
+
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
+
+    await client.query('COMMIT');
+    res.json({ 
+      success: true, 
+      operation,
+      affected: affectedCount 
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Bulk operation error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+}

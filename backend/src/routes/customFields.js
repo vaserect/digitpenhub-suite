@@ -44,6 +44,7 @@ router.get('/:recordType/export', exportRecordsCsv);
 router.get('/analytics/overall', controller.getOverallStats);
 router.get('/analytics/:recordType', controller.getFieldAnalytics);
 router.post('/:recordType/reorder', controller.reorderFields);
+router.post('/:recordType/bulk', controller.bulkOperations);
 
 // Validation rule routes
 router.get('/validation-templates', controller.listValidationTemplates);

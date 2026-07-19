@@ -43,12 +43,16 @@ export default function GlobalSearch({ goHome }) {
   const [loading, setLoading] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [popularSearches, setPopularSearches] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
   const searchInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const resultRefs = useRef([]);
+  const suggestionsRef = useRef(null);
 
-  // Load recent searches from localStorage
+  // Load recent searches and popular searches from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('recentSearches');
     if (stored) {
@@ -58,17 +62,56 @@ export default function GlobalSearch({ goHome }) {
         console.error('Failed to parse recent searches', e);
       }
     }
+
+    const popularStored = localStorage.getItem('popularSearches');
+    if (popularStored) {
+      try {
+        const popular = JSON.parse(popularStored);
+        // Sort by count descending and take top 10
+        const sorted = popular.sort((a, b) => b.count - a.count).slice(0, 10);
+        setPopularSearches(sorted);
+      } catch (e) {
+        console.error('Failed to parse popular searches', e);
+      }
+    }
   }, []);
 
-  // Save recent searches to localStorage
+  // Save recent searches and track popular searches
   const saveRecentSearch = useCallback((searchQuery) => {
     if (!searchQuery.trim()) return;
     
+    // Update recent searches
     setRecentSearches((prev) => {
       const updated = [searchQuery, ...prev.filter(q => q !== searchQuery)].slice(0, 10);
       localStorage.setItem('recentSearches', JSON.stringify(updated));
       return updated;
     });
+
+    // Update popular searches count
+    const popularStored = localStorage.getItem('popularSearches');
+    let popular = [];
+    try {
+      popular = popularStored ? JSON.parse(popularStored) : [];
+    } catch (e) {
+      popular = [];
+    }
+
+    const existing = popular.find(p => p.query === searchQuery);
+    if (existing) {
+      existing.count++;
+      existing.lastUsed = new Date().toISOString();
+    } else {
+      popular.push({
+        query: searchQuery,
+        count: 1,
+        lastUsed: new Date().toISOString(),
+      });
+    }
+
+    // Sort by count and keep top 50 (display top 10)
+    const sorted = popular.sort((a, b) => b.count - a.count).slice(0, 50);
+    localStorage.setItem('popularSearches', JSON.stringify(sorted));
+    setPopularSearches(sorted.slice(0, 10));
   }, []);
 
   // Perform search
@@ -130,6 +173,45 @@ export default function GlobalSearch({ goHome }) {
     searchInputRef.current?.focus();
   }, []);
 
+  // Generate suggestions from recent and popular searches
+  const suggestions = useMemo(() => {
+    if (!query.trim() || query.length < 2) return [];
+    
+    const queryLower = query.toLowerCase();
+    const matches = new Set();
+    
+    // Add matching recent searches
+    recentSearches.forEach(search => {
+      if (search.toLowerCase().includes(queryLower)) {
+        matches.add(search);
+      }
+    });
+    
+    // Add matching popular searches
+    popularSearches.forEach(item => {
+      if (item.query.toLowerCase().includes(queryLower)) {
+        matches.add(item.query);
+      }
+    });
+    
+    // Convert to array and limit to 5 suggestions
+    return Array.from(matches).slice(0, 5);
+  }, [query, recentSearches, popularSearches]);
+
+  // Show/hide suggestions based on query and focus
+  useEffect(() => {
+    setShowSuggestions(suggestions.length > 0 && query.length >= 2);
+    setSuggestionIndex(-1);
+  }, [suggestions, query]);
+
+  // Handle suggestion selection
+  const selectSuggestion = useCallback((suggestion) => {
+    setQuery(suggestion);
+    setShowSuggestions(false);
+    setSuggestionIndex(-1);
+    searchInputRef.current?.focus();
+  }, []);
+
   // Flatten results into array for keyboard navigation
   const flatResults = useMemo(() => {
     const flat = [];
@@ -150,6 +232,32 @@ export default function GlobalSearch({ goHome }) {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Handle suggestions dropdown navigation
+      if (showSuggestions && suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setSuggestionIndex(prev => 
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+          return;
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setSuggestionIndex(prev => 
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+          return;
+        } else if (e.key === 'Enter' && suggestionIndex >= 0) {
+          e.preventDefault();
+          selectSuggestion(suggestions[suggestionIndex]);
+          return;
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowSuggestions(false);
+          setSuggestionIndex(-1);
+          return;
+        }
+      }
+
       // Tab key to cycle through type filters
       if (e.key === 'Tab' && !e.shiftKey) {
         const filterButtons = document.querySelectorAll('[data-filter-type]');
@@ -286,7 +394,7 @@ export default function GlobalSearch({ goHome }) {
       </div>
 
       {/* Search Input */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24, position: 'relative' }}>
         <input
           ref={searchInputRef}
           type="text"
@@ -294,6 +402,12 @@ export default function GlobalSearch({ goHome }) {
           placeholder="Search everything... (Cmd+K)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => {
+            if (suggestions.length > 0) setShowSuggestions(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => setShowSuggestions(false), 200);
+          }}
           style={{
             fontSize: '1.125rem',
             padding: '16px',
@@ -301,6 +415,51 @@ export default function GlobalSearch({ goHome }) {
             borderRadius: 8,
           }}
         />
+
+        {/* Suggestions Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: 4,
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              zIndex: 1000,
+              maxHeight: 300,
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ padding: '8px 12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Suggestions
+            </div>
+            {suggestions.map((suggestion, idx) => (
+              <div
+                key={idx}
+                onClick={() => selectSuggestion(suggestion)}
+                style={{
+                  padding: '10px 16px',
+                  cursor: 'pointer',
+                  background: idx === suggestionIndex ? 'var(--primary)15' : 'transparent',
+                  borderLeft: idx === suggestionIndex ? '3px solid var(--primary)' : '3px solid transparent',
+                  transition: 'all 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+                onMouseEnter={() => setSuggestionIndex(idx)}
+              >
+                <span style={{ fontSize: '0.875rem' }}>🔍</span>
+                <span style={{ fontSize: '0.95rem' }}>{suggestion}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Type Filters */}
@@ -380,6 +539,50 @@ export default function GlobalSearch({ goHome }) {
                 }}
               >
                 🕐 {search}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular Searches */}
+      {!query && popularSearches.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'var(--text-muted)' }}>
+              POPULAR SEARCHES
+            </h3>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {popularSearches.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleRecentSearchClick(item.query)}
+                style={{
+                  padding: '6px 12px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  background: 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'var(--text)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>🔥</span>
+                <span>{item.query}</span>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  color: 'var(--text-muted)',
+                  background: 'var(--bg-tertiary)',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                }}>
+                  {item.count}
+                </span>
               </button>
             ))}
           </div>

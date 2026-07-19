@@ -192,6 +192,7 @@ const ROUTES = {
   'Push Notification Marketing': '/modules/push-notification-marketing',
   'Ambassador Program': '/modules/ambassador-program',
   'Direct Mail Automation': '/modules/direct-mail-automation',
+  'Custom Fields Engine': '/modules/custom-fields-engine',
   'Brand Kit': '/brand-kit',
   'Certificate Generator': '/certificates',
   'Accounting': '/accounting',

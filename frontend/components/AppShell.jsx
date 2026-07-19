@@ -7153,6 +7153,8 @@ export default function AppShell() {
       'print-fulfillment-for-business-cards-signage': '/modules/print-fulfillment',
       'creative-a-b-testing-studio': '/modules/ab-testing',
       'ugc-creator-content-aggregator': '/modules/ugc-aggregator',
+      'chatbot-builder': '/chatbot-builder',
+      'social-media-scheduler': '/social-media-scheduler',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

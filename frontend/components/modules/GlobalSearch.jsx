@@ -43,8 +43,10 @@ export default function GlobalSearch({ goHome }) {
   const [loading, setLoading] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchInputRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const resultRefs = useRef([]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -127,6 +129,89 @@ export default function GlobalSearch({ goHome }) {
   useEffect(() => {
     searchInputRef.current?.focus();
   }, []);
+
+  // Flatten results into array for keyboard navigation
+  const flatResults = useMemo(() => {
+    const flat = [];
+    Object.entries(results).forEach(([type, items]) => {
+      items.forEach(item => {
+        flat.push({ ...item, type });
+      });
+    });
+    return flat;
+  }, [results]);
+
+  // Reset selected index when results change
+  useEffect(() => {
+    setSelectedIndex(-1);
+    resultRefs.current = [];
+  }, [results]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Tab key to cycle through type filters
+      if (e.key === 'Tab' && !e.shiftKey) {
+        const filterButtons = document.querySelectorAll('[data-filter-type]');
+        if (filterButtons.length > 0) {
+          e.preventDefault();
+          const currentIndex = Array.from(filterButtons).findIndex(
+            btn => btn === document.activeElement
+          );
+          const nextIndex = (currentIndex + 1) % filterButtons.length;
+          filterButtons[nextIndex].focus();
+          return;
+        }
+      }
+
+      // Only handle arrow keys and Enter if we have results
+      if (flatResults.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(prev => {
+          const next = prev < flatResults.length - 1 ? prev + 1 : 0;
+          // Scroll into view
+          setTimeout(() => {
+            resultRefs.current[next]?.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'nearest' 
+            });
+          }, 0);
+          return next;
+        });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(prev => {
+          const next = prev > 0 ? prev - 1 : flatResults.length - 1;
+          // Scroll into view
+          setTimeout(() => {
+            resultRefs.current[next]?.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'nearest' 
+            });
+          }, 0);
+          return next;
+        });
+      } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        const selected = flatResults[selectedIndex];
+        if (selected) {
+          navigateToResult(selected.type, selected);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        if (selectedIndex >= 0) {
+          setSelectedIndex(-1);
+        } else {
+          searchInputRef.current?.blur();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [flatResults, selectedIndex]);
 
   const toggleType = (type) => {
     setSelectedTypes((prev) =>
@@ -234,7 +319,15 @@ export default function GlobalSearch({ goHome }) {
           {SEARCH_TYPES.map((type) => (
             <button
               key={type.value}
+              data-filter-type={type.value}
+              tabIndex={0}
               onClick={() => toggleType(type.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleType(type.value);
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -340,25 +433,26 @@ export default function GlobalSearch({ goHome }) {
                     </h3>
 
                     <div style={{ display: 'grid', gap: 12 }}>
-                      {items.map((result) => (
+                      {items.map((result) => {
+                        const flatIndex = flatResults.findIndex(
+                          r => r.id === result.id && r.type === type
+                        );
+                        const isSelected = flatIndex === selectedIndex;
+                        
+                        return (
                         <div
                           key={result.id}
+                          ref={el => resultRefs.current[flatIndex] = el}
                           onClick={() => navigateToResult(type, result)}
+                          onMouseEnter={() => setSelectedIndex(flatIndex)}
                           style={{
                             padding: 16,
-                            border: '1px solid var(--border)',
+                            border: isSelected ? `2px solid ${typeConfig.color}` : '1px solid var(--border)',
                             borderRadius: 8,
-                            background: 'var(--bg-secondary)',
+                            background: isSelected ? `${typeConfig.color}10` : 'var(--bg-secondary)',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = typeConfig.color;
-                            e.currentTarget.style.boxShadow = `0 0 0 1px ${typeConfig.color}`;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border)';
-                            e.currentTarget.style.boxShadow = 'none';
+                            boxShadow: isSelected ? `0 0 0 1px ${typeConfig.color}` : 'none',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -404,7 +498,8 @@ export default function GlobalSearch({ goHome }) {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );

@@ -7145,6 +7145,7 @@ export default function AppShell() {
       'membership-community-platform': '/community',
       'customer-segmentation-engine': '/modules/customer-segmentation',
       'event-webinar-hosting': '/modules/event-hosting',
+      'ambassador-program': '/modules/ambassador-program',
       'delivery-tracking': '/delivery-tracking',
       'password-manager': '/password-manager',
       'certificate-generator': '/certificates',

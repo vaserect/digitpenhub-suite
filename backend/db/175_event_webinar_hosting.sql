@@ -2,10 +2,29 @@
 -- Module 34 of Marketing Category
 -- Benchmark: Livestorm / Demio / Zoom Webinars
 
+-- Drop legacy events and event_attendees tables from 099 seed if they exist
+DROP TABLE IF EXISTS event_breakout_participants CASCADE;
+DROP TABLE IF EXISTS event_breakout_rooms CASCADE;
+DROP TABLE IF EXISTS event_tickets CASCADE;
+DROP TABLE IF EXISTS event_landing_pages CASCADE;
+DROP TABLE IF EXISTS event_analytics_daily CASCADE;
+DROP TABLE IF EXISTS event_emails CASCADE;
+DROP TABLE IF EXISTS event_recording_views CASCADE;
+DROP TABLE IF EXISTS event_recordings CASCADE;
+DROP TABLE IF EXISTS event_poll_responses CASCADE;
+DROP TABLE IF EXISTS event_polls CASCADE;
+DROP TABLE IF EXISTS event_questions CASCADE;
+DROP TABLE IF EXISTS event_chat_messages CASCADE;
+DROP TABLE IF EXISTS event_presenters CASCADE;
+DROP TABLE IF EXISTS event_attendees CASCADE;
+DROP TABLE IF EXISTS event_registrations CASCADE;
+DROP TABLE IF EXISTS event_sessions CASCADE;
+DROP TABLE IF EXISTS events CASCADE;
+
 -- Main Events Table
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE events (
     id SERIAL PRIMARY KEY,
-    org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(20) DEFAULT 'live' CHECK (type IN ('live', 'on-demand', 'hybrid', 'recurring')),
@@ -25,7 +44,7 @@ CREATE TABLE IF NOT EXISTS events (
     video_provider VARCHAR(50) DEFAULT 'daily',
     video_room_url TEXT,
     video_room_token TEXT,
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -36,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
 
 -- Event Sessions (for multi-session events)
-CREATE TABLE IF NOT EXISTS event_sessions (
+CREATE TABLE event_sessions (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -54,10 +73,10 @@ CREATE INDEX IF NOT EXISTS idx_event_sessions_event_id ON event_sessions(event_i
 CREATE INDEX IF NOT EXISTS idx_event_sessions_start_time ON event_sessions(start_time);
 
 -- Event Registrations
-CREATE TABLE IF NOT EXISTS event_registrations (
+CREATE TABLE event_registrations (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+    contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL,
     email VARCHAR(255) NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
@@ -79,7 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_event_registrations_email ON event_registrations(
 CREATE INDEX IF NOT EXISTS idx_event_registrations_status ON event_registrations(status);
 
 -- Event Attendees (live tracking)
-CREATE TABLE IF NOT EXISTS event_attendees (
+CREATE TABLE event_attendees (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     registration_id INTEGER NOT NULL REFERENCES event_registrations(id) ON DELETE CASCADE,
@@ -98,10 +117,10 @@ CREATE INDEX IF NOT EXISTS idx_event_attendees_registration_id ON event_attendee
 CREATE INDEX IF NOT EXISTS idx_event_attendees_session_id ON event_attendees(session_id);
 
 -- Event Presenters/Panelists
-CREATE TABLE IF NOT EXISTS event_presenters (
+CREATE TABLE event_presenters (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     role VARCHAR(20) DEFAULT 'panelist' CHECK (role IN ('host', 'co-host', 'panelist', 'moderator')),
@@ -116,16 +135,16 @@ CREATE INDEX IF NOT EXISTS idx_event_presenters_event_id ON event_presenters(eve
 CREATE INDEX IF NOT EXISTS idx_event_presenters_user_id ON event_presenters(user_id);
 
 -- Event Chat Messages
-CREATE TABLE IF NOT EXISTS event_chat_messages (
+CREATE TABLE event_chat_messages (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id INTEGER REFERENCES event_sessions(id) ON DELETE SET NULL,
-    sender_id INTEGER,
+    sender_id UUID,
     sender_name VARCHAR(255),
     sender_type VARCHAR(20) DEFAULT 'attendee' CHECK (sender_type IN ('attendee', 'presenter', 'moderator')),
     message TEXT NOT NULL,
     is_private BOOLEAN DEFAULT FALSE,
-    recipient_id INTEGER,
+    recipient_id UUID,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
@@ -136,7 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_event_chat_messages_sender_id ON event_chat_messa
 CREATE INDEX IF NOT EXISTS idx_event_chat_messages_sent_at ON event_chat_messages(sent_at);
 
 -- Event Q&A
-CREATE TABLE IF NOT EXISTS event_questions (
+CREATE TABLE event_questions (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id INTEGER REFERENCES event_sessions(id) ON DELETE SET NULL,
@@ -144,7 +163,7 @@ CREATE TABLE IF NOT EXISTS event_questions (
     question TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'dismissed')),
     upvotes INTEGER DEFAULT 0,
-    answered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    answered_by UUID REFERENCES users(id) ON DELETE SET NULL,
     answer TEXT,
     asked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     answered_at TIMESTAMP
@@ -156,7 +175,7 @@ CREATE INDEX IF NOT EXISTS idx_event_questions_status ON event_questions(status)
 CREATE INDEX IF NOT EXISTS idx_event_questions_upvotes ON event_questions(upvotes);
 
 -- Event Polls
-CREATE TABLE IF NOT EXISTS event_polls (
+CREATE TABLE event_polls (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id INTEGER REFERENCES event_sessions(id) ON DELETE SET NULL,
@@ -175,7 +194,7 @@ CREATE INDEX IF NOT EXISTS idx_event_polls_session_id ON event_polls(session_id)
 CREATE INDEX IF NOT EXISTS idx_event_polls_status ON event_polls(status);
 
 -- Event Poll Responses
-CREATE TABLE IF NOT EXISTS event_poll_responses (
+CREATE TABLE event_poll_responses (
     id SERIAL PRIMARY KEY,
     poll_id INTEGER NOT NULL REFERENCES event_polls(id) ON DELETE CASCADE,
     attendee_id INTEGER REFERENCES event_registrations(id) ON DELETE SET NULL,
@@ -187,7 +206,7 @@ CREATE INDEX IF NOT EXISTS idx_event_poll_responses_poll_id ON event_poll_respon
 CREATE INDEX IF NOT EXISTS idx_event_poll_responses_attendee_id ON event_poll_responses(attendee_id);
 
 -- Event Recordings
-CREATE TABLE IF NOT EXISTS event_recordings (
+CREATE TABLE event_recordings (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id INTEGER REFERENCES event_sessions(id) ON DELETE SET NULL,
@@ -206,7 +225,7 @@ CREATE INDEX IF NOT EXISTS idx_event_recordings_session_id ON event_recordings(s
 CREATE INDEX IF NOT EXISTS idx_event_recordings_status ON event_recordings(status);
 
 -- Event Recording Views (for on-demand analytics)
-CREATE TABLE IF NOT EXISTS event_recording_views (
+CREATE TABLE event_recording_views (
     id SERIAL PRIMARY KEY,
     recording_id INTEGER NOT NULL REFERENCES event_recordings(id) ON DELETE CASCADE,
     viewer_id INTEGER REFERENCES event_registrations(id) ON DELETE SET NULL,
@@ -221,7 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_event_recording_views_recording_id ON event_recor
 CREATE INDEX IF NOT EXISTS idx_event_recording_views_viewer_id ON event_recording_views(viewer_id);
 
 -- Event Email Communications
-CREATE TABLE IF NOT EXISTS event_emails (
+CREATE TABLE event_emails (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     email_type VARCHAR(20) DEFAULT 'invitation' CHECK (email_type IN ('invitation', 'reminder', 'followup', 'noshow', 'thankyou', 'recording')),
@@ -241,7 +260,7 @@ CREATE INDEX IF NOT EXISTS idx_event_emails_status ON event_emails(status);
 CREATE INDEX IF NOT EXISTS idx_event_emails_send_time ON event_emails(send_time);
 
 -- Event Analytics (daily aggregation)
-CREATE TABLE IF NOT EXISTS event_analytics_daily (
+CREATE TABLE event_analytics_daily (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     date DATE NOT NULL,
@@ -261,7 +280,7 @@ CREATE INDEX IF NOT EXISTS idx_event_analytics_daily_event_id ON event_analytics
 CREATE INDEX IF NOT EXISTS idx_event_analytics_daily_date ON event_analytics_daily(date);
 
 -- Event Landing Pages
-CREATE TABLE IF NOT EXISTS event_landing_pages (
+CREATE TABLE event_landing_pages (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     slug VARCHAR(255) NOT NULL UNIQUE,
@@ -281,7 +300,7 @@ CREATE INDEX IF NOT EXISTS idx_event_landing_pages_event_id ON event_landing_pag
 CREATE INDEX IF NOT EXISTS idx_event_landing_pages_slug ON event_landing_pages(slug);
 
 -- Event Tickets/Pricing
-CREATE TABLE IF NOT EXISTS event_tickets (
+CREATE TABLE event_tickets (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -301,7 +320,7 @@ CREATE INDEX IF NOT EXISTS idx_event_tickets_event_id ON event_tickets(event_id)
 CREATE INDEX IF NOT EXISTS idx_event_tickets_is_active ON event_tickets(is_active);
 
 -- Event Breakout Rooms
-CREATE TABLE IF NOT EXISTS event_breakout_rooms (
+CREATE TABLE event_breakout_rooms (
     id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     session_id INTEGER REFERENCES event_sessions(id) ON DELETE SET NULL,
@@ -316,7 +335,7 @@ CREATE INDEX IF NOT EXISTS idx_event_breakout_rooms_event_id ON event_breakout_r
 CREATE INDEX IF NOT EXISTS idx_event_breakout_rooms_session_id ON event_breakout_rooms(session_id);
 
 -- Event Breakout Participants
-CREATE TABLE IF NOT EXISTS event_breakout_participants (
+CREATE TABLE event_breakout_participants (
     id SERIAL PRIMARY KEY,
     room_id INTEGER NOT NULL REFERENCES event_breakout_rooms(id) ON DELETE CASCADE,
     attendee_id INTEGER NOT NULL REFERENCES event_registrations(id) ON DELETE CASCADE,
@@ -328,9 +347,9 @@ CREATE INDEX IF NOT EXISTS idx_event_breakout_participants_room_id ON event_brea
 CREATE INDEX IF NOT EXISTS idx_event_breakout_participants_attendee_id ON event_breakout_participants(attendee_id);
 
 -- Event Webhooks
-CREATE TABLE IF NOT EXISTS event_webhooks (
+CREATE TABLE event_webhooks (
     id SERIAL PRIMARY KEY,
-    org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
     url TEXT NOT NULL,
     events JSONB NOT NULL,
@@ -344,3 +363,4 @@ CREATE TABLE IF NOT EXISTS event_webhooks (
 CREATE INDEX IF NOT EXISTS idx_event_webhooks_org_id ON event_webhooks(org_id);
 CREATE INDEX IF NOT EXISTS idx_event_webhooks_event_id ON event_webhooks(event_id);
 CREATE INDEX IF NOT EXISTS idx_event_webhooks_status ON event_webhooks(status);
+

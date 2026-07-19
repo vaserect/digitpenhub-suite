@@ -219,6 +219,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/sales-playbook', 'salesPlaybook', 'sales-playbook', 'Sales Playbook / Battlecard Library'),
   publicRoute('/api/v1/ambassadors', 'ambassador', 'Ambassador Program (mixed auth)'),
   moduleRoute('/api/v1/direct-mail', 'directMail', 'direct-mail-automation', 'Direct Mail Automation'),
+  moduleRoute('/api/v1/print-fulfillment', 'printFulfillment', 'print-fulfillment-for-business-cards-signage', 'Print Fulfillment'),
   // ============================================================================
   // INTERACTIVE TOOLS
   // ============================================================================

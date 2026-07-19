@@ -33,6 +33,7 @@ import StarterTemplateModal from './ui/StarterTemplateModal';
 import FunnelTemplateGallery from './ui/FunnelTemplateGallery';
 import FormTemplateGallery from './ui/FormTemplateGallery';
 import CommandPalette from './ui/CommandPalette';
+import GlobalSearchModal from './modules/GlobalSearchModal';
 import ApprovalModule from './modules/ApprovalWorkflow';
 import UrlShortenerModule from './modules/UrlShortener';
 import ApiKeysModule from './modules/ApiKeys';
@@ -268,6 +269,7 @@ export default function AppShell() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [navOpen, setNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -22490,6 +22492,11 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
           document.documentElement.setAttribute('data-theme', next);
         }}
         onShowHelp={() => setHelpOpen(true)}
+      />
+
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
       />
 
       {helpOpen && (

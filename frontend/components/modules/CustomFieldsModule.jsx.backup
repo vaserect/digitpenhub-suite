@@ -61,12 +61,6 @@ function emptyDraft() {
     minValue: '',
     maxValue: '',
     formatPattern: '',
-    security: {
-      visibility: ['owner', 'admin', 'member'],
-      editable: ['owner', 'admin'],
-      sensitive: false,
-      mask_value: false
-    },
   };
 }
 
@@ -202,12 +196,6 @@ export default function CustomFieldsModule({ goHome }) {
           ? undefined
           : Number(draft.maxValue),
       formatPattern: draft.formatPattern || undefined,
-      security: draft.security || {
-        visibility: ['owner', 'admin', 'member'],
-        editable: ['owner', 'admin'],
-        sensitive: false,
-        mask_value: false
-      },
     };
 
     try {
@@ -736,88 +724,6 @@ export default function CustomFieldsModule({ goHome }) {
             />
             Required field
           </label>
-
-          {/* Field-Level Security Section */}
-          <div style={{ marginTop: 24, marginBottom: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <h4 style={{ marginBottom: 12, fontSize: '0.875rem', fontWeight: 600 }}>Field-Level Security</h4>
-            
-            <div className="field">
-              <label className="field-label">Visibility (who can see this field)</label>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {['owner', 'admin', 'member', 'guest'].map(role => (
-                  <label key={role} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <input
-                      type="checkbox"
-                      checked={(draft.security?.visibility || ['owner', 'admin', 'member']).includes(role)}
-                      onChange={(e) => {
-                        const current = draft.security?.visibility || ['owner', 'admin', 'member'];
-                        const updated = e.target.checked
-                          ? [...current, role]
-                          : current.filter(r => r !== role);
-                        setDraft(d => ({
-                          ...d,
-                          security: { ...(d.security || {}), visibility: updated }
-                        }));
-                      }}
-                    />
-                    <span style={{ textTransform: 'capitalize' }}>{role}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="field-label">Editable by (who can modify this field)</label>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {['owner', 'admin', 'member'].map(role => (
-                  <label key={role} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <input
-                      type="checkbox"
-                      checked={(draft.security?.editable || ['owner', 'admin']).includes(role)}
-                      onChange={(e) => {
-                        const current = draft.security?.editable || ['owner', 'admin'];
-                        const updated = e.target.checked
-                          ? [...current, role]
-                          : current.filter(r => r !== role);
-                        setDraft(d => ({
-                          ...d,
-                          security: { ...(d.security || {}), editable: updated }
-                        }));
-                      }}
-                    />
-                    <span style={{ textTransform: 'capitalize' }}>{role}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={draft.security?.sensitive || false}
-                  onChange={(e) => setDraft(d => ({
-                    ...d,
-                    security: { ...(d.security || {}), sensitive: e.target.checked }
-                  }))}
-                />
-                Sensitive field
-              </label>
-              
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={draft.security?.mask_value || false}
-                  disabled={!draft.security?.sensitive}
-                  onChange={(e) => setDraft(d => ({
-                    ...d,
-                    security: { ...(d.security || {}), mask_value: e.target.checked }
-                  }))}
-                />
-                Mask value (****1234)
-              </label>
-            </div>
-          </div>
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>

@@ -252,8 +252,10 @@ async function deleteDefinition(req, res) {
 
 async function getRecordValues(req, res) {
   const { recordType, recordId } = req.params;
+  const userRole = req.user.role || 'member'; // Get user role from request
+  
   const { rows } = await db.query(
-    `SELECT d.key, d.field_type, v.value
+    `SELECT d.id, d.key, d.field_type, d.security, v.value
      FROM custom_field_definitions d
      LEFT JOIN custom_field_values v
        ON v.field_id = d.id AND v.record_id = $3
@@ -261,22 +263,44 @@ async function getRecordValues(req, res) {
      ORDER BY d.sort_order ASC`,
     [req.user.orgId, recordType, recordId]
   );
+  
+  // Filter fields by role visibility and mask sensitive values
+  const visibleFields = filterFieldsByRole(rows, userRole);
   const values = {};
-  for (const row of rows) values[row.key] = row.value ?? null;
+  for (const field of visibleFields) {
+    const rawValue = field.value ?? null;
+    values[field.key] = maskSensitiveValue(field, rawValue);
+  }
+  
   res.json({ values });
 }
 
 async function setRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const incoming = (req.body && req.body.values) || {};
+  const userRole = req.user.role || 'member'; // Get user role from request
 
   const { errors, defByKey } = await validateCustomFieldValues(req.user.orgId, recordType, incoming);
   if (errors.length) return res.status(400).json({ error: errors.join(' ') });
 
+  // Enforce field-level security: filter out fields user cannot edit
+  const editableFields = {};
+  for (const [key, value] of Object.entries(incoming)) {
+    const fieldDef = defByKey[key];
+    if (fieldDef && canEditField(fieldDef, userRole)) {
+      editableFields[key] = value;
+    } else if (fieldDef) {
+      // User tried to edit a field they don't have permission for
+      return res.status(403).json({ 
+        error: `You do not have permission to edit the field '${fieldDef.label || key}'` 
+      });
+    }
+  }
+
   const client = await db.connect();
   try {
     await client.query('BEGIN');
-    await upsertCustomFieldValues(client, req.user.orgId, recordType, recordId, incoming, defByKey);
+    await upsertCustomFieldValues(client, req.user.orgId, recordType, recordId, editableFields, defByKey);
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');

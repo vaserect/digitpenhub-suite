@@ -223,6 +223,7 @@ const ROUTES = {
   'Password Manager': '/password-manager',
   'Color Palette Generator': '/color-palettes',
   'Notifications': '/community/notifications',
+  'Approval Workflow Engine': '/modules/approval-workflow-engine',
 };
 
 // ── Tier classification ───────────────────────────────────────────────────────

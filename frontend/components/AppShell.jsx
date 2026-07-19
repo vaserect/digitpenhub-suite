@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { apiFetch, setUpgradeHandler } from '../lib/api';
 import Sidebar from './ui/Sidebar';
 import Topbar from './ui/Topbar';
+import SearchModal from './search/SearchModal';
 import { Card, CardHeader } from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
@@ -149,6 +150,9 @@ function LineChart({ data = [], seriesKeys = ['leads', 'invoices', 'contacts'], 
         return <text key={i} x={xOf(i)} y={H - 6} fontSize="9" textAnchor="middle" fill="var(--text-muted)">{label}</text>;
       })}
     </svg>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }
 
@@ -180,6 +184,9 @@ function BarChart({ data = [] }) {
         );
       })}
     </svg>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }
 
@@ -189,6 +196,9 @@ function SearchIcon() {
       <circle cx="11" cy="11" r="7" />
       <line x1="21" y1="21" x2="16.6" y2="16.6" />
     </svg>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }
 
@@ -203,6 +213,9 @@ function CreativeSaveBar({ designName, setDesignName, saving, onSave, onOpenGall
       <Button variant="ghost" size="sm" onClick={onNew}>+ New</Button>
       {onApplyBrandKit && <Button variant="ghost" size="sm" onClick={onApplyBrandKit}>🎨 Apply Brand Kit</Button>}
     </div>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }
 
@@ -217,6 +230,9 @@ function InvoiceStatusBadge({ status }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: badge.color, background: badge.bg, textTransform: 'uppercase' }}>
       {badge.text}
     </span>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }
 
@@ -253,6 +269,8 @@ function cloneTemplateDraft(value) {
 }
 
 export default function AppShell() {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -269,6 +287,9 @@ export default function AppShell() {
   const [toastMessage, setToastMessage] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
+
+  const handleOpenSearch = () => setIsSearchOpen(true);
+  const handleCloseSearch = () => setIsSearchOpen(false);
   const [navOpen, setNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -1984,10 +2005,16 @@ export default function AppShell() {
   const moduleCategories = useMemo(
     () => categories.filter(c => (c.tier || 1) === 1),
     [categories]
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
   const totalModules = useMemo(
     () => moduleCategories.reduce((sum, c) => sum + c.modules.length, 0),
     [moduleCategories]
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
   const activeModules = useMemo(() => {
     const list = [];
@@ -2002,6 +2029,9 @@ export default function AppShell() {
   const pinnedModules = useMemo(
     () => activeModules.filter((m) => pinnedSlugs.includes(m.slug)),
     [activeModules, pinnedSlugs]
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 
   const invoiceSummary = useMemo(() => {
@@ -7699,6 +7729,9 @@ export default function AppShell() {
         onMarkRead={handleMarkRead}
         onMarkAllRead={handleMarkAllRead}
         onToggleSidebar={() => setNavOpen((v) => !v)}
+        onOpenSearch={handleOpenSearch}
+        onToggleTheme={handleToggleTheme}
+        theme={theme}
       >
         <Button
           variant="secondary"
@@ -15138,7 +15171,10 @@ export default function AppShell() {
       {view === 'module' && activeModuleSlug === 'digital-asset-management' && (
         <DamModule goHome={goHome} />
       )}
-      {view === 'module' && activeModuleSlug === 'contracts' && (
+      {view === 'module' && activeModuleSlug === 'approval-workflow-engine' && (
+        <ApprovalModule goHome={goHome} />
+      )}
+      {view === 'module'         <ContractsModule        <ContractsModule activeModuleSlug === 'contracts' && (
         <ContractsModule goHome={goHome} />
       )}
       {view === 'module' && activeModuleSlug === 'feature-flags' && (
@@ -22489,5 +22525,8 @@ ${resumeSkills?`<h3 style="color:${escapeHtml(resumeColor)};font-size:0.95rem;te
         </div>
       </div>
     </div>
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={handleCloseSearch} theme={theme} />
+
   );
 }

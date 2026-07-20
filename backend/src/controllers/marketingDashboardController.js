@@ -9,7 +9,7 @@ async function getMarketingSummary(req, res) {
          COUNT(DISTINCT el.id) AS lists,
          COUNT(DISTINCT ec.id) AS campaigns,
          COUNT(DISTINCT ec.id) FILTER(WHERE ec.status='sent') AS campaigns_sent,
-         COALESCE(AVG(ec.open_rate), 0) AS avg_open_rate
+         COALESCE(AVG(ec.opens::float / NULLIF(ec.opens + ec.clicks, 0)), 0) AS avg_open_rate
        FROM email_subscribers es
        LEFT JOIN email_lists el ON el.org_id = es.org_id
        LEFT JOIN email_campaigns ec ON ec.org_id = es.org_id
@@ -40,8 +40,8 @@ async function getMarketingSummary(req, res) {
     db.query(
       `SELECT
          COUNT(DISTINCT ls.id) AS total_leads,
-         COUNT(DISTINCT ls.id) FILTER(WHERE ls.created_at >= NOW() - INTERVAL '7 days') AS this_week,
-         COUNT(DISTINCT ls.id) FILTER(WHERE ls.created_at >= NOW() - INTERVAL '30 days') AS this_month,
+         COUNT(DISTINCT ls.id) FILTER(WHERE ls.submitted_at >= NOW() - INTERVAL '7 days') AS this_week,
+         COUNT(DISTINCT ls.id) FILTER(WHERE ls.submitted_at >= NOW() - INTERVAL '30 days') AS this_month,
          COUNT(DISTINCT lf.id) AS active_forms
        FROM lead_submissions ls
        LEFT JOIN lead_forms lf ON lf.org_id = ls.form_id
@@ -62,11 +62,11 @@ async function getLeadsByDay(req, res) {
   const orgId = req.user.orgId;
   const { rows } = await db.query(
     `SELECT
-       date_trunc('day', ls.created_at)::date AS day,
+       date_trunc('day', ls.submitted_at)::date AS day,
        COUNT(*) AS leads
      FROM lead_submissions ls
      WHERE ls.form_id IN (SELECT id FROM lead_forms WHERE org_id = $1)
-       AND ls.created_at >= NOW() - INTERVAL '30 days'
+       AND ls.submitted_at >= NOW() - INTERVAL '30 days'
      GROUP BY day ORDER BY day ASC`,
     [orgId]
   );
@@ -76,7 +76,7 @@ async function getLeadsByDay(req, res) {
 async function getTopCampaigns(req, res) {
   const orgId = req.user.orgId;
   const { rows } = await db.query(
-    `SELECT name, subject, status, open_rate, click_rate, created_at
+    `SELECT name, subject, status, opens AS open_count, clicks AS click_count, created_at
      FROM email_campaigns WHERE org_id = $1
      ORDER BY open_rate DESC NULLS LAST LIMIT 5`,
     [orgId]

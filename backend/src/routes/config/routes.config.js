@@ -145,6 +145,11 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/payroll', 'payroll', 'payroll', 'Payroll management'),
   moduleRoute('/api/v1/recruitment', 'recruitment', 'recruitment', 'Recruitment'),
   moduleRoute('/api/v1/time-tracking', 'timeTracking', 'time-tracking', 'Time tracking'),
+  authRoute('/api/v1/file-manager', 'fileManager', 'File Manager'),
+  authRoute('/api/v1/people-directory', 'peopleDirectory', 'Internal People/Skills Directory'),
+  authRoute('/api/v1/ideas', 'ideas', 'Idea Management / Suggestion Box'),
+  authRoute('/api/v1/timezone-proposals', 'timezoneProposals', 'Multi-timezone Meeting Coordinator'),
+  authRoute('/api/v1/whiteboard', 'whiteboard', 'Whiteboard / Mind-Mapping Tool'),
   
   // ============================================================================
   // CUSTOMER SUPPORT

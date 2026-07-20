@@ -111,3 +111,49 @@ r.get('/stats', async (req, res) => {
 });
 
 module.exports = r;
+
+// Student Portal
+r.get('/students', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_students WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ students: rows });
+});
+r.post('/students', async (req, res) => {
+  const { rows } = await db.query('INSERT INTO edu_students (org_id, user_id) VALUES ($1, $2) RETURNING *', [req.user.orgId, req.user.id]);
+  res.status(201).json({ student: rows[0] });
+});
+
+// Teacher Portal
+r.get('/teachers', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_teachers WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ teachers: rows });
+});
+
+// Certificates
+r.get('/certificates', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_certificates WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ certificates: rows });
+});
+
+// Cohort / Live Class Scheduling
+r.get('/schedule', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_schedule WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ events: rows });
+});
+
+// Discussion Forums
+r.get('/discussions', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_discussions WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ discussions: rows });
+});
+
+// Gradebook Analytics
+r.get('/grades', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_grades WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ grades: rows });
+});
+
+// Plagiarism / AI-Content Detection
+r.get('/detect-plagiarism', async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM edu_plagiarism WHERE org_id = $1 ORDER BY created_at DESC', [req.user.orgId]);
+  res.json({ results: rows });
+});

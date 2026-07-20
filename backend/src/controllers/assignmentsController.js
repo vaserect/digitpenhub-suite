@@ -21,7 +21,7 @@ exports.getAll = asyncHandler(async (req, res) => {
     query += ` AND status = $${params.length}`;
   }
   
-  query += ' ORDER BY due_date DESC';
+  query += ' ORDER BY created_at DESC';
   const result = await db.query(query, params);
   res.json(result.rows);
 });

@@ -282,6 +282,13 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/meeting-notes', 'meetingNotes', 'ai-meeting-notes', 'AI meeting notes'),
   moduleRoute('/api/v1/ai-kb', 'aiKnowledgeBase', 'ai-knowledge-base', 'AI knowledge base'),
   moduleRoute('/api/v1/ai-support', 'aiCustomerSupport', 'ai-customer-support', 'AI customer support'),
+  authRoute('/api/v1/nps', 'nps', 'NPS / CSAT Survey Automation'),
+  authRoute('/api/v1/health-score', 'healthScore', 'Customer Health Score'),
+  authRoute('/api/v1/sla', 'sla', 'SLA Management'),
+  authRoute('/api/v1/roadmap', 'roadmap', 'Public Roadmap / Feature Request Board'),
+  authRoute('/api/v1/live-chat', 'liveChat', 'Live Chat'),
+  authRoute('/api/v1/voice-video', 'voiceVideo', 'Built-in Voice & Video Calling'),
+  authRoute('/api/v1/team-messaging', 'teamMessaging', 'Internal Team Messaging'),
   moduleRoute('/api/v1/ai-translator', 'aiTranslator', 'ai-translator', 'AI translator'),
   
   // ============================================================================

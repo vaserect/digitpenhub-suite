@@ -296,6 +296,10 @@ const ROUTES_CONFIG = [
   // ============================================================================
   moduleRoute('/api/v1/storage', 'cloudStorage', 'cloud-storage', 'Cloud storage'),
   moduleRoute('/api/v1/workflows', 'workflowAutomation', 'workflow-automation', 'Workflow automation'),
+  authRoute('/api/v1/integrations', 'nativeIntegrations', 'Native Integrations Hub'),
+  authRoute('/api/v1/developer-portal', 'developerPortal', 'Public Developer Portal + App Submission Pipeline'),
+  authRoute('/api/v1/sandbox-playground', 'sandboxPlayground', 'Sandbox API Playground'),
+  authRoute('/api/v1/oauth-apps', 'oauthDirectory', 'OAuth App Directory'),
   authRoute('/api/v1/integrations', 'integrations', 'Third-party integrations'),
   
   // ============================================================================

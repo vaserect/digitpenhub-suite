@@ -174,3 +174,89 @@ router.get('/content-scores', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+
+
+// ── Schema Generator ─────────────────────────────────────────────────────────
+router.get('/schema', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_schemas WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/schema', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_schemas (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+router.delete('/schema/:id', asyncHandler(async (req, res) => {
+  const { rowCount } = await db.query('DELETE FROM seo_schemas WHERE id = $1 AND org_id = $2', [req.params.id, req.user.orgId]);
+  if (!rowCount) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+}));
+
+// ── Sitemap Generator ────────────────────────────────────────────────────────
+router.get('/sitemap', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_sitemaps WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/sitemap', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_sitemaps (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── Meta Generator ───────────────────────────────────────────────────────────
+router.get('/meta', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_meta_tags WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/meta', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_meta_tags (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── Robots Generator ─────────────────────────────────────────────────────────
+router.get('/robots', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_robots WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/robots', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_robots (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── Rank Tracking ────────────────────────────────────────────────────────────
+router.get('/rank-tracking', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_rank_tracking WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/rank-tracking', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_rank_tracking (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── SEM / Ad Campaign ROAS Tracker ───────────────────────────────────────────
+router.get('/sem-tracker', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_sem_tracker WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/sem-tracker', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_sem_tracker (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── Accessibility (WCAG) Audit Tool ──────────────────────────────────────────
+router.get('/accessibility', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_accessibility WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/accessibility', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_accessibility (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));
+
+// ── Voice Search / Voice Commerce Optimization ───────────────────────────────
+router.get('/voice-search', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('SELECT * FROM seo_voice_search WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50', [req.user.orgId]);
+  res.json({ items: rows });
+}));
+router.post('/voice-search', asyncHandler(async (req, res) => {
+  const { rows } = await db.query('INSERT INTO seo_voice_search (org_id, data) VALUES ($1, $2) RETURNING *', [req.user.orgId, JSON.stringify(req.body || {})]);
+  res.status(201).json({ item: rows[0] });
+}));

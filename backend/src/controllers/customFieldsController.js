@@ -168,6 +168,7 @@ async function createDefinition(req, res) {
         minValue ?? null,
         maxValue ?? null,
         formatPattern || null,
+        toJsonb(security, {}),
       ]
     );
     res.status(201).json({ field: rows[0] });
@@ -285,7 +286,6 @@ async function deleteDefinition(req, res) {
 }
 
 async function getRecordValues(req, res) {
-async function getRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const userRole = req.user.role || 'member'; // Get user role from request
 
@@ -328,6 +328,8 @@ async function getRecordValues(req, res) {
 
   res.json({ values });
 }
+
+async function setRecordValues(req, res) {
   const { recordType, recordId } = req.params;
   const incoming = (req.body && req.body.values) || {};
   const userRole = req.user.role || 'member'; // Get user role from request
@@ -695,27 +697,6 @@ async function getAnalytics(req, res) {
   });
 }
 
-module.exports = {
-  listDefinitions,
-  createDefinition,
-  updateDefinition,
-  deleteDefinition,
-  getRecordValues,
-  setRecordValues,
-  getRecordsWithFields,
-  bulkSetValues,
-  exportRecordsCsv,
-  listTemplates,
-  applyTemplate,
-  getAnalytics,
-  getFieldAnalytics,
-  getOverallStats,
-  listValidationTemplates,
-  getValidationTemplate,
-  addValidationRule,
-  removeValidationRule,
-  FIELD_TYPES,
-};
 
 // Analytics endpoints
 async function getFieldAnalytics(req, res) {
@@ -821,27 +802,6 @@ async function getOverallStats(req, res) {
   });
 }
 
-module.exports = {
-  listDefinitions,
-  createDefinition,
-  updateDefinition,
-  deleteDefinition,
-  getRecordValues,
-  setRecordValues,
-  getRecordsWithFields,
-  bulkSetValues,
-  exportRecordsCsv,
-  listTemplates,
-  applyTemplate,
-  getAnalytics,
-  getFieldAnalytics,
-  getOverallStats,
-  listValidationTemplates,
-  getValidationTemplate,
-  addValidationRule,
-  removeValidationRule,
-  FIELD_TYPES,
-};
 
 // Validation rule template endpoints
 async function listValidationTemplates(req, res) {
@@ -915,27 +875,6 @@ async function removeValidationRule(req, res) {
   res.json({ success: true });
 }
 
-module.exports = {
-  listDefinitions,
-  createDefinition,
-  updateDefinition,
-  deleteDefinition,
-  getRecordValues,
-  setRecordValues,
-  getRecordsWithFields,
-  bulkSetValues,
-  exportRecordsCsv,
-  listTemplates,
-  applyTemplate,
-  getAnalytics,
-  getFieldAnalytics,
-  getOverallStats,
-  listValidationTemplates,
-  getValidationTemplate,
-  addValidationRule,
-  removeValidationRule,
-  FIELD_TYPES,
-};
 
 // ============================================================================
 // Validation Template Management
@@ -1019,27 +958,6 @@ async function reorderFields(req, res) {
   }
 }
 
-module.exports = {
-  listDefinitions,
-  createDefinition,
-  updateDefinition,
-  deleteDefinition,
-  getRecordValues,
-  setRecordValues,
-  getRecordsWithFields,
-  bulkSetValues,
-  exportRecordsCsv,
-  listTemplates,
-  applyTemplate,
-  getAnalytics,
-  getOverallStats,
-  getFieldAnalytics,
-  listValidationTemplates,
-  addValidationRule,
-  removeValidationRule,
-  reorderFields,
-  bulkOperations,
-};
 
 /**
  * Bulk operations on field definitions
@@ -1330,13 +1248,6 @@ async function removeFieldDependencies(req, res) {
   }
 }
 
-module.exports = {
-  ...module.exports,
-  setFieldDependencies,
-  getFieldDependencies,
-  evaluateDependencies,
-  removeFieldDependencies
-};
 
 // ============================================================================
 // Custom Field Search and Filter
@@ -1465,10 +1376,36 @@ async function getFilterOptions(req, res) {
     console.error('Error getting filter options:', error);
     res.status(500).json({ error: 'Failed to get filter options' });
   }
+
 }
 
+
 module.exports = {
-  ...module.exports,
+  listDefinitions,
+  createDefinition,
+  updateDefinition,
+  deleteDefinition,
+  getRecordValues,
+  setRecordValues,
+  getRecordsWithFields,
+  bulkSetValues,
+  exportRecordsCsv,
+  listTemplates,
+  applyTemplate,
+  getAnalytics,
+  getFieldAnalytics,
+  getOverallStats,
+  addValidationRule,
+  removeValidationRule,
+  getValidationTemplate,
+  listValidationTemplates,
+  reorderFields,
+  bulkOperations,
+  setFieldDependencies,
+  getFieldDependencies,
+  evaluateDependencies,
+  removeFieldDependencies,
   searchByCustomFields,
-  getFilterOptions
+  getFilterOptions,
+  FIELD_TYPES,
 };

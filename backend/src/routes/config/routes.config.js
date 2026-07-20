@@ -84,6 +84,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   moduleRoute('/api/v1/pm', 'pm', 'project-management', 'Project management'),
   moduleRoute('/api/v1/tasks', 'tasks', 'task-management', 'Task management'),
+  authRoute('/api/v1/tasks-extended', 'taskComments', 'Task comments and attachments'),
   
   // ============================================================================
   // INVOICING & ACCOUNTING

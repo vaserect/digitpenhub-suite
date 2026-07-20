@@ -56,7 +56,7 @@ async function listReviews(req, res) {
 
     // Get items
     const query = `
-      SELECT r.*, c.first_name AS contact_first_name, c.last_name AS contact_last_name
+      SELECT r.*, c.full_name AS contact_name
       FROM business_reviews r
       LEFT JOIN contacts c ON c.id = r.contact_id
       WHERE ${whereClause}
@@ -292,12 +292,12 @@ async function sendRequest(req, res) {
     let contactName = 'Valued Customer';
     if (contactId) {
       const contactRes = await db.query(
-        'SELECT first_name, last_name FROM contacts WHERE id = $1 AND org_id = $2',
+        'SELECT full_name AS contact_name FROM contacts WHERE id = $1 AND org_id = $2',
         [contactId, orgId]
       );
       if (contactRes.rows.length) {
         const c = contactRes.rows[0];
-        contactName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Customer';
+        contactName = c.full_name.trim() || 'Customer';
       }
     }
 
@@ -370,7 +370,7 @@ async function listRequests(req, res) {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const itemsRes = await db.query(
-      `SELECT l.*, c.first_name, c.last_name
+      `SELECT l.*, c.full_name
        FROM review_request_logs l
        LEFT JOIN contacts c ON c.id = l.contact_id
        WHERE l.org_id = $1

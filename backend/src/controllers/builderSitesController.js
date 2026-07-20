@@ -10,7 +10,7 @@ function slugify(str) {
 async function listSites(req, res) {
   const { status, q, limit = 50, offset = 0 } = req.query;
 
-  const conditions = ['org_id = $1'];
+  const conditions = ['s.org_id = $1'];
   const values = [req.user.orgId];
   let idx = 2;
 
@@ -41,7 +41,7 @@ async function listSites(req, res) {
     );
 
     const countResult = await db.query(
-      `SELECT COUNT(*)::int AS total FROM builder_sites WHERE ${where}`,
+      `SELECT COUNT(*)::int AS total FROM builder_sites WHERE ${where.replace(/s\./g, '')}`,
       values.slice(0, -2)
     );
 

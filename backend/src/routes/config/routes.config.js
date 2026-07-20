@@ -167,6 +167,17 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/pos', 'pos', 'pos', 'Point of sale'),
   moduleRoute('/api/v1/delivery', 'delivery', 'delivery-tracking', 'Delivery tracking'),
   
+  authRoute('/api/v1/gift-cards', 'giftCards', 'Gift Cards'),
+  authRoute('/api/v1/wishlist', 'wishlist', 'Wishlist / Save-for-later'),
+  authRoute('/api/v1/product-reviews', 'productReviews', 'Product Reviews & Q&A'),
+  authRoute('/api/v1/rma', 'rma', 'Warranty & RMA Management'),
+  authRoute('/api/v1/loyalty', 'loyalty', 'Loyalty & Rewards Program'),
+  authRoute('/api/v1/print-on-demand', 'printOnDemand', 'Print-on-Demand Integration'),
+  authRoute('/api/v1/dropshipping', 'dropshipping', 'Dropshipping Supplier Integration'),
+  authRoute('/api/v1/shipping-labels', 'shipping', 'Shipping Label Printing + Carrier Rate Shopping'),
+  authRoute('/api/v1/marketplace-payouts', 'marketplacePayouts', 'Multi-vendor Marketplace Payouts'),
+  authRoute('/api/v1/dispute-resolution', 'disputeResolution', 'Marketplace Dispute Resolution'),
+
   // ============================================================================
   // ANALYTICS & REPORTING
   // ============================================================================

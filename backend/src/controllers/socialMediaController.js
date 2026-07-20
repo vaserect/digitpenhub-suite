@@ -24,7 +24,7 @@ async function listAccounts(req, res) {
       `SELECT sa.id, sa.platform_id, sa.account_type, sa.account_name, sa.account_avatar,
               sa.workspace_id, sa.brand_id, sa.is_active, sa.health_status, sa.last_checked_at,
               sa.last_error, sa.created_at, sp.name AS platform_name, sp.slug AS platform_slug,
-              sp.icon AS platform_icon, sw.name AS workspace_name
+              '' AS platform_icon, sw.name AS workspace_name
        FROM social_accounts sa
        JOIN social_platforms sp ON sp.id = sa.platform_id
        LEFT JOIN social_workspaces sw ON sw.id = sa.workspace_id
@@ -806,7 +806,7 @@ async function getCalendar(req, res) {
               spt.platform_post_id,
               p.id AS post_id, p.content_text, p.post_type, p.status AS post_status,
               sa.id AS account_id, sa.account_name,
-              sp.slug AS platform_slug, sp.name AS platform_name, sp.icon AS platform_icon
+              sp.slug AS platform_slug, sp.name AS platform_name, '' AS platform_icon
        FROM social_post_targets spt
        JOIN social_posts p ON p.id = spt.post_id
        JOIN social_accounts sa ON sa.id = spt.account_id

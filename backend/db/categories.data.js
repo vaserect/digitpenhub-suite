@@ -224,6 +224,10 @@ const ROUTES = {
   'Color Palette Generator': '/color-palettes',
   'Notifications': '/community/notifications',
   'Approval Workflow Engine': '/modules/approval-workflow-engine',
+  'Creative A/B Testing Studio': '/modules/ab-testing',
+  'Membership / Community Platform': '/community',
+  'UGC/Creator Content Aggregator': '/modules/ugc-aggregator',
+  'Print Fulfillment for Business Cards/Signage': '/modules/print-fulfillment',
 };
 
 // ── Tier classification ───────────────────────────────────────────────────────

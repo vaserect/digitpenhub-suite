@@ -204,21 +204,26 @@ async function updateTrackingLink(req, res) {
 async function trackClick(req, res) {
   try {
     const { linkCode } = req.params;
-    
+
+    // Safely derive device type — useragent middleware may not be loaded
+    const ua = req.useragent || {};
+    const deviceType = ua.isMobile ? 'mobile' : ua.isTablet ? 'tablet' : ua.isDesktop ? 'desktop' : 'unknown';
+
     const metadata = {
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('user-agent'),
       referrerUrl: req.get('referer'),
-      // Additional metadata can be extracted from user-agent
-      deviceType: req.useragent?.isMobile ? 'mobile' : 
-                  req.useragent?.isTablet ? 'tablet' : 
-                  req.useragent?.isDesktop ? 'desktop' : 'unknown',
-      browser: req.useragent?.browser,
-      os: req.useragent?.os
+      deviceType,
+      browser: ua.browser,
+      os: ua.os
     };
 
     const result = await ReferralService.trackClick(linkCode, metadata);
-    
+
+    if (!result || !result.destinationUrl) {
+      return res.status(404).send('Invalid or expired tracking link');
+    }
+
     // Redirect to destination URL
     res.redirect(result.destinationUrl);
   } catch (error) {

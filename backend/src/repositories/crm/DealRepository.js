@@ -112,7 +112,7 @@ class DealRepository extends BaseRepository {
       pipelineId,
       stageId,
       ownerId,
-      status = 'open',
+      status = undefined,
       search,
       tags,
       page = 1,
@@ -192,7 +192,7 @@ class DealRepository extends BaseRepository {
       LEFT JOIN crm_stages s ON d.stage_id = s.id
       LEFT JOIN users u ON d.owner_id = u.id
       WHERE ${whereClause}
-      ORDER BY d.${sortBy} ${sortOrder}
+      ORDER BY d.${sortBy} ${['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC'}
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `;
 

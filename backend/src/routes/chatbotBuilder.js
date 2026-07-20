@@ -6,17 +6,26 @@ const { bulkDeleteHandler } = require('../utils/bulkDelete');
 const { sendCsv, autoColumns } = require('../utils/csv');
 const db = require('../db');
 
+// UUID validation middleware — catches non-UUID :id params before they reach the DB
+function requireUUID(req, res, next) {
+  const { id } = req.params;
+  if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  next();
+}
+
 // ==================== FLOW MANAGEMENT ====================
 router.get('/stats', requireAuth, c.getStats);
 router.get('/', requireAuth, c.listFlows);
-router.get('/:id', requireAuth, c.getFlow);
+router.get('/:id', requireAuth, requireUUID, c.getFlow);
 router.post('/', requireAuth, c.createFlow);
-router.put('/:id', requireAuth, c.updateFlow);
-router.delete('/:id', requireAuth, c.deleteFlow);
-router.post('/:id/duplicate', requireAuth, c.duplicateFlow);
-router.post('/:id/activate', requireAuth, c.activateFlow);
-router.post('/:id/deactivate', requireAuth, c.deactivateFlow);
-router.get('/:id/stats', requireAuth, c.getFlowStats);
+router.put('/:id', requireAuth, requireUUID, c.updateFlow);
+router.delete('/:id', requireAuth, requireUUID, c.deleteFlow);
+router.post('/:id/duplicate', requireAuth, requireUUID, c.duplicateFlow);
+router.post('/:id/activate', requireAuth, requireUUID, c.activateFlow);
+router.post('/:id/deactivate', requireAuth, requireUUID, c.deactivateFlow);
+router.get('/:id/stats', requireAuth, requireUUID, c.getFlowStats);
 
 // ==================== CONVERSATION MANAGEMENT ====================
 router.post('/conversations', requireAuth, c.startConversation);
@@ -42,11 +51,11 @@ router.delete('/visitors/:id/tags', requireAuth, c.removeVisitorTag);
 router.get('/templates', requireAuth, c.listTemplates);
 router.get('/templates/:id', requireAuth, c.getTemplate);
 router.post('/templates/:id/create', requireAuth, c.createFromTemplate);
-router.post('/:id/save-template', requireAuth, c.saveAsTemplate);
+router.post('/:id/save-template', requireAuth, requireUUID, c.saveAsTemplate);
 
 // ==================== ANALYTICS ====================
-router.get('/:id/analytics', requireAuth, c.getFlowAnalytics);
-router.get('/:id/analytics/nodes', requireAuth, c.getNodeAnalytics);
+router.get('/:id/analytics', requireAuth, requireUUID, c.getFlowAnalytics);
+router.get('/:id/analytics/nodes', requireAuth, requireUUID, c.getNodeAnalytics);
 router.get('/analytics/metrics', requireAuth, c.getConversationMetrics);
 
 // ==================== BROADCASTS ====================

@@ -1,8 +1,43 @@
 # Marketing Category Implementation Progress
 
-**Last Updated:** 2026-07-19  
-**Current Status:** Phase 3 Completed (40/40 modules done)  
-**Note:** Module ordering aligned with categories.data.js (canonical source of truth)
+**Last Updated:** 2026-07-20  
+**Current Status:** BUGFIX IN PROGRESS — See verification report below. The 40/40 claim below is NO LONGER ACCURATE.
+
+## ⚠️ LIVE VERIFICATION UPDATE — 2026-07-20
+
+A real authenticated HTTP test on 2026-07-20 found the following issues. All 10 backend 500 errors have now been fixed in code (see commit log); the progress ledger below this line still reflects the pre-verification state and should NOT be trusted.
+
+### Fixes Applied (10 backend 500 errors + 2 route bugs resolved)
+
+| Bug | Module | Fix | Status |
+|-----|--------|-----|--------|
+| 1 | Funnel Builder | Created migration 185 for `funnel_conversions` table | ✅ Fixed |
+| 2 | QR Code Generator | Created migration 182 with safe enterprise column backfill | ✅ Fixed |
+| 3 | Digital Business Cards | `listContacts` — qualified `cc.org_id` to fix ambiguous column | ✅ Fixed |
+| 4 | Social Media Scheduler | `crypto.js` changed from eager throw to lazy init | ✅ Fixed |
+| 5 | CRM (deals) | `sortOrder` now whitelist-checked before SQL interpolation | ✅ Fixed |
+| 6 | Link-in-Bio | Created migration 184 for `bio_link_sections` + `section_id` | ✅ Fixed |
+| 7 | Review Management | Added `review_settings_org_id_key` UNIQUE constraint safety net | ✅ Fixed |
+| 8 | URL Shortener | Created migration 183 with safe enterprise column backfill | ✅ Fixed |
+| 9 | Referral Program | Added null check on `trackClick` result + useragent fallback | ✅ Fixed |
+| 10 | Chatbot Builder | Replaced 7 `req.db.query()` with `db.query()` + UUID validation middleware | ✅ Fixed |
+| Frontend | Creative A/B Testing Studio | Added ROUTES entry + 3 other missing routes | ✅ Fixed |
+| Frontend | Membership/Community Platform | Route already correct (`/community`) — no fix needed | ✅ Confirmed |
+
+### Pending (need DB migration run + real reverification)
+- All safe migrations (182–185) must be applied to the live database
+- Then full re-verification with authenticated HTTP requests
+
+### Verification Summary (as of 2026-07-20)
+- **Total Marketing modules:** 40 (per categories.data.js — verified 2026-07-20)
+- **Previously healthy (~18):** Still need re-verification after migration run
+- **Broken (10):** Code fixes applied, pending migration + re-test
+- **Route-mapped wrong (2):** 1 fixed (Creative A/B Testing), 1 confirmed working (Community)
+- **Missing routes (2):** Print Fulfillment and A/B Testing — routes added; pages exist
+- **Truly healthy after all fixes + migrations applied:** Need to verify
+
+**The existing 40/40 progress claims below this line are from before 2026-07-20 verification and should not be treated as accurate.**
+---
 
 ## Completion Status
 

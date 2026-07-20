@@ -27,7 +27,7 @@ class DealController {
         pipelineId: req.query.pipelineId,
         stageId: req.query.stageId,
         ownerId: req.query.ownerId,
-        status: req.query.status || 'open',
+        status: req.query.status || undefined,
         search: req.query.search,
         tags: req.query.tags ? req.query.tags.split(',') : undefined,
         page: parseInt(req.query.page) || 1,

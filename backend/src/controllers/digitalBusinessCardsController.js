@@ -70,7 +70,7 @@ async function listCards(req, res) {
     } = req.query;
 
     const offset = (page - 1) * limit;
-    const conditions = ['org_id = $1'];
+    const conditions = ['c.org_id = $1'];
     const params = [req.user.orgId];
     let paramCount = 1;
 
@@ -111,8 +111,11 @@ async function listCards(req, res) {
       [...params, limit, offset]
     );
 
+    // Count query needs unqualified column name since no table alias is used
+    const countConditions = conditions.map(c => c.replace(/^[a-z]+\./, ''));
+    const countWhere = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : '';
     const { rows: countRows } = await db.query(
-      `SELECT COUNT(*) as total FROM digital_business_cards ${whereClause}`,
+      `SELECT COUNT(*) as total FROM digital_business_cards ${countWhere}`,
       params
     );
 
@@ -661,7 +664,7 @@ async function listContacts(req, res) {
   try {
     const { card_id, status } = req.query;
 
-    const conditions = ['org_id = $1'];
+    const conditions = ['cc.org_id = $1'];
     const params = [req.user.orgId];
     let paramCount = 1;
 

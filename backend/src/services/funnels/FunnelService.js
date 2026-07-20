@@ -75,12 +75,10 @@ class FunnelService {
     let query = `
       SELECT f.*, 
              COUNT(DISTINCT fs.id) as step_count,
-             COUNT(DISTINCT fc.id) as total_conversions,
-             u.email as creator_email
+             COUNT(DISTINCT fc.id) as total_conversions
       FROM funnels f
       LEFT JOIN funnel_steps fs ON fs.funnel_id = f.id
       LEFT JOIN funnel_conversions fc ON fc.funnel_id = f.id
-      LEFT JOIN users u ON u.id = f.created_by
       WHERE f.org_id = $1
     `;
 
@@ -99,7 +97,7 @@ class FunnelService {
       paramIndex++;
     }
 
-    query += ` GROUP BY f.id, u.email ORDER BY f.updated_at DESC`;
+    query += ` GROUP BY f.id ORDER BY f.updated_at DESC`;
 
     if (filters.limit) {
       query += ` LIMIT $${paramIndex}`;

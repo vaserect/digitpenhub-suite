@@ -1,0 +1,11 @@
+const { Router } = require('express');
+const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/invoiceExtendedController');
+const r = Router();
+r.use(requireAuth);
+r.post('/:id/payment-link', c.createPaymentLink);
+r.get('/:id/payments', c.getPaymentHistory);
+r.post('/:id/send', c.sendInvoiceEmail);
+r.post('/recurring', c.createRecurring);
+r.get('/recurring/list', c.listRecurring);
+module.exports = r;

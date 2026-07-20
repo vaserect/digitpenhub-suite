@@ -72,6 +72,7 @@ const ROUTES_CONFIG = [
   // CRM MODULE
   // ============================================================================
   moduleRoute('/api/v1/crm/companies', 'crm/companies.routes', 'crm', 'CRM Companies API'),
+  authRoute('/api/v1/crm/activities', 'crm/activities.routes', 'CRM Activities API'),
   moduleRoute('/api/v1/crm/deals', 'crm/deals.routes', 'crm', 'CRM Deals API'),
   moduleRoute('/api/v1/crm/pipelines', 'crm/pipelines.routes', 'crm', 'CRM Pipelines API'),
   publicRoute('/api/v1/crm', 'crm', 'CRM endpoints (mixed auth)'),
@@ -89,6 +90,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/invoices', 'invoices', 'Invoice management (mixed auth)'),
   authRoute('/api/v1/invoices', 'invoiceUpgrades', 'Invoice upgrade features'),
+  authRoute('/api/v1/invoice-extended', 'invoiceExtended', 'Invoice advanced features'),
   moduleRoute('/api/v1/accounting', 'accounting', 'accounting', 'Accounting module'),
   authRoute('/api/v1/procurement', 'procurement', 'Procurement / Purchase Orders'),
   authRoute('/api/v1/supplier-portal', 'supplierPortal', 'Supplier/Partner Portal'),

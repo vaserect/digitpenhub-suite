@@ -73,7 +73,7 @@ async function listBarcodes(req, res) {
     } = req.query;
 
     const offset = (page - 1) * limit;
-    const conditions = ['org_id = $1'];
+    const conditions = ['b.org_id = $1'];
     const params = [req.user.orgId];
     let paramCount = 1;
 
@@ -129,8 +129,10 @@ async function listBarcodes(req, res) {
       [...params, limit, offset]
     );
 
+    const countConditions = conditions.map(c => c.replace(/^[a-z]+\./, ''));
+    const countWhere = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : '';
     const { rows: countRows } = await db.query(
-      `SELECT COUNT(*) as total FROM barcodes ${whereClause}`,
+      `SELECT COUNT(*) as total FROM barcodes ${countWhere}`,
       params
     );
 
@@ -761,7 +763,7 @@ async function listBatches(req, res) {
   try {
     const { status } = req.query;
 
-    const conditions = ['org_id = $1'];
+    const conditions = ['b.org_id = $1'];
     const params = [req.user.orgId];
 
     if (status) {

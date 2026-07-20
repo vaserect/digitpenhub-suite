@@ -122,3 +122,4 @@ r.post('/info', upload.single('file'), asyncHandler(async (req, res) => {
 }));
 
 module.exports = r;
+module.exports = r;

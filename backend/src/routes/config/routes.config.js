@@ -234,6 +234,10 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/reviews', 'reviews', 'Review management (mixed auth)'),
   moduleRoute('/api/v1/certificates', 'certificates', 'certificate-generator', 'Certificate generator'),
   moduleRoute('/api/v1/color-palettes', 'colorPalettes', 'color-palette-generator', 'Color palette generator'),
+  authRoute('/api/v1/json-formatter', 'jsonFormatter', 'JSON Formatter'),
+  authRoute('/api/v1/image-converter', 'imageConverter', 'Image Converter'),
+  authRoute('/api/v1/file-converter', 'fileConverter', 'File Converter'),
+  authRoute('/api/v1/password-generator', 'passwordGenerator', 'Password Generator'),
   moduleRoute('/api/v1/ad-campaigns', 'adCampaign', 'ad-campaign-manager', 'Ad Campaign Manager'),
   
   moduleRoute('/api/v1/events', 'events', 'event-hosting', 'Event / Webinar Hosting'),

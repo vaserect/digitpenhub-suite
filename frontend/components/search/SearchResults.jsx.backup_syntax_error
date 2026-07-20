@@ -2,66 +2,85 @@
 
 import { useRouter } from 'next/navigation';
 import { 
-  FileText, 
-  Users, 
-  Briefcase, 
-  Mail, 
-  Calendar,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  MessageSquare,
-  CheckSquare,
-  FileSpreadsheet,
-  Settings
+  Users, FileText, CheckSquare, Briefcase, Mail, 
+  ShoppingCart, Calendar, FolderOpen, DollarSign, Package,
+  FileSpreadsheet, Clock, MessageSquare, BookOpen, Settings
 } from 'lucide-react';
 
+/**
+ * SearchResults Component
+ * 
+ * Displays search results grouped by entity type.
+ * Shows result count, key fields, and allows navigation to entities.
+ * 
+ * Features:
+ * - Grouped by entity type
+ * - Entity-specific icons
+ * - Result highlighting
+ * - Click to navigate
+ * - Pagination support
+ * - Empty state handling
+ */
+
+// Entity type to icon mapping
 const ENTITY_ICONS = {
-  contacts: Users,
-  companies: Briefcase,
-  deals: DollarSign,
-  projects: CheckSquare,
-  tasks: CheckSquare,
-  emails: Mail,
-  events: Calendar,
-  invoices: FileSpreadsheet,
-  products: Package,
-  orders: ShoppingCart,
-  tickets: MessageSquare,
-  documents: FileText,
-  settings: Settings,
+  'contact': Users,
+  'crm': Users,
+  'lead': Users,
+  'task': CheckSquare,
+  'project': Briefcase,
+  'invoice': FileText,
+  'quote': FileSpreadsheet,
+  'email': Mail,
+  'order': ShoppingCart,
+  'product': Package,
+  'event': Calendar,
+  'document': FolderOpen,
+  'expense': DollarSign,
+  'timesheet': Clock,
+  'ticket': MessageSquare,
+  'course': BookOpen,
+  'setting': Settings,
 };
 
-const ENTITY_NAMES = {
-  contacts: 'Contacts',
-  companies: 'Companies',
-  deals: 'Deals',
-  projects: 'Projects',
-  tasks: 'Tasks',
-  emails: 'Emails',
-  events: 'Events',
-  invoices: 'Invoices',
-  products: 'Products',
-  orders: 'Orders',
-  tickets: 'Support Tickets',
-  documents: 'Documents',
-  settings: 'Settings',
-};
-
+// Entity type to route mapping
 const ENTITY_ROUTES = {
-  contacts: '/crm/contacts',
-  companies: '/crm/companies',
-  deals: '/crm/deals',
-  projects: '/pm/projects',
-  tasks: '/pm/tasks',
-  emails: '/email',
-  events: '/calendar',
-  invoices: '/invoices',
-  products: '/inventory',
-  orders: '/orders',
-  tickets: '/helpdesk',
-  documents: '/documents',
-  settings: '/settings',
+  'contact': '/crm',
+  'crm': '/crm',
+  'lead': '/lead-generation',
+  'task': '/tasks',
+  'project': '/project-management',
+  'invoice': '/billing-invoices',
+  'quote': '/quotations',
+  'email': '/email-marketing',
+  'order': '/marketplace',
+  'product': '/inventory',
+  'event': '/calendar',
+  'document': '/document-management',
+  'expense': '/expenses',
+  'timesheet': '/time-tracking',
+  'ticket': '/help-desk',
+  'course': '/education',
+};
+
+// Entity type display names
+const ENTITY_NAMES = {
+  'contact': 'Contacts',
+  'crm': 'CRM',
+  'lead': 'Leads',
+  'task': 'Tasks',
+  'project': 'Projects',
+  'invoice': 'Invoices',
+  'quote': 'Quotes',
+  'email': 'Emails',
+  'order': 'Orders',
+  'product': 'Products',
+  'event': 'Events',
+  'document': 'Documents',
+  'expense': 'Expenses',
+  'timesheet': 'Timesheets',
+  'ticket': 'Tickets',
+  'course': 'Courses',
 };
 
 function highlightText(text, query) {
@@ -70,7 +89,7 @@ function highlightText(text, query) {
   const parts = text.split(new RegExp(`(${query})`, 'gi'));
   return parts.map((part, i) => 
     part.toLowerCase() === query.toLowerCase() 
-      ? <mark key={i} className="search-highlight">{part}</mark>
+      ? <mark key={i}>{part}</mark> 
       : part
   );
 }
@@ -87,15 +106,18 @@ function SearchResultItem({ result, query, onClick }) {
       <div className="search-result-icon">
         <Icon size={18} />
       </div>
+            )}
       <div className="search-result-content">
         <div className="search-result-title">
           {highlightText(result.title, query)}
         </div>
+            )}
         {result.content && (
           <div className="search-result-description">
             {highlightText(result.content.substring(0, 120), query)}
             {result.content.length > 120 && '...'}
           </div>
+            )}
         )}
         <div className="search-result-meta">
           <span className="search-result-type">{entityName}</span>
@@ -108,7 +130,9 @@ function SearchResultItem({ result, query, onClick }) {
             </>
           )}
         </div>
+            )}
       </div>
+            )}
     </button>
   );
 }
@@ -148,6 +172,7 @@ export default function SearchResults({ results, query, onResultClick, collapsed
           {results.total} {results.total === 1 ? 'result' : 'results'} found
         </h3>
       </div>
+            )}
 
       <div className="search-results-groups">
         {Object.entries(groupedResults).map(([entityType, items]) => {
@@ -165,6 +190,7 @@ export default function SearchResults({ results, query, onResultClick, collapsed
                   {items.length}
                 </span>
               </div>
+            )}
               <div className="search-results-group-items">
                 {items.map((result) => (
                   <SearchResultItem
@@ -175,10 +201,23 @@ export default function SearchResults({ results, query, onResultClick, collapsed
                   />
                 ))}
               </div>
+            )}
             </div>
+            )}
           );
         })}
       </div>
+            )}
+
+      {results.total > results.results.length && (
+        <div className="search-results-footer">
+          <p className="search-results-more">
+            Showing {results.results.length} of {results.total} results
+          </p>
+        </div>
+            )}
+      )}
     </div>
+            )}
   );
 }

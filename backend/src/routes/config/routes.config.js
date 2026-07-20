@@ -178,6 +178,7 @@ const ROUTES_CONFIG = [
   // CUSTOMER SUPPORT
   // ============================================================================
   moduleRoute('/api/v1/helpdesk', 'helpdesk', 'help-desk', 'Help desk'),
+  authRoute('/api/v1/helpdesk-extended', 'helpdeskExtended', 'Help desk advanced features'),
   authRoute('/api/v1/helpdesk', 'helpdeskUpgrades', 'Help desk upgrades', [requireModuleAccess('help-desk')]),
   moduleRoute('/api/v1/kb', 'knowledgeBase', 'knowledge-base', 'Knowledge base'),
   authRoute('/api/v1/kb', 'kbUpgrades', 'Knowledge base upgrades', [requireModuleAccess('knowledge-base')]),

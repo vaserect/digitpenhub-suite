@@ -30,7 +30,7 @@ exports.getById = asyncHandler(async (req, res) => {
 });
 
 exports.create = asyncHandler(async (req, res) => {
-  const { orgId, userId } = req.user;
+  const { orgId, id: userId } = req.user;
   const { name, scopes, expiresAt } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   

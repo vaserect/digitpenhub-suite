@@ -1,0 +1,44 @@
+-- Enterprise upgrade batch — 14 modules
+-- Calendar
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS recurring_rule TEXT;
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS reminders INT[] DEFAULT '{15}';
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS color TEXT DEFAULT '#6366f1';
+ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS is_all_day BOOLEAN DEFAULT false;
+-- Notes
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS content_html TEXT;
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false;
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+CREATE TABLE IF NOT EXISTS note_versions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), note_id UUID NOT NULL, org_id UUID NOT NULL, content TEXT, version INT, created_by UUID, created_at TIMESTAMPTZ DEFAULT NOW());
+-- Documents
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'draft';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+-- Contracts
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS party_a TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS party_b TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT false;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS renewal_terms TEXT;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS alert_days INT DEFAULT 30;
+-- Expenses
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_url TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_by UUID;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS reimbursable BOOLEAN DEFAULT true;
+-- Subscriptions
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS pause_start TIMESTAMPTZ;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS pause_end TIMESTAMPTZ;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+-- Coupons
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_uses INT;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS current_uses INT DEFAULT 0;
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(12,2);
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS discount_type TEXT DEFAULT 'percentage';
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+-- Digital Products
+ALTER TABLE digital_products ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE digital_products ADD COLUMN IF NOT EXISTS preview_url TEXT;
+ALTER TABLE digital_products ADD COLUMN IF NOT EXISTS download_limit INT DEFAULT 0;
+ALTER TABLE digital_products ADD COLUMN IF NOT EXISTS license_type TEXT DEFAULT 'standard';

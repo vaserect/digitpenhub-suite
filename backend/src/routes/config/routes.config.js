@@ -206,6 +206,11 @@ const ROUTES_CONFIG = [
   // ============================================================================
   moduleRoute('/api/v1/assets', 'assets', 'asset-management', 'Asset management'),
   publicRoute('/api/v1/images', 'images', 'Image management'),
+  authRoute('/api/v1/creative/designs', 'designEditor', 'Graphic Design Editor'),
+  authRoute('/api/v1/creative/logos', 'logoMaker', 'Logo Maker'),
+  authRoute('/api/v1/creative/flyers', 'flyerBuilder', 'Flyer Builder'),
+  authRoute('/api/v1/creative/resumes', 'resumeBuilder', 'Resume Builder'),
+  authRoute('/api/v1/creative/videos', 'videoEditor', 'Basic Video Editor'),
   moduleRoute('/api/v1/page-templates', 'templates', 'website-builder', 'Page templates'),
   moduleRoute('/api/v1/site-templates', 'siteTemplates', 'website-builder', 'Site templates'),
   moduleRoute('/api/v1/email-templates', 'emailTemplates', 'email-marketing', 'Email templates'),

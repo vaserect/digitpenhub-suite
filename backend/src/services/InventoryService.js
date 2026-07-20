@@ -22,7 +22,7 @@ class InventoryService {
 
     const query = `
       SELECT w.*, 
-        u.name as manager_name,
+        u.full_name as manager_name,
         (SELECT COUNT(*) FROM inventory_warehouse_stock WHERE warehouse_id = w.id) as product_count
       FROM inventory_warehouses w
       LEFT JOIN users u ON u.id = w.manager_id
@@ -37,7 +37,7 @@ class InventoryService {
   async getWarehouse(orgId, warehouseId) {
     const { rows } = await db.query(
       `SELECT w.*, 
-        u.name as manager_name,
+        u.full_name as manager_name,
         (SELECT COUNT(*) FROM inventory_warehouse_stock WHERE warehouse_id = w.id) as product_count,
         (SELECT COALESCE(SUM(qty_available), 0) FROM inventory_warehouse_stock WHERE warehouse_id = w.id) as total_units
       FROM inventory_warehouses w
@@ -393,7 +393,7 @@ class InventoryService {
     }
 
     const query = `
-      SELECT t.*, p.name as product_name, p.sku, w.name as warehouse_name, u.name as user_name
+      SELECT t.*, p.name as product_name, p.sku, w.name as warehouse_name, u.full_name as user_name
       FROM inventory_transactions t
       JOIN inventory_products p ON p.id = t.product_id
       LEFT JOIN inventory_warehouses w ON w.id = t.warehouse_id

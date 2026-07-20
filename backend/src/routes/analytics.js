@@ -328,7 +328,7 @@ router.get('/marketplace/customers', requireAuth, async (req, res) => {
     const customersQuery = `
       SELECT 
         u.id,
-        u.name,
+        u.full_name,
         u.email,
         u.avatar_url,
         COUNT(mp.id) as purchase_count,

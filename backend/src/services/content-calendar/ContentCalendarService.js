@@ -33,7 +33,7 @@ class ContentCalendarService {
       page = 1, limit = 20
     } = filters;
 
-    let query = `SELECT ci.*, cc.name as campaign_name, u.name as assigned_to_name
+    let query = `SELECT ci.*, cc.name as campaign_name, u.full_name as assigned_to_name
                  FROM content_items ci
                  LEFT JOIN content_campaigns cc ON ci.campaign_id = cc.id
                  LEFT JOIN users u ON ci.assigned_to = u.id
@@ -322,7 +322,7 @@ class ContentCalendarService {
 
   async getComments(contentId) {
     const { rows } = await db.query(
-      `SELECT cc.*, u.name as user_name
+      `SELECT cc.*, u.full_name as user_name
        FROM content_comments cc
        JOIN users u ON cc.user_id = u.id
        WHERE cc.content_id = $1

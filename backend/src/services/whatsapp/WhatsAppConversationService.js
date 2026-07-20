@@ -59,7 +59,7 @@ class WhatsAppConversationService extends BaseService {
              ct.name as contact_name,
              ct.phone as contact_phone,
              ct.profile_pic_url as contact_profile_pic,
-             u.name as assigned_to_name
+             u.full_name as assigned_to_name
       FROM whatsapp_conversations c
       JOIN whatsapp_contacts ct ON ct.id = c.contact_id
       LEFT JOIN users u ON u.id = c.assigned_to
@@ -102,7 +102,7 @@ class WhatsAppConversationService extends BaseService {
               ct.tags as contact_tags,
               ct.profile_pic_url as contact_profile_pic,
               ct.business_name as contact_business_name,
-              u.name as assigned_to_name
+              u.full_name as assigned_to_name
        FROM whatsapp_conversations c
        JOIN whatsapp_contacts ct ON ct.id = c.contact_id
        LEFT JOIN users u ON u.id = c.assigned_to
@@ -472,7 +472,7 @@ class WhatsAppConversationService extends BaseService {
    */
   async getNotes(orgId, conversationId) {
     const { rows } = await db.query(
-      `SELECT n.*, u.name as created_by_name
+      `SELECT n.*, u.full_name as created_by_name
        FROM whatsapp_contact_notes n
        LEFT JOIN users u ON u.id = n.created_by
        WHERE n.org_id = $1 

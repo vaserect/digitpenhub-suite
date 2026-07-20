@@ -49,7 +49,7 @@ router.get('/components/pending', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.email as creator_email,
         u.avatar_url as creator_avatar,
         o.name as org_name
@@ -99,7 +99,7 @@ router.get('/components', async (req, res) => {
     let query = `
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.email as creator_email,
         u.avatar_url as creator_avatar,
         o.name as org_name
@@ -342,7 +342,7 @@ router.get('/reviews', async (req, res) => {
     let query = `
       SELECT 
         mr.*,
-        u.name as user_name,
+        u.full_name as user_name,
         u.email as user_email,
         mc.name as component_name
       FROM marketplace_reviews mr
@@ -504,7 +504,7 @@ router.get('/reports', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mr.*,
-        u.name as reporter_name,
+        u.full_name as reporter_name,
         u.email as reporter_email,
         mc.name as component_name,
         mc.creator_id,
@@ -647,7 +647,7 @@ router.get('/stats', async (req, res) => {
     const topCreators = await pool.query(`
       SELECT 
         u.id,
-        u.name,
+        u.full_name,
         u.email,
         COUNT(DISTINCT mc.id) as component_count,
         COALESCE(SUM(mp.price_paid), 0) as total_earnings,
@@ -658,7 +658,7 @@ router.get('/stats', async (req, res) => {
       LEFT JOIN marketplace_purchases mp ON mc.id = mp.component_id
       LEFT JOIN marketplace_downloads md ON mc.id = md.component_id
       WHERE mc.status = 'published'
-      GROUP BY u.id, u.name, u.email
+      GROUP BY u.id, u.full_name, u.email
       ORDER BY total_earnings DESC, component_count DESC
       LIMIT 10
     `);
@@ -671,7 +671,7 @@ router.get('/stats', async (req, res) => {
         mc.name,
         mc.status,
         mc.created_at as timestamp,
-        u.name as user_name
+        u.full_name as user_name
       FROM marketplace_components mc
       LEFT JOIN users u ON mc.creator_id = u.id
       ORDER BY mc.created_at DESC

@@ -27,7 +27,7 @@ async function logFieldChange(orgId, recordType, fieldId, fieldKey, changeType, 
  */
 async function getFieldHistory(orgId, recordType, fieldKey, limit = 50) {
   const { rows } = await db.query(
-    `SELECT h.*, u.name as user_name, u.email as user_email
+    `SELECT h.*, u.full_name as user_name, u.email as user_email
      FROM custom_field_history h
      LEFT JOIN users u ON u.id = h.user_id
      WHERE h.org_id = $1 AND h.record_type = $2 AND h.field_key = $3
@@ -44,7 +44,7 @@ async function getFieldHistory(orgId, recordType, fieldKey, limit = 50) {
  */
 async function getAllFieldHistory(orgId, recordType, limit = 100) {
   const { rows } = await db.query(
-    `SELECT h.*, u.name as user_name, u.email as user_email
+    `SELECT h.*, u.full_name as user_name, u.email as user_email
      FROM custom_field_history h
      LEFT JOIN users u ON u.id = h.user_id
      WHERE h.org_id = $1 AND h.record_type = $2

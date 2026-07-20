@@ -109,10 +109,10 @@ class CommunityService extends BaseService {
     const { post_type, limit = 50, offset = 0 } = filters;
     
     let query = `
-      SELECT p.*, u.name as author_name, u.email as author_email
+      SELECT p.*, u.full_name as author_name, u.email as author_email
       FROM community_posts p
       JOIN users u ON p.author_id = u.id
-      WHERE p.space_id = $1
+      WHERE p.community_id = $1
     `;
     const params = [spaceId];
     let paramCount = 1;
@@ -150,7 +150,7 @@ class CommunityService extends BaseService {
 
   async getComments(postId) {
     const { rows } = await db.query(
-      `SELECT c.*, u.name as author_name, u.email as author_email
+      `SELECT c.*, u.full_name as author_name, u.email as author_email
        FROM community_comments c
        JOIN users u ON c.author_id = u.id
        WHERE c.post_id = $1
@@ -281,7 +281,7 @@ class CommunityService extends BaseService {
     const { space_id, limit = 50 } = filters;
     
     let query = `
-      SELECT a.*, u.name as actor_name
+      SELECT a.*, u.full_name as actor_name
       FROM community_activity_feed a
       JOIN users u ON a.actor_id = u.id
       WHERE a.org_id = $1
@@ -328,7 +328,7 @@ class CommunityService extends BaseService {
 
   async getSpaceMembers(spaceId) {
     const { rows } = await db.query(
-      `SELECT m.*, u.name as user_name, u.email as user_email
+      `SELECT m.*, u.full_name as user_name, u.email as user_email
        FROM community_space_members m
        JOIN users u ON m.user_id = u.id
        WHERE m.space_id = $1
@@ -365,7 +365,7 @@ class CommunityService extends BaseService {
 
   async getPostById(postId) {
     const { rows } = await db.query(
-      `SELECT p.*, u.name as author_name, u.email as author_email
+      `SELECT p.*, u.full_name as author_name, u.email as author_email
        FROM community_posts p
        JOIN users u ON p.author_id = u.id
        WHERE p.id = $1`,
@@ -418,7 +418,7 @@ class CommunityService extends BaseService {
 
   async getCommentById(commentId) {
     const { rows } = await db.query(
-      `SELECT c.*, u.name as author_name, u.email as author_email
+      `SELECT c.*, u.full_name as author_name, u.email as author_email
        FROM community_comments c
        JOIN users u ON c.author_id = u.id
        WHERE c.id = $1`,
@@ -495,7 +495,7 @@ class CommunityService extends BaseService {
 
   async getEventAttendees(eventId) {
     const { rows } = await db.query(
-      `SELECT a.*, u.name as user_name, u.email as user_email
+      `SELECT a.*, u.full_name as user_name, u.email as user_email
        FROM community_event_attendees a
        JOIN users u ON a.user_id = u.id
        WHERE a.event_id = $1
@@ -529,7 +529,7 @@ class CommunityService extends BaseService {
     const { search, limit = 50, offset = 0 } = filters;
 
     let query = `
-      SELECT p.*, u.name, u.email
+      SELECT p.*, u.full_name, u.email
       FROM community_member_profiles p
       JOIN users u ON p.user_id = u.id
       WHERE p.org_id = $1
@@ -539,7 +539,7 @@ class CommunityService extends BaseService {
 
     if (search) {
       paramCount++;
-      query += ` AND (p.display_name ILIKE $${paramCount} OR u.name ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`;
+      query += ` AND (p.display_name ILIKE $${paramCount} OR u.full_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`;
       params.push(`%${search}%`);
     }
 
@@ -692,11 +692,11 @@ class CommunityService extends BaseService {
     );
 
     const { rows: topContributors } = await db.query(
-      `SELECT u.name, u.email, COUNT(*) as post_count
+      `SELECT u.full_name, u.email, COUNT(*) as post_count
        FROM community_posts p
        JOIN users u ON p.author_id = u.id
-       WHERE p.space_id = $1
-       GROUP BY u.id, u.name, u.email
+       WHERE p.community_id = $1
+       GROUP BY u.id, u.full_name, u.email
        ORDER BY post_count DESC
        LIMIT 10`,
       [spaceId]

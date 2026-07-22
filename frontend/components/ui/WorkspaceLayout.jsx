@@ -288,6 +288,22 @@ export default function WorkspaceLayout({ children }) {
       'local-seo': '/seo',
       'page-speed': '/seo',
       'ai-content-optimizer': '/seo',
+      'lead-scoring': '/lead-scoring',
+      'pipeline-deals': '/pipeline-deals',
+      'chatbot-builder': '/chatbot-builder',
+      'community': '/community',
+      'review-management': '/review-management',
+      'digital-business-cards': '/digital-business-cards',
+      'link-in-bio': '/link-in-bio',
+      'qr-code-generator': '/qr-code-generator',
+      'quiz-builder': '/quiz-builder',
+      'survey-builder': '/survey-builder',
+      'popup-builder': '/popup-builder',
+      'social-media-scheduler': '/social-media-scheduler',
+      'inbox': '/inbox',
+      'business-dashboard': '/business-dashboard',
+      'builder': '/builder',
+      'ambassador-portal': '/ambassador-portal',
     };
 
     const targetPath = extracted[slug] || '/';

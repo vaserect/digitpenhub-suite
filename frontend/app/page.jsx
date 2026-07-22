@@ -4,6 +4,7 @@ import { useWorkspace } from '../components/ui/WorkspaceLayout';
 import WorkspaceHome from '../components/home/WorkspaceHome';
 import MarketingHome from '../components/marketing/MarketingHome';
 import ModuleRenderer from '../components/modules/ModuleRenderer';
+import ModuleErrorBoundary from '../components/ui/ModuleErrorBoundary';
 import { useState, useMemo } from 'react';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
@@ -89,11 +90,13 @@ export default function HomePage() {
   return (
     <>
       {workspace.view === 'module' && workspace.activeModuleSlug ? (
-        <ModuleRenderer
-          moduleSlug={workspace.activeModuleSlug}
-          goHome={workspace.goHome}
-          categories={workspace.categories}
-        />
+        <ModuleErrorBoundary>
+          <ModuleRenderer
+            moduleSlug={workspace.activeModuleSlug}
+            goHome={workspace.goHome}
+            categories={workspace.categories}
+          />
+        </ModuleErrorBoundary>
       ) : (
         <>
           {view === 'home' && (

@@ -1,4 +1,4 @@
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:5000';
+const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4001';
 
 /** @type {import('next').NextConfig} */
 module.exports = {
@@ -7,6 +7,16 @@ module.exports = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [

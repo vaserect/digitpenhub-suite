@@ -1,5 +1,5 @@
 const AmbassadorService = require('../../services/ambassador/AmbassadorService');
-const { asyncHandler } = require('../../middleware/asyncHandler');
+const { asyncHandler } = require('../../utils/asyncHandler');
 const { ValidationError } = require('../../utils/errors');
 
 const ambassadorService = new AmbassadorService();

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
@@ -42,15 +43,12 @@ export default function SeoPage() {
         apiFetch('/api/v1/seo/local').catch(() => ({ listings: [] })),
         apiFetch('/api/v1/seo/content-scores').catch(() => ({ scores: [] })),
       ]);
-      setKeywords(kw.keywords || []);
-      setAudits(au.audits || []);
-      setDomains(bl.domains || []);
-      setSpeed(sp.results || []);
-      setListings(lo.listings || []);
-      setScores(sc.scores || []);
+      setKeywords(kw.keywords || []); setAudits(au.audits || []); setDomains(bl.domains || []);
+      setSpeed(sp.results || []); setListings(lo.listings || []); setScores(sc.scores || []);
     } catch { toast.error('Failed to load SEO data'); }
     finally { setLoading(false); }
   }, []);
+
   useEffect(() => { loadAll(); }, [loadAll]);
 
   async function handleCreate(e) {
@@ -63,70 +61,63 @@ export default function SeoPage() {
   }
 
   return (
-    <div className="panel">
-      <button className="back-link" onClick={() => router.push('/')}>← Back</button>
-      <div className="module-head"><h1>SEO &amp; Search</h1><p className="module-sub">Track rankings, run site audits, monitor backlinks and page speed.</p></div>
-      <TabBar tabs={TABS} active={tab} onChange={(t) => { setTab(t); }} />
-      {loading ? <SkeletonRows rows={5} /> : null}
-
-      {tab === 'keywords' && (
-        <div>
-          <Button onClick={() => setShowForm(true)} style={{margin:'16px 0'}}>+ Track keyword</Button>
-          {keywords.length === 0 ? <EmptyState icon="🔍" title="No keywords tracked" action={<Button onClick={()=>setShowForm(true)}>+ Track keyword</Button>} /> : (
-            <div className="card-shell">{keywords.map(k => <div key={k.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}>
-                <div style={{fontWeight:600}}>{k.keyword}</div>
-                <div><Badge>{k.current_rank ? `#${k.current_rank}` : '—'}</Badge></div>
-              </div>
-              {k.target_url && <div style={{fontSize:11,color:'var(--text-muted)'}}>{k.target_url}</div>}
-            </div>)}</div>
+    <ModulePage back={{ label: 'Workspace', onClick: () => router.push('/') }} title="SEO &amp; Search" description="Track rankings, run site audits, monitor backlinks and page speed.">
+      <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
+      {loading ? <SkeletonRows rows={5} /> : (
+        <>
+          {tab === 'keywords' && (
+            <div><Button onClick={() => setShowForm(true)} style={{margin:'16px 0'}}>+ Track keyword</Button>
+              {keywords.length === 0 ? <EmptyState icon="🔍" title="No keywords tracked" action={<Button onClick={()=>setShowForm(true)}>+ Track keyword</Button>} /> : (
+                <div className="card-shell">{keywords.map(k => <div key={k.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <div style={{fontWeight:600}}>{k.keyword}</div>
+                    <div><Badge>{k.current_rank ? `#${k.current_rank}` : '—'}</Badge></div>
+                  </div>
+                  {k.target_url && <div style={{fontSize:11,color:'var(--text-muted)'}}>{k.target_url}</div>}
+                </div>)}</div>
+              )}
+            </div>
           )}
-        </div>
+          {tab === 'audits' && (audits.length === 0 ? <EmptyState icon="🔎" title="No audits yet" /> : (
+            <div className="card-shell">{audits.map(a => <div key={a.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <div style={{fontWeight:600}}>{a.url}</div>
+                <Badge variant={(a.score||0) >= 80 ? 'success' : (a.score||0) >= 50 ? 'warning' : 'danger'}>{a.score}/100</Badge>
+              </div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>{new Date(a.created_at).toLocaleDateString()}</div>
+            </div>)}</div>
+          ))}
+          {tab === 'backlinks' && (domains.length === 0 ? <EmptyState icon="🔗" title="No backlink domains" /> : (
+            <div className="card-shell">{domains.map(d => <div key={d.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+              <div style={{fontWeight:600}}>{d.domain}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>{d.backlink_count||0} backlinks · Authority: {d.authority_score||'—'}</div>
+            </div>)}</div>
+          ))}
+          {tab === 'speed' && (speed.length === 0 ? <EmptyState icon="⚡" title="No speed tests" /> : (
+            <div className="card-shell">{speed.map(s => <div key={s.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+              <div style={{fontWeight:600}}>{s.url}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>LCP: {s.lcp||'—'} · INP: {s.inp||'—'} · CLS: {s.cls||'—'}</div>
+            </div>)}</div>
+          ))}
+          {tab === 'local' && (listings.length === 0 ? <EmptyState icon="📍" title="No local listings" /> : (
+            <div className="card-shell">{listings.map(l => <div key={l.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+              <div style={{fontWeight:600}}>{l.business_name}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>{l.address} · {l.status}</div>
+            </div>)}</div>
+          ))}
+          {tab === 'content' && (scores.length === 0 ? <EmptyState icon="📝" title="No content scores" /> : (
+            <div className="card-shell">{scores.map(s => <div key={s.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
+              <div style={{fontWeight:600}}>{s.url}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>Score: <Badge>{(s.score||0).toFixed(0)}</Badge></div>
+            </div>)}</div>
+          ))}
+        </>
       )}
-
-      {tab === 'audits' && (audits.length === 0 ? <EmptyState icon="🔎" title="No audits yet" /> : (
-        <div className="card-shell">{audits.map(a => <div key={a.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-          <div style={{display:'flex',justifyContent:'space-between'}}>
-            <div style={{fontWeight:600}}>{a.url}</div>
-            <Badge variant={(a.score||0) >= 80 ? 'success' : (a.score||0) >= 50 ? 'warning' : 'danger'}>{a.score}/100</Badge>
-          </div>
-          <div style={{fontSize:12,color:'var(--text-muted)'}}>{new Date(a.created_at).toLocaleDateString()}</div>
-        </div>)}</div>
-      ))}
-
-      {tab === 'backlinks' && (domains.length === 0 ? <EmptyState icon="🔗" title="No backlink domains" /> : (
-        <div className="card-shell">{domains.map(d => <div key={d.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-          <div style={{fontWeight:600}}>{d.domain}</div>
-          <div style={{fontSize:12,color:'var(--text-muted)'}}>{d.backlink_count||0} backlinks · Authority: {d.authority_score||'—'}</div>
-        </div>)}</div>
-      ))}
-
-      {tab === 'speed' && (speed.length === 0 ? <EmptyState icon="⚡" title="No speed tests" /> : (
-        <div className="card-shell">{speed.map(s => <div key={s.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-          <div style={{fontWeight:600}}>{s.url}</div>
-          <div style={{fontSize:12,color:'var(--text-muted)'}}>LCP: {s.lcp||'—'} · INP: {s.inp||'—'} · CLS: {s.cls||'—'}</div>
-        </div>)}</div>
-      ))}
-
-      {tab === 'local' && (listings.length === 0 ? <EmptyState icon="📍" title="No local listings" /> : (
-        <div className="card-shell">{listings.map(l => <div key={l.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-          <div style={{fontWeight:600}}>{l.business_name}</div>
-          <div style={{fontSize:12,color:'var(--text-muted)'}}>{l.address} · {l.status}</div>
-        </div>)}</div>
-      ))}
-
-      {tab === 'content' && (scores.length === 0 ? <EmptyState icon="📝" title="No content scores" /> : (
-        <div className="card-shell">{scores.map(s => <div key={s.id} className="card" style={{padding:'12px 16px',marginBottom:4}}>
-          <div style={{fontWeight:600}}>{s.url}</div>
-          <div style={{fontSize:12,color:'var(--text-muted)'}}>Score: <Badge>{(s.score||0).toFixed(0)}</Badge></div>
-        </div>)}</div>
-      ))}
-
       {showForm && (<Modal isOpen title="Track keyword" onClose={()=>setShowForm(false)}><form onSubmit={handleCreate} style={{display:'flex',flexDirection:'column',gap:14}}>
         <div className="field"><label className="field-label">Keyword</label><input className="field-input" value={form.keyword} onChange={e=>setForm({...form,keyword:e.target.value})} placeholder="e.g. digital marketing agency" /></div>
         <div className="field"><label className="field-label">Target URL</label><input className="field-input" value={form.targetUrl} onChange={e=>setForm({...form,targetUrl:e.target.value})} placeholder="https://..." /></div>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',marginTop:8}}><Button onClick={()=>setShowForm(false)} variant="ghost">Cancel</Button><Button type="submit">Track</Button></div>
       </form></Modal>)}
-    </div>
+    </ModulePage>
   );
 }

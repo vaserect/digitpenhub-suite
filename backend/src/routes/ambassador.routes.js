@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ambassadorController = require('../controllers/ambassador/ambassadorController');
 const { requireAuth } = require('../middleware/auth');
-const { requireModuleAccess } = require('../middleware/moduleAccess');
+const { requireModuleAccess } = require('../utils/planAccess');
 
 // Apply authentication and module access to all routes
 router.use(requireAuth);

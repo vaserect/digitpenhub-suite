@@ -10,6 +10,7 @@ import Input from '../../components/ui/Input';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -127,7 +128,13 @@ export default function LoginPage() {
     >
         <form onSubmit={handleSubmit}>
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <div style={{ position: 'relative' }}>
+            <Input label="Password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <button type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
+              style={{ position: 'absolute', right: 8, top: 34, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', fontFamily: 'inherit' }}>
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
           <div className="login-links-row">
             <Link href="/forgot-password" className="link-btn">Forgot password?</Link>
           </div>

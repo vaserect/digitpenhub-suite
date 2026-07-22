@@ -70,19 +70,13 @@ async function createRun(req, res) {
 
 async function updateRun(req, res) {
   const { id } = req.params;
-  const { name, status, notes, periodStart, periodEnd } = req.body || {};
+  const { status, notes } = req.body || {};
   const updates=[]; const vals=[]; let i=1;
-  if (name        !==undefined){updates.push(`name=$${i++}`);         vals.push(name.trim());}
-  if (status      !==undefined){updates.push(`status=$${i++}`);       vals.push(status); if (status==='paid') { updates.push(`paid_at=NOW()`); }}
+  if (status      !==undefined){updates.push(`status=$${i++}`);       vals.push(status); if (status==='processed') { updates.push(`processed_at=NOW()`); }}
   if (notes       !==undefined){updates.push(`notes=$${i++}`);        vals.push(notes||null);}
-  if (periodStart !==undefined){updates.push(`period_start=$${i++}`); vals.push(periodStart);}
-  if (periodEnd   !==undefined){updates.push(`period_end=$${i++}`);   vals.push(periodEnd);}
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update.' });
-  updates.push('updated_at=NOW()');
   vals.push(id, req.user.orgId);
-  const idParam = i;
-  const orgParam = i + 1;
-  const { rows } = await db.query(`UPDATE payroll_runs SET ${updates.join(',')} WHERE id=$${idParam} AND org_id=$${orgParam} RETURNING *`, vals);
+  const { rows } = await db.query(`UPDATE payroll_runs SET ${updates.join(',')} WHERE id=$${i} AND org_id=$${i+1} RETURNING *`, vals);
   if (!rows.length) return res.status(404).json({ error: 'Not found.' });
   res.json({ run: rows[0] });
 }

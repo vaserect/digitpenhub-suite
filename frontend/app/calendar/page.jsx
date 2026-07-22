@@ -3,13 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
 import SearchInput from '../../components/ui/SearchInput';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
-import Badge from '../../components/ui/Badge';
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -44,15 +44,13 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="panel">
-      <button className="back-link" onClick={() => router.push('/')}>← Back to workspace</button>
-      <div className="module-head"><h1>Calendar</h1><p className="module-sub">Manage events and appointments.</p></div>
+    <ModulePage back={{ label: 'Workspace', onClick: () => router.push('/') }} title="Calendar" description="Manage events and appointments.">
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 260px' }}><SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search events…" /></div>
         <Button onClick={() => setShowForm(true)}>+ New event</Button>
       </div>
       {loading ? <SkeletonRows rows={3} /> : filtered.length === 0 ? (
-        <EmptyState icon="📅" title="No events" description="Add your first event." action={<Button onClick={() => setShowForm(true)}>+ New event</Button>} />
+        <EmptyState icon="📅" title="No events" action={<Button onClick={() => setShowForm(true)}>+ New event</Button>} />
       ) : (
         <div className="card-shell">
           {filtered.map((e) => (
@@ -73,6 +71,6 @@ export default function CalendarPage() {
         <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:8 }}><Button onClick={() => setShowForm(false)} variant="ghost">Cancel</Button><Button type="submit">Create</Button></div>
       </form></Modal>)}
       <ConfirmDialog isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => handleDelete(confirmDelete.id)} title="Delete event?" confirmLabel="Delete" cancelLabel="Cancel" danger />
-    </div>
+    </ModulePage>
   );
 }

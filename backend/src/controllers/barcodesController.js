@@ -1011,7 +1011,7 @@ async function createPrintTemplate(req, res) {
       label_width,
       label_height,
       columns = 1,
-      rows = 1,
+      rows: printRows = 1,
       horizontal_spacing = 0,
       vertical_spacing = 0,
       margin_top = 0.5,
@@ -1031,7 +1031,7 @@ async function createPrintTemplate(req, res) {
     const { rows } = await db.query(
       `INSERT INTO barcode_print_templates (
         org_id, name, description, paper_size, paper_width, paper_height,
-        label_width, label_height, columns, rows,
+        label_width, label_height, columns, printRows,
         horizontal_spacing, vertical_spacing,
         margin_top, margin_bottom, margin_left, margin_right,
         layout_config, label_type
@@ -1039,7 +1039,7 @@ async function createPrintTemplate(req, res) {
       RETURNING *`,
       [
         req.user.orgId, name.trim(), description, paper_size, paper_width, paper_height,
-        label_width, label_height, columns, rows,
+        label_width, label_height, columns, printRows,
         horizontal_spacing, vertical_spacing,
         margin_top, margin_bottom, margin_left, margin_right,
         layout_config, label_type

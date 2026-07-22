@@ -30,7 +30,7 @@ const { seedEmailTemplates } = require('./seedEmailTemplates');
         await dbClient.query(
           `INSERT INTO modules (category_id, name, slug, status, route, sort_order)
            VALUES ($1,$2,$3,$4,$5,$6)
-           ON CONFLICT (slug) DO UPDATE SET status=$4, route=$5, sort_order=$6`,
+           ON CONFLICT (slug) DO UPDATE SET category_id=$1, name=$2, status=$4, route=$5, sort_order=$6`,
           [categoryId, name, slug, status, route, mi]
         );
       }

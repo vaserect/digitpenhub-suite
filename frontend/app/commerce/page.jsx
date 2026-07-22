@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
@@ -39,13 +40,8 @@ export default function CommercePage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="panel">
-      <button className="back-link" onClick={() => router.push('/')}>← Back to workspace</button>
-      <div className="module-head">
-        <h1>Commerce</h1>
-        <p className="module-sub">Manage your online store, products, orders, and subscriptions.</p>
-      </div>
-      <TabBar tabs={TABS} active={tab} onChange={setTab} />
+    <ModulePage back={{label:'Workspace',onClick:()=>router.push('/')}} title="Commerce" description="Manage your online store, products, orders, and subscriptions.">
+      <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
       {loading ? <SkeletonRows rows={4} /> : tab === 'products' && (
         products.length === 0 ? <EmptyState icon="🛍️" title="No products yet" /> : (
           <div className="card-shell">{products.map(p => (
@@ -75,6 +71,6 @@ export default function CommercePage() {
           </div>
         ))}</div>
       ))}
-    </div>
+    </ModulePage>
   );
 }

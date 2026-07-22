@@ -3,23 +3,59 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 
-const API = { 'time-tracking': '/api/v1/time-tracking', 'notes': '/api/v1/notes', 'coupons': '/api/v1/coupons' };
-const LABELS = { 'time-tracking': 'Time Tracking', 'notes': 'Notes', 'coupons': 'Coupons' };
-
-export default function Page() {
+export default function NotesPage() {
   const router = useRouter();
-  const [data, setData] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [slug, setSlug] = useState('');
-  useEffect(() => { const s = window.location.pathname.split('/')[1]; setSlug(s); }, []);
-  useEffect(() => { if (slug) { apiFetch(API[slug] || '/api/v1/' + slug).then(d => setData(Object.values(d)[0] || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false)); } }, [slug]);
-  return (<div className="panel"><button className="back-link" onClick={() => router.push('/')}>← Back</button>
-    <div className="module-head"><h1>{LABELS[slug] || slug.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h1></div>
-    {loading ? <SkeletonRows rows={4} /> : data.length === 0 ? <EmptyState icon="📋" title="No records yet" /> : (
-      <div className="card-shell">{data.map((item,i) => <div key={item.id||i} className="card" style={{padding:'12px 16px',marginBottom:4}}><div style={{fontWeight:600}}>{item.name||item.title||item.description||item.label||item.code||item.id}</div></div>)}</div>
-    )}
-  </div>);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: '', content: '' });
+
+  useEffect(() => {
+    apiFetch('/api/v1/notes').then(d => setNotes(d.notes || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+  }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    try {
+      await apiFetch('/api/v1/notes', { method: 'POST', body: JSON.stringify(form) });
+      toast.success('Note created!'); setShowForm(false); setForm({ title: '', content: '' });
+      const d = await apiFetch('/api/v1/notes'); setNotes(d.notes || []);
+    } catch (err) { toast.error(err.message); }
+  }
+
+  return (
+    <ModulePage back={{ label: 'Workspace', onClick: () => router.push('/') }} title="Notes" description="Capture and organize your notes.">
+      <Button onClick={() => setShowForm(true)} style={{ marginBottom: 16 }}>+ New note</Button>
+      {loading ? <SkeletonRows rows={4} /> : notes.length === 0 ? (
+        <EmptyState icon="📝" title="No notes yet" action={<Button onClick={() => setShowForm(true)}>+ New note</Button>} />
+      ) : (
+        <div className="card-shell">{notes.map(n => (
+          <div key={n.id} className="card" style={{ padding: '14px 18px', marginBottom: 4 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{n.title}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{(n.content || '').substring(0, 200)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{new Date(n.created_at).toLocaleDateString()}</div>
+          </div>
+        ))}</div>
+      )}
+      {showForm && (
+        <Modal isOpen title="New note" onClose={() => setShowForm(false)}>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field"><label className="field-label">Title</label><input className="field-input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
+            <div className="field"><label className="field-label">Content</label><textarea className="field-textarea" rows={6} value={form.content} onChange={e => setForm({...form, content: e.target.value})} /></div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+              <Button onClick={() => setShowForm(false)} variant="ghost">Cancel</Button>
+              <Button type="submit">Save</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </ModulePage>
+  );
 }

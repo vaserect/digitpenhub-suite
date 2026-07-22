@@ -53,8 +53,24 @@ async function updateQuotation(req, res) {
   if (discount      !== undefined) { updates.push(`discount=$${i++}`);       vals.push(Number(discount)); }
   if (taxRate       !== undefined) { updates.push(`tax_rate=$${i++}`);       vals.push(Number(taxRate)); }
   if (taxRate !== undefined || discount !== undefined || subtotal !== undefined) {
-    const s = Number(subtotal||0); const d = Number(discount||0); const r = Number(taxRate||0);
-    updates.push(`tax_amount=$${i++}`); vals.push((s - d) * r / 100);
+    // Fetch the existing quotation to get the current tax_rate when it's not in the body.
+    // This avoids silently wiping tax_amount to 0 when only subtotal/discount is updated.
+    let effectiveTaxRate = taxRate;
+    if (effectiveTaxRate === undefined) {
+      const { rows: existing } = await db.query(
+        `SELECT tax_rate FROM quotations WHERE id=$1 AND org_id=$2`,
+        [id, req.user.orgId]
+      );
+      effectiveTaxRate = existing.length ? existing[0].tax_rate : 0;
+    }
+    const s = taxRate !== undefined ? Number(subtotal || 0) : undefined;
+    const d = discount !== undefined ? Number(discount || 0) : undefined;
+    // Only recalculate if we have the needed values
+    const sVal = s !== undefined ? s : Number(subtotal || 0);
+    const dVal = d !== undefined ? d : Number(discount || 0);
+    const r = Number(effectiveTaxRate || 0);
+    updates.push(`tax_amount=$${i++}`);
+    vals.push((sVal - dVal) * r / 100);
   }
   if (total      !== undefined) { updates.push(`total=$${i++}`);       vals.push(Number(total)); }
   if (status     !== undefined) { updates.push(`status=$${i++}`);      vals.push(status); }

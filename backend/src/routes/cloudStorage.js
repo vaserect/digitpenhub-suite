@@ -16,21 +16,21 @@ router.put('/:id', cloudStorageController.update);
 router.delete('/:id', cloudStorageController.delete);
 
 // Bulk operations
-router.post('/bulk-delete', bulkDeleteHandler('cloudStorage'));
+router.post('/bulk-delete', bulkDeleteHandler('storage_files'));
 
 // Export
 router.get('/export', async (req, res) => {
   const { rows } = await db.query(
-    'SELECT * FROM cloudStorage WHERE org_id = $1 ORDER BY created_at DESC',
+    'SELECT * FROM storage_files WHERE org_id = $1 ORDER BY created_at DESC',
     [req.user.orgId]
   );
-  sendCsv(res, 'cloudStorage.csv', rows, autoColumns(rows));
+  sendCsv(res, 'storage-files.csv', rows, autoColumns(rows));
 });
 
 // Stats
 router.get('/stats', async (req, res) => {
   const { rows } = await db.query(
-    'SELECT count(*)::int AS total FROM cloudStorage WHERE org_id = $1',
+    'SELECT count(*)::int AS total FROM storage_files WHERE org_id = $1',
     [req.user.orgId]
   );
   res.json({ stats: rows[0] });

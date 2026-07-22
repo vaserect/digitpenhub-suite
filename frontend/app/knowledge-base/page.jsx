@@ -3,13 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
 import SearchInput from '../../components/ui/SearchInput';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
-import Badge from '../../components/ui/Badge';
 
 export default function KbPage() {
   const router = useRouter();
@@ -44,15 +44,13 @@ export default function KbPage() {
   }
 
   return (
-    <div className="panel">
-      <button className="back-link" onClick={() => router.push('/')}>← Back to workspace</button>
-      <div className="module-head"><h1>Knowledge Base</h1><p className="module-sub">Create and manage help articles and documentation.</p></div>
+    <ModulePage back={{ label: 'Workspace', onClick: () => router.push('/') }} title="Knowledge Base" description="Create and manage help articles and documentation.">
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 260px' }}><SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search articles…" /></div>
         <Button onClick={() => setShowForm(true)}>+ New article</Button>
       </div>
       {loading ? <SkeletonRows rows={3} /> : filtered.length === 0 ? (
-        <EmptyState icon="📚" title="No articles yet" description="Write your first knowledge base article." action={<Button onClick={() => setShowForm(true)}>+ New article</Button>} />
+        <EmptyState icon="📚" title="No articles yet" action={<Button onClick={() => setShowForm(true)}>+ New article</Button>} />
       ) : (
         <div className="card-shell">{[...new Set(articles.map(a => a.category).filter(Boolean))].map(cat => (
           <div key={cat} style={{ marginBottom: 16 }}><div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 8 }}>{cat}</div>
@@ -72,6 +70,6 @@ export default function KbPage() {
         <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:8 }}><Button onClick={() => setShowForm(false)} variant="ghost">Cancel</Button><Button type="submit">Create</Button></div>
       </form></Modal>)}
       <ConfirmDialog isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={() => handleDelete(confirmDelete.id)} title="Delete article?" confirmLabel="Delete" cancelLabel="Cancel" danger />
-    </div>
+    </ModulePage>
   );
 }

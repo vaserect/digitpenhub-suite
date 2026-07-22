@@ -41,6 +41,29 @@ const API_MAP = {
   'jobs': '/api/v1/community/jobs', 'ideas': '/api/v1/community/ideas',
   'skills': '/api/v1/community/skills', 'ambassadors': '/api/v1/community/ambassadors',
   'timezone-proposals': '/api/v1/community/timezone-proposals',
+  // Module slug → actual API path mappings for routes that don't match their slug
+  'qr-code-generator': '/api/v1/qr-codes',
+  'digital-business-cards': '/api/v1/biz-cards',
+  'link-in-bio': '/api/v1/link-in-bio',
+  'review-management': '/api/v1/reviews',
+  'survey-builder': '/api/v1/forms',
+  'online-store-builder': '/api/v1/store-builder',
+  'custom-fields-engine': '/api/v1/custom-fields',
+  'global-search': '/api/v1/search',
+  'digital-asset-management-dam': '/api/v1/dam',
+  'approval-workflow-engine': '/api/v1/approvals',
+  'unified-inbox': '/api/v1/inbox',
+  'granular-role-based-permissions': '/api/v1/permissions',
+  'feature-flags-ab-experimentation-engine': '/api/v1/feature-flags',
+  'notification-center': '/api/v1/notifications',
+  'public-api-webhooks-manager': '/api/v1/webhooks',
+  'knowledge-graph-entity-relationship-mapping': '/api/v1/knowledge-graph',
+  'master-data-management-deduplication-engine': '/api/v1/dedup',
+  'client-portal': '/api/v1/portal',
+  'membership-community-platform': '/api/v1/community',
+  'api-keys': '/api/v1/api-keys',
+  'payment-processing': '/api/v1/payments',
+  'digital-asset-management': '/api/v1/dam',
 };
 
 const NO_API_SLUGS = new Set([
@@ -58,7 +81,8 @@ const NO_API_SLUGS = new Set([
 function guessApiPath(slug) {
   if (NO_API_SLUGS.has(slug)) return null;
   if (API_MAP[slug]) return API_MAP[slug];
-  return '/api/v1/' + slug;
+  // Per-module CRUD — every module with a DB table has explicit endpoints
+  return '/api/v1/module/' + slug;
 }
 
 function formatCell(v) {

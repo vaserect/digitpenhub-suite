@@ -310,9 +310,6 @@ class CommunityService extends BaseService {
       [orgId, spaceId, actorId, activityType, targetType, targetId, JSON.stringify(metadata)]
     );
   }
-}
-
-module.exports = new CommunityService();
 
   // ==================== ADDITIONAL SPACE METHODS ====================
 

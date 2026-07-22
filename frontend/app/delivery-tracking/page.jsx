@@ -3,40 +3,35 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
+import Modal from '../../components/ui/Modal';
+import Badge from '../../components/ui/Badge';
 
-const API_MAP = {
-  'payroll': '/api/v1/payroll', 'accounting': '/api/v1/accounting/accounts', 'subscriptions': '/api/v1/customer-subs',
-  'appointments': '/api/v1/appointments', 'affiliates': '/api/v1/affiliates', 'referrals': '/api/v1/referrals',
-  'delivery-tracking': '/api/v1/delivery', 'password-manager': '/api/v1/password-manager',
-  'certificates': '/api/v1/certificates', 'color-palettes': '/api/v1/color-palettes',
-  'custom-reports': '/api/v1/custom-reports', 'brand-kit': '/api/v1/brand-kit',
-  'digital-products': '/api/v1/digital-products', 'asset-management': '/api/v1/assets',
-  'documents': '/api/v1/documents',
-};
-const LABEL_MAP = {
-  'payroll': 'Payroll', 'accounting': 'Accounting', 'subscriptions': 'Subscriptions',
-  'appointments': 'Appointment Booking', 'affiliates': 'Affiliates', 'referrals': 'Referral Program',
-  'delivery-tracking': 'Delivery Tracking', 'password-manager': 'Password Manager',
-  'certificates': 'Certificate Generator', 'color-palettes': 'Color Palettes',
-  'custom-reports': 'Custom Reports', 'brand-kit': 'Brand Kit',
-  'digital-products': 'Digital Products', 'asset-management': 'Asset Management',
-  'documents': 'Document Management',
-};
-
-export default function ModulePage() {
+export default function DeliveryTrackingPage() {
   const router = useRouter();
-  const [slug, setSlug] = useState('');
-  const [data, setData] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { const s = window.location.pathname.split('/')[1]; setSlug(s); }, []);
-  useEffect(() => { if (!slug) return; apiFetch(API_MAP[slug] || '/api/v1/' + slug).then(d => setData(Object.values(d)[0] || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false)); }, [slug]);
-  return (<div className="panel"><button className="back-link" onClick={() => router.push('/')}>← Back</button>
-    <div className="module-head"><h1>{LABEL_MAP[slug] || slug.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h1></div>
-    {loading ? <SkeletonRows rows={4} /> : data.length === 0 ? <EmptyState icon="📁" title="No records yet" /> : (
-      <div className="card-shell">{data.map((item,i) => <div key={item.id||i} className="card" style={{padding:'12px 16px',marginBottom:4}}><div style={{fontWeight:600}}>{item.name||item.title||item.description||item.label||item.code||item.id}</div></div>)}</div>
-    )}
-  </div>);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ orderRef: '', carrier: '', trackingCode: '' });
+  useEffect(() => {
+    apiFetch('/api/v1/delivery').then(d => setItems(d.deliveries || d.shipments || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+  }, []);
+  async function handleCreate(e) { e.preventDefault(); try { await apiFetch('/api/v1/delivery', {method:'POST',body:JSON.stringify(form)}); toast.success('Added!'); setShowForm(false); setForm({orderRef:'',carrier:'',trackingCode:''}); const d=await apiFetch('/api/v1/delivery'); setItems(d.deliveries||d.shipments||[]); } catch(err) { toast.error(err.message); } }
+  return (
+    <ModulePage back={{label:'Workspace',onClick:()=>router.push('/')}} title="Delivery Tracking" description="Track shipments and deliveries.">
+      <Button onClick={()=>setShowForm(true)} style={{marginBottom:16}}>+ Add delivery</Button>
+      {loading ? <SkeletonRows rows={4} /> : items.length === 0 ? <EmptyState icon="📦" title="No deliveries yet" action={<Button onClick={()=>setShowForm(true)}>+ Add delivery</Button>} /> : (
+        <div className="card-shell">{items.map((item,i) => <div key={item.id||i} className="card" style={{padding:'12px 16px',marginBottom:4}}><div style={{fontWeight:600}}>{item.order_ref||item.orderRef||item.tracking_code||item.trackingCode||'Delivery'}</div><div style={{display:'flex',gap:8,marginTop:4}}><Badge variant={item.status === 'delivered' ? 'success' : item.status === 'in_transit' ? 'warning' : 'neutral'}>{item.status||'pending'}</Badge><span style={{fontSize:12,color:'var(--text-muted)'}}>{item.carrier||''}</span></div></div>)}</div>
+      )}
+      {showForm && (<Modal isOpen title="Add delivery" onClose={()=>setShowForm(false)}><form onSubmit={handleCreate} style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div className="field"><label className="field-label">Order reference</label><input className="field-input" value={form.orderRef} onChange={e=>setForm({...form,orderRef:e.target.value})} /></div>
+        <div className="field"><label className="field-label">Carrier</label><input className="field-input" value={form.carrier} onChange={e=>setForm({...form,carrier:e.target.value})} /></div>
+        <div className="field"><label className="field-label">Tracking code</label><input className="field-input" value={form.trackingCode} onChange={e=>setForm({...form,trackingCode:e.target.value})} /></div>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end',marginTop:8}}><Button onClick={()=>setShowForm(false)} variant="ghost">Cancel</Button><Button type="submit">Add</Button></div>
+      </form></Modal>)}
+    </ModulePage>
+  );
 }

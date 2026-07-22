@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiFetch } from '../../lib/api';
+import ModulePage from '../../components/ui/ModulePage';
 import Button from '../../components/ui/Button';
 import { SkeletonRows } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
@@ -11,6 +12,11 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import TabBar from '../../components/ui/TabBar';
+
+const TABS = [
+  { key: 'open', label: 'Open' },
+  { key: 'closed', label: 'Closed' },
+];
 
 export default function HelpdeskPage() {
   const router = useRouter();
@@ -37,11 +43,6 @@ export default function HelpdeskPage() {
     return true;
   }).filter(t => !search || t.subject.toLowerCase().includes(search.toLowerCase()));
 
-  const TABS = [
-    { key: 'open', label: `Open (${tickets.filter(t => t.status !== 'closed' && t.status !== 'resolved').length})` },
-    { key: 'closed', label: `Closed (${tickets.filter(t => t.status === 'closed' || t.status === 'resolved').length})` },
-  ];
-
   async function handleCreate(e) {
     e.preventDefault();
     if (!form.subject.trim()) return;
@@ -52,10 +53,8 @@ export default function HelpdeskPage() {
   }
 
   async function viewDetail(ticket) {
-    try {
-      const d = await apiFetch(`/api/v1/helpdesk/${ticket.id}`);
-      setDetail(d);
-    } catch (err) { toast.error(err.message); }
+    try { const d = await apiFetch(`/api/v1/helpdesk/${ticket.id}`); setDetail(d); }
+    catch (err) { toast.error(err.message); }
   }
 
   async function handleReply() {
@@ -72,10 +71,8 @@ export default function HelpdeskPage() {
   }
 
   return (
-    <div className="panel">
-      <button className="back-link" onClick={() => router.push('/')}>← Back</button>
-      <div className="module-head"><h1>Help Desk</h1><p className="module-sub">Customer support tickets and replies.</p></div>
-      <TabBar tabs={TABS} active={tab} onChange={setTab} />
+    <ModulePage back={{ label: 'Workspace', onClick: () => router.push('/') }} title="Help Desk" description="Customer support tickets and replies.">
+      <TabBar tabs={TABS} activeKey={tab} onChange={setTab} />
       <div style={{ display: 'flex', gap: 10, margin: '16px 0', flexWrap: 'wrap' }}>
         <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets…" />
         <Button onClick={() => setShowForm(true)}>+ New ticket</Button>
@@ -106,5 +103,6 @@ export default function HelpdeskPage() {
         {detail.ticket?.status !== 'closed' && (<div style={{marginTop:12}}><textarea className="field-textarea" rows={3} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Write a reply…" /><div style={{display:'flex',gap:8,marginTop:8}}><Button onClick={handleReply}>Send reply</Button><Button onClick={() => closeTicket(detail.ticket.id)} variant="danger">Close ticket</Button></div></div>)}
       </Modal>)}
       <ConfirmDialog isOpen={false} onClose={() => {}} onConfirm={() => {}} title="" confirmLabel="" cancelLabel="" danger />
-    </div>);
+    </ModulePage>
+  );
 }

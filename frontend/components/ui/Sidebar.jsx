@@ -72,6 +72,16 @@ export default function Sidebar({
   onBilling, onAccount, onWhiteLabel, pinnedSlugs = [], onTogglePin,
   sidebarSearch, onSidebarSearchChange, expandedCats, onToggleCategory,
 }) {
+  const isSettingsActive = ['account', 'billing', 'white-label'].includes(view) ||
+    ['team', 'notifications', 'api-keys', 'integrations', 'feature-flags'].includes(activeModuleSlug);
+  const [settingsOpen, setSettingsOpen] = React.useState(isSettingsActive);
+
+  React.useEffect(() => {
+    if (isSettingsActive) {
+      setSettingsOpen(true);
+    }
+  }, [view, activeModuleSlug, isSettingsActive]);
+
   const q = (sidebarSearch || '').trim().toLowerCase();
 
   const searchResults = q
@@ -211,33 +221,43 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-footer sidebar-footer-workspace">
-        <div className="nav-section-label">Workspace Settings</div>
-        <Link href="/account" className={`nav-item ${view === 'account' ? 'is-active' : ''}`} onClick={onAccount}>
-          <span><span className="dot" />Account &amp; Security</span>
-        </Link>
-        <Link href="/billing" className={`nav-item ${view === 'billing' ? 'is-active' : ''}`} onClick={onBilling}>
-          <span><span className="dot" />Billing &amp; Plans</span>
-        </Link>
-        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'team' ? 'is-active' : ''}`} onClick={() => onModule && onModule('team')}>
-          <span><span className="dot" />Team / Roles</span>
+        <button
+          className={`nav-item nav-item-settings-parent ${isSettingsActive ? 'is-active' : ''}`}
+          onClick={() => setSettingsOpen(prev => !prev)}
+          style={{ width: '100%', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+        >
+          <span>⚙️ <ChevronIcon open={settingsOpen} /><span className="dot" />Settings</span>
         </button>
-        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'notifications' ? 'is-active' : ''}`} onClick={() => onModule && onModule('notifications')}>
-          <span><span className="dot" />Notifications</span>
-        </button>
-        {onWhiteLabel && (
-          <button className={`nav-item ${view === 'white-label' ? 'is-active' : ''}`} onClick={onWhiteLabel}>
-            <span><span className="dot" />White Label</span>
-          </button>
+        {settingsOpen && !collapsed && (
+          <div style={{ paddingLeft: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Link href="/account" className={`nav-item nav-item-sub ${view === 'account' ? 'is-active' : ''}`} onClick={onAccount}>
+              <span>👤 Account &amp; Security</span>
+            </Link>
+            <Link href="/billing" className={`nav-item nav-item-sub ${view === 'billing' ? 'is-active' : ''}`} onClick={onBilling}>
+              <span>💳 Billing &amp; Plans</span>
+            </Link>
+            <button className={`nav-item nav-item-sub ${view === 'module' && activeModuleSlug === 'team' ? 'is-active' : ''}`} onClick={() => onModule && onModule('team')}>
+              <span>👥 Team / Roles</span>
+            </button>
+            <button className={`nav-item nav-item-sub ${view === 'module' && activeModuleSlug === 'notifications' ? 'is-active' : ''}`} onClick={() => onModule && onModule('notifications')}>
+              <span>🔔 Notifications</span>
+            </button>
+            {onWhiteLabel && (
+              <button className={`nav-item nav-item-sub ${view === 'white-label' ? 'is-active' : ''}`} onClick={onWhiteLabel}>
+                <span>🏷️ White Label</span>
+              </button>
+            )}
+            <button className={`nav-item nav-item-sub ${view === 'module' && activeModuleSlug === 'api-keys' ? 'is-active' : ''}`} onClick={() => onModule && onModule('api-keys')}>
+              <span>🔑 API Keys</span>
+            </button>
+            <button className={`nav-item nav-item-sub ${view === 'module' && activeModuleSlug === 'integrations' ? 'is-active' : ''}`} onClick={() => onModule && onModule('integrations')}>
+              <span>🔌 Integrations</span>
+            </button>
+            <button className={`nav-item nav-item-sub ${view === 'module' && activeModuleSlug === 'feature-flags' ? 'is-active' : ''}`} onClick={() => onModule && onModule('feature-flags')}>
+              <span>🚩 Feature Flags</span>
+            </button>
+          </div>
         )}
-        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'api-keys' ? 'is-active' : ''}`} onClick={() => onModule && onModule('api-keys')}>
-          <span><span className="dot" />API Keys</span>
-        </button>
-        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'integrations' ? 'is-active' : ''}`} onClick={() => onModule && onModule('integrations')}>
-          <span><span className="dot" />Integrations</span>
-        </button>
-        <button className={`nav-item ${view === 'module' && activeModuleSlug === 'feature-flags' ? 'is-active' : ''}`} onClick={() => onModule && onModule('feature-flags')}>
-          <span><span className="dot" />Feature Flags</span>
-        </button>
       </div>
     </nav>
   );

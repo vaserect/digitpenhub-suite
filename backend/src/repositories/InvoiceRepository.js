@@ -10,7 +10,8 @@ class InvoiceRepository extends BaseRepository {
     super(db, 'invoices', {
       primaryKey: 'id',
       timestamps: true,
-      tenantColumn: 'org_id',
+      allowedColumns: ['id','org_id','client_id','invoice_number','status','issue_date','due_date','subtotal','tax_rate','total','amount_paid','balance','notes','share_token','created_at','updated_at','created_by','updated_by','deleted_at','deleted_by','recurring','recurrence_rule','po_number','discount','discount_type','currency','payment_terms','memo'],
+      allowedSortColumns: ['id','invoice_number','status','issue_date','due_date','total','created_at','updated_at','client_id'],
     });
   }
 
@@ -151,12 +152,25 @@ class InvoiceRepository extends BaseRepository {
    * @returns {Promise<string>} Next invoice number
    */
   async generateInvoiceNumber(orgId) {
+    // Safety: a UNIQUE (org_id, invoice_number) constraint on the invoices
+    // table provides the hard guarantee against duplicates. This method is a
+    // best-effort generator — if it produces a duplicate, the DB constraint
+    // will reject it and the caller must retry.
+
+    // Use a dedicated sequence tracking table per org for race-free numbering.
+    // Try to increment the counter, insert if not exists.
+    await this.db.query(
+      `INSERT INTO invoice_number_sequences (org_id, last_number)
+       VALUES ($1, 0)
+       ON CONFLICT (org_id) DO NOTHING`,
+      [orgId]
+    );
+
     const { rows } = await this.db.query(
-      `SELECT invoice_number 
-       FROM ${this.tableName}
+      `UPDATE invoice_number_sequences
+       SET last_number = last_number + 1
        WHERE org_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
+       RETURNING last_number`,
       [orgId]
     );
 
@@ -164,15 +178,7 @@ class InvoiceRepository extends BaseRepository {
       return 'INV-0001';
     }
 
-    const lastNumber = rows[0].invoice_number;
-    const match = lastNumber.match(/INV-(\d+)/);
-
-    if (match) {
-      const nextNum = parseInt(match[1], 10) + 1;
-      return `INV-${String(nextNum).padStart(4, '0')}`;
-    }
-
-    return 'INV-0001';
+    return `INV-${String(rows[0].last_number).padStart(4, '0')}`;
   }
 
   /**
@@ -399,3 +405,4 @@ class InvoiceRepository extends BaseRepository {
 }
 
 module.exports = InvoiceRepository;
+

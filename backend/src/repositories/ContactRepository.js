@@ -190,11 +190,11 @@ class ContactRepository extends BaseRepository {
     try {
       const { rows } = await this.db.query(
         `SELECT * FROM ${this.tableName}
-         WHERE org_id = $1 
-           AND (last_touch_at IS NULL OR last_touch_at < NOW() - INTERVAL '${days} days')
+         WHERE org_id = $1
+           AND (last_touch_at IS NULL OR last_touch_at < NOW() - $2::interval)
            AND stage NOT IN ('won', 'lost')
          ORDER BY created_at DESC`,
-        [orgId]
+        [orgId, `${days} days`]
       );
       return rows;
     } catch (error) {

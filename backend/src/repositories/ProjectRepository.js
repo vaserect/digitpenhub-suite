@@ -10,7 +10,8 @@ class ProjectRepository extends BaseRepository {
     super(db, 'projects', {
       primaryKey: 'id',
       timestamps: true,
-      tenantColumn: 'org_id',
+      allowedColumns: ['id','org_id','name','description','status','priority','start_date','due_date','completed_at','created_at','updated_at','created_by','updated_by','deleted_at','deleted_by','tags','custom_fields','budget','estimated_hours','actual_hours','client_id','color','is_template'],
+      allowedSortColumns: ['id','name','status','priority','start_date','due_date','created_at','updated_at','completed_at'],
     });
   }
 

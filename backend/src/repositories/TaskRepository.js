@@ -10,7 +10,8 @@ class TaskRepository extends BaseRepository {
     super(db, 'tasks', {
       primaryKey: 'id',
       timestamps: true,
-      tenantColumn: 'org_id',
+      allowedColumns: ['id','org_id','project_id','title','description','status','priority','sort_order','assigned_to','due_date','created_at','updated_at','created_by','updated_by','deleted_at','deleted_by','tags','custom_fields','estimated_hours','actual_hours','start_date','completed_at','parent_id','is_recurring','recurrence_rule'],
+      allowedSortColumns: ['id','title','status','priority','sort_order','due_date','created_at','updated_at','completed_at','assigned_to'],
     });
   }
 

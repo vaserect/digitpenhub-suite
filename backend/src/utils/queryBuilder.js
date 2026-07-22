@@ -71,10 +71,14 @@ function buildUpdateQuery(table, updates, where, startIndex = 1) {
 /**
  * Builds a safe SELECT query with dynamic WHERE conditions
  * 
+ * SECURITY: The `options.orderBy` parameter is interpolated directly into SQL.
+ * Only pass values from a allowlist (never raw user input).
+ * 
  * @param {string} table - Table name
  * @param {string[]} columns - Columns to select (default: ['*'])
  * @param {Object} where - Object with WHERE clause conditions
  * @param {Object} options - Additional options (orderBy, limit, offset)
+ * @param {string[]} allowedSortColumns - Allowlist of valid ORDER BY values (required for safety)
  * @returns {Object} - { query: string, values: array }
  * 
  * @example
@@ -105,7 +109,13 @@ function buildSelectQuery(table, columns = ['*'], where = {}, options = {}) {
     query += ` WHERE ${whereClauses.join(' AND ')}`;
   }
 
+  // Security: orderBy must come from a allowlist, not raw user input.
+  // The allowedSortColumns parameter enforces this at the call site.
   if (options.orderBy) {
+    const allowed = options.allowedSortColumns;
+    if (Array.isArray(allowed) && !allowed.includes(options.orderBy)) {
+      throw new Error(`SecurityError: orderBy value "${options.orderBy}" is not in the allowed sort columns allowlist.`);
+    }
     query += ` ORDER BY ${options.orderBy}`;
   }
 

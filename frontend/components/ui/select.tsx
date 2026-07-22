@@ -1,82 +1,67 @@
 import * as React from "react"
 import { ChevronDown } from "lucide-react"
 
-const SelectContext = React.createContext<any>(null);
+const SelectContext = React.createContext<any>(null)
 
 export function Select({ children, value, onValueChange }: any) {
-  const [open, setOpen] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
+  const [open, setOpen] = React.useState(false)
+  const ref = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
-    function handleClickOutside(event: any) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+    const handler = (e: any) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
   return (
     <SelectContext.Provider value={{ value, onValueChange, open, setOpen }}>
-      <div ref={containerRef} className="relative w-full">
-        {children}
-      </div>
+      <div ref={ref} style={{ position: 'relative', width: '100%' }}>{children}</div>
     </SelectContext.Provider>
   )
 }
 
-export function SelectTrigger({ children, className = "" }: any) {
-  const { open, setOpen } = React.useContext(SelectContext);
+export function SelectTrigger({ children, style: customStyle }: any) {
+  const { open, setOpen } = React.useContext(SelectContext)
   return (
-    <button
-      type="button"
-      onClick={() => setOpen(!open)}
-      className={`flex h-9 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 focus:outline-none ${className}`}
-    >
-      <div className="flex items-center gap-2 truncate pr-2">
-        {children}
-      </div>
-      <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+    <button type="button" onClick={() => setOpen(!open)}
+      style={{
+        display: 'flex', height: 36, width: '100%', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)',
+        padding: '0 12px', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text)',
+        ...customStyle,
+      }}>
+      <span style={{ flex: 1, textAlign: 'left' }}>{children}</span>
+      <ChevronDown size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
     </button>
   )
 }
 
 export function SelectValue({ placeholder }: any) {
-  const { value } = React.useContext(SelectContext);
-  // Just show value as text (will be replaced by item text when selected, or shown as placeholder)
-  return <span className="block truncate">{value || placeholder || ""}</span>;
+  const { value } = React.useContext(SelectContext)
+  return <span>{value || placeholder || ""}</span>
 }
 
-export function SelectContent({ children, className = "" }: any) {
-  const { open } = React.useContext(SelectContext);
-  if (!open) return null;
+export function SelectContent({ children }: any) {
+  const { open } = React.useContext(SelectContext)
+  if (!open) return null
   return (
-    <div className={`absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white p-1 text-sm shadow-md focus:outline-none ${className}`}>
-      {children}
-    </div>
+    <div style={{
+      position: 'absolute', zIndex: 50, marginTop: 4, maxHeight: 240, width: '100%',
+      overflow: 'auto', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+      background: 'var(--surface)', padding: 4, boxShadow: 'var(--shadow-md)',
+    }}>{children}</div>
   )
 }
 
-export function SelectItem({ children, value, className = "" }: any) {
-  const { value: selectedValue, onValueChange, setOpen } = React.useContext(SelectContext);
-  const isSelected = selectedValue === value;
-  
+export function SelectItem({ children, value }: any) {
+  const { value: selected, onValueChange, setOpen } = React.useContext(SelectContext)
+  const isSelected = selected === value
   return (
-    <div
-      onClick={() => {
-        onValueChange?.(value);
-        setOpen(false);
-      }}
-      className={`relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 px-8 text-sm outline-none hover:bg-gray-100 ${
-        isSelected ? "bg-gray-50 font-semibold" : ""
-      } ${className}`}
-    >
-      {isSelected && (
-        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-          ✓
-        </span>
-      )}
+    <div onClick={() => { onValueChange?.(value); setOpen(false) }}
+      style={{
+        cursor: 'default', padding: '6px 32px 6px 8px', borderRadius: 4, fontSize: '0.875rem',
+        background: isSelected ? 'var(--accent-bg)' : 'transparent',
+        fontWeight: isSelected ? 600 : 400, color: 'var(--text)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
       {children}
     </div>
   )

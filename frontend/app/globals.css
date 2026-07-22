@@ -166,29 +166,7 @@ button:active:not(:disabled) { transform: scale(0.97); transition: transform .08
 .skeleton { background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 37%, var(--skeleton-base) 63%); background-size: 800px 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 8px; }
 
 /* ── Loading spinner (inline) ──────────────────────────────────────────── */
-.spinner-inline { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary); animation: spin .7s linear infinite; }
-
-/* ── Tab active indicator ──────────────────────────────────────────────── */
-.invoice-tab { position: relative; }
-.invoice-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 10%; right: 10%; height: 2px; background: var(--primary); border-radius: 2px; }
-
-/* Shared UI */
-/* .btn-primary/.btn-secondary/.btn-danger/.btn-ghost are also selected here
-   directly (not just as modifiers on top of .btn) because ~450 raw button
-   usages across AppShell.jsx apply only the variant class, not "btn btn-x" —
-   without this they'd render as unstyled default buttons. Do not remove
-   these extra selectors during per-module migration; only drop a specific
-   module's raw variant-only className once it's been switched to <Button>. */
-.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);border:1px solid transparent;border-radius:12px;padding:0.72rem 1rem;font-weight:600;font-size:0.94rem;line-height:1;white-space:nowrap;transition:transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;}
-.btn:hover, .btn-primary:hover, .btn-secondary:hover, .btn-danger:hover, .btn-ghost:hover{transform:translateY(-1px);}
-.btn:disabled, .btn-primary:disabled, .btn-secondary:disabled, .btn-danger:disabled, .btn-ghost:disabled{opacity:.7;cursor:not-allowed;transform:none;}
-.btn-primary{background:var(--primary);border-color:rgba(37,99,235,.22);color:white;box-shadow:0 12px 24px rgba(37, 99, 235, 0.2);}
-.btn-primary:hover{background:var(--primary-strong);box-shadow:0 16px 30px rgba(37, 99, 235, 0.24);}
-.btn-secondary{background:var(--surface);color:var(--text);border-color:var(--border);box-shadow:0 1px 0 rgba(255,255,255,.55) inset;}
-.btn-secondary:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm);}
-.btn-danger{background:var(--danger);border-color:rgba(220,38,38,.2);color:white;box-shadow:0 12px 24px rgba(220, 38, 38, 0.18);}
-.btn-ghost{background:transparent;border-color:transparent;color:var(--text-muted);box-shadow:none;}
-.btn-ghost:hover{background:var(--surface-muted);color:var(--text);}
+/* Shared UI — field-* classes used by page forms */
 .btn-sm{padding:0.5rem 0.8rem;font-size:0.8rem;}
 .btn-md{padding:0.72rem 1.1rem;font-size:0.95rem;}
 .btn-lg{padding:0.9rem 1.35rem;font-size:1rem;}
@@ -210,8 +188,6 @@ button:active:not(:disabled) { transform: scale(0.97); transition: transform .08
 .field-helper{margin:0;font-size:0.8rem;color:var(--text-muted);}
 .field-error .field-input{border-color:var(--danger);}
 .field-error-text{margin:0;font-size:0.8rem;color:var(--danger);}
-.form-banner-error{grid-column:1 / -1;padding:0.7rem 0.9rem;border-radius:var(--radius-sm);background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bg);font-size:0.85rem;}
-
 .card-shell{background:var(--surface);border:1px solid color-mix(in srgb, var(--border) 88%, white 12%);box-shadow:var(--shadow-sm);border-radius:16px;padding:var(--space-5);}
 .card-header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-4);}
 .card-action{display:flex;align-items:center;gap:var(--space-3);flex:none;}
@@ -232,10 +208,7 @@ button:active:not(:disabled) { transform: scale(0.97); transition: transform .08
 .modal-description{margin:var(--space-1) 0 0;color:var(--text-muted);font-size:0.92rem;}
 .modal-close{font-size:1.4rem;line-height:1;color:var(--text-muted);}
 .modal-body{padding:var(--space-5);}
-.toast-root{position:fixed;top:var(--space-5);right:var(--space-5);z-index:70;padding:0.9rem 1rem;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);font-size:0.92rem;border:1px solid var(--border);background:var(--surface);color:var(--text);}
-.toast-success{border-color:rgba(22,163,74,.2);background:rgba(22,163,74,.12);color:var(--success);}
-.toast-warning{border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.12);color:var(--warning);}
-.toast-danger{border-color:rgba(220,38,38,.2);background:rgba(220,38,38,.12);color:var(--danger);}
+
 
 /* Login */
 .login-view,.auth-view{min-height:100vh;display:flex;align-items:center;justify-content:center;background:
@@ -609,114 +582,10 @@ html[data-theme='dark'] .topbar{background:rgba(15, 23, 42, .85);}
   transition: transform 0.16s ease, box-shadow 0.16s ease;
   white-space: nowrap;
 }
-.primary-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 36px rgba(37, 99, 235, 0.28); }
-
 /* ── Card ── */
-/* Aliased to match .card-shell (Card.jsx) — kept as a separate rule only
-   because raw className="card" is still used in un-migrated modules; do
-   not diverge these two rules again. */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── Stat strip ── */
-.stage-strip {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-.stage-card {
-  flex: 1 1 90px;
-  min-width: 80px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 12px;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-}
-.stage-card .num {
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 5px;
-  font-family: var(--font-display);
-}
-.stage-card .lbl {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-sm); }
 
 /* ── Tables ── */
-.contacts {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13.5px;
-}
-.contacts th {
-  text-align: left;
-  padding: 10px 12px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-.contacts td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.contacts tbody tr:hover { background: var(--surface-muted); }
-.contacts tbody tr:last-child td { border-bottom: none; }
-
-/* ── Inline action tags ── */
-.ctag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  cursor: pointer;
-  margin-right: 4px;
-  border: none;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.ctag:hover { background: var(--border); color: var(--text); }
-
-/* ── Kanban board ── */
-.board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-@media (max-width: 680px) { .board { grid-template-columns: 1fr; } }
-
-.col-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted);
-  padding: 0 2px;
-  margin-bottom: 10px;
-}
 .ctitle {
   font-size: 13px;
   font-weight: 600;
@@ -732,59 +601,7 @@ html[data-theme='dark'] .topbar{background:rgba(15, 23, 42, .85);}
   margin-bottom: 0;
   flex-wrap: wrap;
 }
-.invoice-search {
-  flex: 1 1 220px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: var(--text);
-  font-size: 0.88rem;
-  transition: border-color 0.14s ease;
-}
-.invoice-search:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-.invoice-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  margin: 14px 0 18px;
-  gap: 0;
-}
-.invoice-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 14px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color 0.14s ease, border-color 0.14s ease;
-  margin-bottom: -1px;
-  white-space: nowrap;
-}
-.invoice-tab:hover { color: var(--text); }
-.invoice-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-.invoice-tab-count {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  transition: background 0.14s ease, color 0.14s ease;
-}
-.invoice-tab.active .invoice-tab-count {
-  background: rgba(37, 99, 235, 0.14);
-  color: var(--primary);
-}
-
 /* ── Module shared (HR, etc.) ── */
-.module-area { padding: 0 0 2rem; }
-.module-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-.module-title { font-size: 1.15rem; font-weight: 700; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; }
@@ -844,10 +661,7 @@ html[data-theme='dark'] .topbar{background:rgba(15, 23, 42, .85);}
 .accent-light { background: var(--accent-bg); }
 .tag { display: inline-block; background: var(--surface-muted); color: var(--text-muted); border-radius: 4px; padding: 1px 6px; font-size: 0.72rem; font-weight: 600; margin-right: 2px; }
 
-.ctag.danger { background: rgba(220,38,38,.08); color: var(--danger); }
-.ctag.danger:hover { background: rgba(220,38,38,.16); }
-.ctag.success { background: rgba(22,163,74,.08); color: var(--success); }
-.ctag.success:hover { background: rgba(22,163,74,.16); }
+
 
 /* ── EmptyState ── */
 .empty-state-pro {

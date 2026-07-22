@@ -1,17 +1,14 @@
 import * as React from "react"
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
-
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className = "", type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={`flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
+export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  ({ className = "", style: customStyle, ...props }, ref) => (
+    <input ref={ref} style={{
+      display: 'flex', height: 36, width: '100%', borderRadius: 'var(--radius-sm)',
+      border: '1px solid var(--border)', background: 'var(--surface)', padding: '0 12px',
+      fontSize: '0.875rem', color: 'var(--text)', outline: 'none',
+      transition: 'border-color 0.14s ease',
+      ...customStyle,
+    }} {...props} />
+  )
 )
 Input.displayName = "Input"

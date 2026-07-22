@@ -1,37 +1,36 @@
 import * as React from "react"
 
+const variants: Record<string, React.CSSProperties> = {
+  default: { background: 'var(--primary)', color: '#fff', boxShadow: 'var(--shadow-sm)' },
+  destructive: { background: 'var(--danger)', color: '#fff', boxShadow: 'var(--shadow-sm)' },
+  outline: { background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)' },
+  secondary: { background: 'var(--surface-muted)', color: 'var(--text)' },
+  ghost: { background: 'transparent', color: 'var(--text)' },
+  link: { background: 'transparent', color: 'var(--primary)', padding: 0, textDecoration: 'underline' },
+}
+
+const sizes: Record<string, React.CSSProperties> = {
+  default: { height: 36, padding: '0 16px' },
+  sm: { height: 32, padding: '0 12px', fontSize: '0.8125rem' },
+  lg: { height: 40, padding: '0 24px', fontSize: '0.9375rem' },
+  icon: { height: 36, width: 36, padding: 0 },
+}
+
+const base: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  whiteSpace: 'nowrap', borderRadius: 'var(--radius-sm)', fontSize: '0.875rem',
+  fontWeight: 500, lineHeight: 1, transition: 'all 0.14s ease',
+  border: 'none', cursor: 'pointer', outline: 'none',
+}
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = "", variant = "default", size = "default", ...props }, ref) => {
-    const base = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-    
-    const variants = {
-      default: "bg-blue-600 text-white shadow hover:bg-blue-700",
-      destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700",
-      outline: "border border-gray-200 bg-transparent shadow-sm hover:bg-gray-100 hover:text-gray-900",
-      secondary: "bg-gray-100 text-gray-900 shadow-sm hover:bg-gray-200",
-      ghost: "hover:bg-gray-100 hover:text-gray-900",
-      link: "text-blue-600 underline-offset-4 hover:underline"
-    }
-
-    const sizes = {
-      default: "h-9 px-4 py-2",
-      sm: "h-8 rounded-md px-3 text-xs",
-      lg: "h-10 rounded-md px-8",
-      icon: "h-9 w-9"
-    }
-
-    return (
-      <button
-        ref={ref}
-        className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
-        {...props}
-      />
-    )
-  }
+  ({ className = "", variant = "default", size = "default", style: customStyle, ...props }, ref) => (
+    <button ref={ref} style={{ ...base, ...variants[variant], ...sizes[size], ...customStyle }} {...props} />
+  )
 )
 Button.displayName = "Button"

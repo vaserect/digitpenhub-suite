@@ -12,7 +12,7 @@ const db = require('../db');
 async function requireHrAccess(req, res, next) {
   try {
     const { rows } = await db.query(
-      `SELECT role FROM team_members WHERE user_id = $1 AND org_id = $2`,
+      `SELECT role FROM users WHERE id = $1 AND org_id = $2`,
       [req.user.id, req.user.orgId]
     );
 
@@ -20,19 +20,17 @@ async function requireHrAccess(req, res, next) {
       return res.status(403).json({ error: 'No team membership found.' });
     }
 
-    const hasAccess = rows.some(r => ['owner', 'admin', 'hr'].includes(r.role));
+    const role = rows[0].role;
+    const hasAccess = ['owner', 'admin', 'hr'].includes(role);
 
     if (!hasAccess) {
       // Log unauthorized access attempt
       await db.query(
-        `INSERT INTO audit_log (user_id, org_id, action, resource_type, resource_id, ip_address, user_agent, status, meta)
-         VALUES ($1, $2, 'hr.access.denied', 'hr', NULL, $3, $4, 'denied', $5)`,
+        `INSERT INTO audit_log (user_id, action, meta, ip_address) VALUES ($1, 'hr.access.denied', $2, $3)`,
         [
           req.user.id,
-          req.user.orgId,
+          JSON.stringify({ orgId: req.user.orgId, resourceType: 'hr', endpoint: req.originalUrl, method: req.method, userAgent: req.get('user-agent') || 'unknown', status: 'denied' }),
           req.ip || req.connection?.remoteAddress || 'unknown',
-          req.get('user-agent') || 'unknown',
-          JSON.stringify({ endpoint: req.originalUrl, method: req.method })
         ]
       );
 
@@ -42,7 +40,7 @@ async function requireHrAccess(req, res, next) {
     }
 
     // Store role info for later use
-    req.userRoles = rows.map(r => r.role);
+    req.userRoles = [role];
     next();
   } catch (error) {
     console.error('HR auth middleware error:', error);
@@ -57,7 +55,7 @@ async function requireHrAccess(req, res, next) {
 async function requireSensitiveDataAccess(req, res, next) {
   try {
     const { rows } = await db.query(
-      `SELECT role FROM team_members WHERE user_id = $1 AND org_id = $2`,
+      `SELECT role FROM users WHERE id = $1 AND org_id = $2`,
       [req.user.id, req.user.orgId]
     );
 
@@ -65,19 +63,17 @@ async function requireSensitiveDataAccess(req, res, next) {
       return res.status(403).json({ error: 'No team membership found.' });
     }
 
-    const hasAccess = rows.some(r => ['owner', 'admin', 'hr'].includes(r.role));
+    const role = rows[0].role;
+    const hasAccess = ['owner', 'admin', 'hr'].includes(role);
 
     if (!hasAccess) {
       // Log unauthorized access attempt
       await db.query(
-        `INSERT INTO audit_log (user_id, org_id, action, resource_type, resource_id, ip_address, user_agent, status, meta)
-         VALUES ($1, $2, 'hr.salary.access.denied', 'employee', NULL, $3, $4, 'denied', $5)`,
+        `INSERT INTO audit_log (user_id, action, meta, ip_address) VALUES ($1, 'hr.salary.access.denied', $2, $3)`,
         [
           req.user.id,
-          req.user.orgId,
+          JSON.stringify({ orgId: req.user.orgId, resourceType: 'employee', endpoint: req.originalUrl, method: req.method, userAgent: req.get('user-agent') || 'unknown', status: 'denied' }),
           req.ip || req.connection?.remoteAddress || 'unknown',
-          req.get('user-agent') || 'unknown',
-          JSON.stringify({ endpoint: req.originalUrl, method: req.method })
         ]
       );
 
@@ -86,7 +82,7 @@ async function requireSensitiveDataAccess(req, res, next) {
       });
     }
 
-    req.userRoles = rows.map(r => r.role);
+    req.userRoles = [role];
     next();
   } catch (error) {
     console.error('Sensitive data auth middleware error:', error);
@@ -101,7 +97,7 @@ async function requireSensitiveDataAccess(req, res, next) {
 async function requirePayrollAccess(req, res, next) {
   try {
     const { rows } = await db.query(
-      `SELECT role FROM team_members WHERE user_id = $1 AND org_id = $2`,
+      `SELECT role FROM users WHERE id = $1 AND org_id = $2`,
       [req.user.id, req.user.orgId]
     );
 
@@ -109,19 +105,17 @@ async function requirePayrollAccess(req, res, next) {
       return res.status(403).json({ error: 'No team membership found.' });
     }
 
-    const hasAccess = rows.some(r => ['owner', 'admin', 'hr', 'finance'].includes(r.role));
+    const role = rows[0].role;
+    const hasAccess = ['owner', 'admin', 'hr', 'finance'].includes(role);
 
     if (!hasAccess) {
       // Log unauthorized access attempt
       await db.query(
-        `INSERT INTO audit_log (user_id, org_id, action, resource_type, resource_id, ip_address, user_agent, status, meta)
-         VALUES ($1, $2, 'hr.payroll.access.denied', 'payroll', NULL, $3, $4, 'denied', $5)`,
+        `INSERT INTO audit_log (user_id, action, meta, ip_address) VALUES ($1, 'hr.payroll.access.denied', $2, $3)`,
         [
           req.user.id,
-          req.user.orgId,
+          JSON.stringify({ orgId: req.user.orgId, resourceType: 'payroll', endpoint: req.originalUrl, method: req.method, userAgent: req.get('user-agent') || 'unknown', status: 'denied' }),
           req.ip || req.connection?.remoteAddress || 'unknown',
-          req.get('user-agent') || 'unknown',
-          JSON.stringify({ endpoint: req.originalUrl, method: req.method })
         ]
       );
 
@@ -130,7 +124,7 @@ async function requirePayrollAccess(req, res, next) {
       });
     }
 
-    req.userRoles = rows.map(r => r.role);
+    req.userRoles = [role];
     next();
   } catch (error) {
     console.error('Payroll auth middleware error:', error);
@@ -143,11 +137,11 @@ async function requirePayrollAccess(req, res, next) {
  */
 async function hasRole(userId, orgId, allowedRoles) {
   const { rows } = await db.query(
-    `SELECT role FROM team_members WHERE user_id = $1 AND org_id = $2`,
+    `SELECT role FROM users WHERE id = $1 AND org_id = $2`,
     [userId, orgId]
   );
 
-  return rows.some(r => allowedRoles.includes(r.role));
+  return rows.length > 0 && allowedRoles.includes(rows[0].role);
 }
 
 /**
@@ -156,23 +150,17 @@ async function hasRole(userId, orgId, allowedRoles) {
 async function logHrAction(userId, orgId, action, resourceType, resourceId, req, status = 'success', meta = {}) {
   try {
     await db.query(
-      `INSERT INTO audit_log (user_id, org_id, action, resource_type, resource_id, ip_address, user_agent, status, meta)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO audit_log (user_id, action, meta, ip_address)
+       VALUES ($1, $2, $3, $4)`,
       [
         userId,
-        orgId,
         action,
-        resourceType,
-        resourceId,
-        req.ip || req.connection?.remoteAddress || 'unknown',
-        req.get('user-agent') || 'unknown',
-        status,
-        JSON.stringify(meta)
+        JSON.stringify({ ...meta, orgId, resourceType, resourceId, status, userAgent: req?.get?.('user-agent') || 'unknown' }),
+        req?.ip || req?.connection?.remoteAddress || 'unknown',
       ]
     );
   } catch (error) {
     console.error('Failed to log HR action:', error);
-    // Don't throw - logging failure shouldn't break the request
   }
 }
 

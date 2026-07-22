@@ -10,31 +10,41 @@ const {
   listContactTasks, createContactTask, updateContactTask, deleteContactTask,
   bulkCreateContacts,
 } = require('../controllers/crmController');
+const { getTimelineForContact, getGlobalTimeline } = require('../utils/activityTracker');
 
 const router = express.Router();
 
 const capContacts = requireUsageCapacity('contacts', `SELECT COUNT(*)::int AS count FROM contacts WHERE org_id = $1`);
 
+// ── Contacts CRUD ────────────────────────────────────────────────────────────
 router.get('/contacts', requireAuth, listContacts);
 router.post('/contacts', requireAuth, capContacts, createContact);
 router.post('/contacts/import', requireAuth, bulkCreateContacts);
 router.patch('/contacts/:id', requireAuth, updateContact);
 router.delete('/contacts/:id', requireAuth, deleteContact);
 
+// ── Contact Notes ────────────────────────────────────────────────────────────
 router.get('/contacts/:contactId/notes', requireAuth, listContactNotes);
 router.post('/contacts/:contactId/notes', requireAuth, createContactNote);
 router.delete('/contacts/:contactId/notes/:noteId', requireAuth, deleteContactNote);
 
+// ── Contact Tasks ────────────────────────────────────────────────────────────
 router.get('/contacts/:contactId/tasks', requireAuth, listContactTasks);
 router.post('/contacts/:contactId/tasks', requireAuth, createContactTask);
 router.patch('/contacts/:contactId/tasks/:taskId', requireAuth, updateContactTask);
 router.delete('/contacts/:contactId/tasks/:taskId', requireAuth, deleteContactTask);
 
+// ── Bulk & Export ────────────────────────────────────────────────────────────
 router.post('/contacts/bulk-delete', requireAuth, bulkDeleteHandler('contacts'));
 router.get('/contacts/export', requireAuth, async (req, res) => {
-  const { rows } = await db.query('SELECT id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags, created_at FROM contacts WHERE org_id = $1 ORDER BY last_touch_at DESC', [req.user.orgId]);
+  const { rows } = await db.query(
+    'SELECT id, full_name, company, email, phone, stage, value_ngn, last_touch_at, tags, created_at FROM contacts WHERE org_id = $1 ORDER BY last_touch_at DESC',
+    [req.user.orgId]
+  );
   sendCsv(res, 'contacts.csv', rows, autoColumns(rows));
 });
+
+// ── Contact Stats ────────────────────────────────────────────────────────────
 router.get('/contacts/stats', requireAuth, async (req, res) => {
   const { rows } = await db.query(
     `SELECT count(*)::int AS total,
@@ -50,14 +60,7 @@ router.get('/contacts/stats', requireAuth, async (req, res) => {
   res.json({ stats: rows[0] });
 });
 
-module.exports = router;
-
-// ============================================================
-// Activity Timeline Routes
-// ============================================================
-const { getTimelineForContact, getGlobalTimeline } = require('../utils/activityTracker');
-
-// Get timeline for a specific contact
+// ── Activity Timeline ────────────────────────────────────────────────────────
 router.get('/contacts/:contactId/timeline', requireAuth, async (req, res) => {
   const { contactId } = req.params;
   const { limit, offset, types } = req.query;
@@ -69,7 +72,6 @@ router.get('/contacts/:contactId/timeline', requireAuth, async (req, res) => {
   res.json({ timeline });
 });
 
-// Get global activity feed
 router.get('/timeline', requireAuth, async (req, res) => {
   const { limit, offset, types, contactId } = req.query;
   const timeline = await getGlobalTimeline(req.user.orgId, {
@@ -80,3 +82,5 @@ router.get('/timeline', requireAuth, async (req, res) => {
   });
   res.json({ timeline });
 });
+
+module.exports = router;

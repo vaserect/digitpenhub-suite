@@ -1,6 +1,9 @@
 const Sentry = require('@sentry/node');
 const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 
+// Check if we're using Sentry v7 API (Integrations) or v8+ (no Integrations)
+const sentryVersion = Sentry.VERSION ? parseInt(Sentry.VERSION.split('.')[0], 10) : 8;
+
 /**
  * Initialize Sentry for error tracking and performance monitoring
  * Only initializes if SENTRY_DSN is configured
@@ -12,38 +15,40 @@ function initSentry(app) {
     console.log('⚠️  SENTRY_DSN not configured. Error tracking disabled.');
     return false;
   }
-  
+
+  const integrations = [];
+
+  if (sentryVersion >= 8) {
+    // Sentry v8+ uses a flat integration list
+    if (typeof Sentry.httpIntegration === 'function') {
+      integrations.push(Sentry.httpIntegration({ tracing: true }));
+    }
+    if (typeof Sentry.expressIntegration === 'function') {
+      integrations.push(Sentry.expressIntegration({ app }));
+    }
+    integrations.push(nodeProfilingIntegration());
+  } else {
+    // Sentry v7 uses Sentry.Integrations namespace
+    if (Sentry.Integrations?.Http) {
+      integrations.push(new Sentry.Integrations.Http({ tracing: true }));
+    }
+    if (Sentry.Integrations?.Express) {
+      integrations.push(new Sentry.Integrations.Express({ app }));
+    }
+    integrations.push(nodeProfilingIntegration());
+  }
+
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV || 'development',
-    
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-    // We recommend adjusting this value in production (0.1 = 10% of transactions)
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-    
-    // Set profilesSampleRate to 1.0 to profile 100% of sampled transactions.
-    // We recommend adjusting this value in production
     profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-    
-    // Integrations
-    integrations: [
-      // Enable HTTP calls tracing
-      new Sentry.Integrations.Http({ tracing: true }),
-      // Enable Express.js middleware tracing
-      new Sentry.Integrations.Express({ app }),
-      // Enable profiling
-      nodeProfilingIntegration(),
-    ],
-    
-    // Filter out sensitive data
+    integrations,
     beforeSend(event, hint) {
-      // Remove sensitive headers
       if (event.request?.headers) {
         delete event.request.headers.cookie;
         delete event.request.headers.authorization;
       }
-      
-      // Remove sensitive query parameters
       if (event.request?.query_string) {
         const sensitiveParams = ['password', 'token', 'secret', 'api_key'];
         sensitiveParams.forEach(param => {
@@ -55,19 +60,13 @@ function initSentry(app) {
           }
         });
       }
-      
       return event;
     },
-    
-    // Ignore certain errors
     ignoreErrors: [
-      // Browser errors that shouldn't reach the backend
       'ResizeObserver loop limit exceeded',
       'Non-Error promise rejection captured',
-      // Network errors
       'NetworkError',
       'Network request failed',
-      // Common user errors
       'Invalid credentials',
       'Unauthorized',
     ],

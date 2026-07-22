@@ -248,6 +248,7 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/storage', 'cloudStorage', 'cloud-storage', 'Cloud storage'),
   moduleRoute('/api/v1/workflows', 'workflowAutomation', 'workflow-automation', 'Workflow automation'),
   authRoute('/api/v1/integrations', 'integrations', 'Third-party integrations'),
+  authRoute('/api/v1/webhooks', 'outgoingWebhooks', 'Outgoing webhooks'),
   
   // ============================================================================
   // MARKETPLACE
@@ -305,7 +306,14 @@ const ROUTES_CONFIG = [
   // ============================================================================
   authRoute('/api/v1/support', 'remainingYellow', 'Support features'),
   authRoute('/api/v1/community', 'community', 'Community/Membership Platform'),
-  
+  authRoute('/api/v1/gamification', 'gamification', 'Gamification & Engagement'),
+
+  // ============================================================================
+  // PER-MODULE CRUD — explicit endpoints for every module with a DB table.
+  // ~150 modules registered. Each gets list/get/create/update/delete/stats/export.
+  // ============================================================================
+  authRoute('/api/v1/module', 'moduleCrud', 'Per-module CRUD'),
+
   // ============================================================================
   // SUPER ADMIN
   // ============================================================================

@@ -40,7 +40,7 @@ app.listen(port, '127.0.0.1', () => {
     environment: process.env.NODE_ENV || 'development',
     nodeVersion: process.version,
   });
-  
+
   // Start schedulers with logging
   try {
     startAutomationScheduler();
@@ -48,26 +48,47 @@ app.listen(port, '127.0.0.1', () => {
   } catch (err) {
     logger.error('Failed to start automation scheduler', { error: err.message });
   }
-  
+
   try {
     startAppointmentReminderScheduler();
     logger.info('Appointment reminder scheduler started');
   } catch (err) {
     logger.error('Failed to start appointment reminder scheduler', { error: err.message });
   }
-  
+
   try {
     startAbandonedCartRecoveryScheduler();
     logger.info('Abandoned cart recovery scheduler started');
   } catch (err) {
     logger.error('Failed to start abandoned cart recovery scheduler', { error: err.message });
   }
-  
+
   try {
     startBillingScheduler();
     startSocialMediaScheduler();
     logger.info('Billing scheduler started');
   } catch (err) {
     logger.error('Failed to start billing scheduler', { error: err.message });
+  }
+
+  // Initialize outgoing webhook delivery service
+  // Listens to EventBus events (deal.created, deal.won, etc.) and POSTs to
+  // user-configured webhook URLs with HMAC-SHA256 signed payloads.
+  try {
+    const webhookDelivery = require('./services/WebhookDeliveryService');
+    webhookDelivery.initialize();
+    logger.info('Webhook delivery service initialized');
+  } catch (err) {
+    logger.error('Failed to initialize webhook delivery service', { error: err.message });
+  }
+
+  // Initialize gamification engine
+  // Listens to EventBus events and auto-awards points + checks badge criteria.
+  try {
+    const gamificationEngine = require('./services/GamificationEngine');
+    gamificationEngine.initialize();
+    logger.info('Gamification engine initialized');
+  } catch (err) {
+    logger.error('Failed to initialize gamification engine', { error: err.message });
   }
 });

@@ -22,12 +22,20 @@ const app = express();
 // Initialize Sentry (must be before any other middleware)
 const sentryEnabled = initSentry(app);
 
+// Sentry v8+ removed Sentry.Handlers in favor of app-level middleware.
+// Check which API is available.
+const sentryHasRequestHandler = sentryEnabled && typeof Sentry.Handlers?.requestHandler === 'function';
+const sentryHasTracingHandler = sentryEnabled && typeof Sentry.Handlers?.tracingHandler === 'function';
+const sentryHasErrorHandler = sentryEnabled && typeof Sentry.Handlers?.errorHandler === 'function';
+
 app.set('trust proxy', 1); // we sit behind OpenLiteSpeed
 
 // Sentry request handler - must be first middleware if enabled
-if (sentryEnabled) {
+if (sentryHasRequestHandler) {
   app.use(Sentry.Handlers.requestHandler());
-  app.use(Sentry.Handlers.tracingHandler());
+  if (sentryHasTracingHandler) {
+    app.use(Sentry.Handlers.tracingHandler());
+  }
 }
 
 // Request ID tracking - must be early to track all requests
@@ -38,6 +46,20 @@ app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:4000', c
 app.use(cookieParser());
 app.use(express.json({ limit: '200kb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// ── Request duration tracking ────────────────────────────────────────────────
+// Logs every API request with duration, status code, and method/path info.
+// This runs after morgan so the log format includes the duration inline.
+app.use('/api', (req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (logger.logRequest) {
+      logger.logRequest(req, res, duration);
+    }
+  });
+  next();
+});
 
 // CSRF protection for state-changing requests
 app.use('/api', csrfProtection);
@@ -68,7 +90,7 @@ app.use((req, res) => {
 });
 
 // Sentry error handler - must be before other error handlers
-if (sentryEnabled) {
+if (sentryHasErrorHandler) {
   app.use(Sentry.Handlers.errorHandler({
     shouldHandleError(error) {
       return error.status >= 500 || !error.status;
@@ -77,17 +99,32 @@ if (sentryEnabled) {
 }
 
 // Centralised error handler — never leak stack traces to the client in production.
+// Uses standardized error codes from the AppError hierarchy.
 app.use((err, req, res, next) => {
   if (sentryEnabled && req.user) setSentryUser(req.user);
+
+  // Determine status code and error payload
+  const statusCode = err.statusCode || err.status || 500;
+  const payload = err.toJSON ? err.toJSON() : {
+    error: err.message || 'Something went wrong on our end.',
+    code: statusCode >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR',
+  };
+
+  // Log the error
   const errorContext = {
     message: err.message, stack: err.stack, requestId: req.id,
     userId: req.user?.id, orgId: req.user?.orgId,
     method: req.method, url: req.originalUrl, ip: req.ip,
     userAgent: req.get('user-agent'),
   };
-  if (req.logger) req.logger.error('Unhandled error', errorContext);
-  else logger.error('Unhandled error (no request context)', errorContext);
-  res.status(500).json({ error: 'Something went wrong on our end.' });
+  if (req.logger) {
+    if (statusCode >= 500) req.logger.error('Unhandled error', errorContext);
+    else req.logger.warn('Request error', { ...errorContext, code: payload.code });
+  } else {
+    logger.error('Unhandled error (no request context)', errorContext);
+  }
+
+  res.status(statusCode).json(payload);
 });
 
 module.exports = app;

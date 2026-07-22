@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const educationUpgradeRouter = require('./educationUpgrades');
 const { requireAuth } = require('../middleware/auth');
 const db = require('../db');
 const r = Router();

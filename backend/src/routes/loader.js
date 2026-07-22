@@ -209,4 +209,5 @@ class RouteLoader {
   }
 }
 
+// @deprecated — superseded by loader/routeLoader.js
 module.exports = RouteLoader;

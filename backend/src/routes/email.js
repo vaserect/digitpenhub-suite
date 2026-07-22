@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const emailUpgradeRouter = require('./emailUpgrades');
 const { requireAuth } = require('../middleware/auth');
 const { requireModuleAccess } = require('../utils/planAccess');
 const { bulkSendLimiter } = require('../middleware/rateLimiters');
@@ -47,5 +48,7 @@ router.get('/campaigns/:id', getCampaign);
 router.patch('/campaigns/:id', updateCampaign);
 router.delete('/campaigns/:id', deleteCampaign);
 router.post('/campaigns/:id/send', bulkSendLimiter, sendCampaign);
+
+router.use(emailUpgradeRouter);
 
 module.exports = router;

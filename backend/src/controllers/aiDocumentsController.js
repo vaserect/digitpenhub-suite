@@ -1,5 +1,6 @@
 const db = require('../db');
 const { fetchWithTimeout, logAiCall } = require('../utils/aiReliability');
+const aiRouter = require('../ai-router');
 
 async function getStats(req, res) {
   const { rows } = await db.query(
@@ -60,39 +61,31 @@ async function deleteDocument(req, res) {
 async function generateContent(req, res) {
   const { type, prompt, context } = req.body || {};
   if (!type || !prompt) return res.status(400).json({ error: 'type and prompt required.' });
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: false, usedFallback: true, errorMessage: 'No ANTHROPIC_API_KEY configured' });
-    return res.json({ generated: buildTemplate(type, prompt), usedAI: false });
-  }
-  const startedAt = Date.now();
+
+  const moduleKeyMap = { writer: 'ai-writer', email: 'ai-email-assistant', proposal: 'ai-proposal-generator', blog: 'ai-blog-generator' };
+  const moduleKey = moduleKeyMap[type] || 'ai-writer';
+  const systemPrompts = {
+    writer: 'You are a professional content writer. Write clear, engaging, well-structured content based on the prompt.',
+    email: 'You are an expert email copywriter. Write professional, conversion-focused emails based on the prompt.',
+    proposal: 'You are a business proposal expert. Write compelling, structured business proposals based on the prompt.',
+    blog: 'You are a professional blogger and SEO content writer. Write engaging blog posts with proper headings and structure.',
+  };
+
   try {
-    const systemPrompts = {
-      writer: 'You are a professional content writer. Write clear, engaging, well-structured content based on the prompt.',
-      email: 'You are an expert email copywriter. Write professional, conversion-focused emails based on the prompt.',
-      proposal: 'You are a business proposal expert. Write compelling, structured business proposals based on the prompt.',
-      blog: 'You are a professional blogger and SEO content writer. Write engaging blog posts with proper headings and structure.',
-    };
-    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1500,
-        system: systemPrompts[type] || systemPrompts.writer,
-        messages: [{ role: 'user', content: `${prompt}${context ? `\n\nContext: ${context}` : ''}` }]
-      })
+    const result = await aiRouter.generate({
+      moduleKey,
+      messages: [
+        { role: 'system', content: systemPrompts[type] || systemPrompts.writer },
+        { role: 'user', content: `${prompt}${context ? `\n\nContext: ${context}` : ''}` },
+      ],
+      opts: { maxTokens: 1500, temperature: 0.7 },
     });
-    if (!response.ok) throw new Error(`AI API error: ${response.status}`);
-    const data = await response.json();
-    const generated = data.content?.[0]?.text || '';
-    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: true, durationMs: Date.now() - startedAt });
-    res.json({ generated, usedAI: true });
+    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: result.provider, success: true });
+    res.json({ generated: result.text, usedAI: true, meta: { provider: result.provider, model: result.model } });
   } catch (err) {
-    const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
     console.error('AI generate error:', err.message);
-    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'anthropic', success: false, usedFallback: true, errorMessage: isTimeout ? 'Timed out after 15s' : err.message, durationMs: Date.now() - startedAt });
-    res.json({ generated: buildTemplate(type, prompt), usedAI: false, warning: isTimeout ? 'AI request timed out, used template instead.' : 'AI unavailable, used template.' });
+    logAiCall({ orgId: req.user.orgId, feature: `ai-documents:${type}`, provider: 'ai-router', success: false, usedFallback: true, errorMessage: err.message });
+    res.json({ generated: buildTemplate(type, prompt), usedAI: false, warning: 'AI temporarily unavailable, used template.' });
   }
 }
 

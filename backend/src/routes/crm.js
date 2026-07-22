@@ -1,4 +1,5 @@
 const express = require('express');
+const crmUpgradeRouter = require('./crmUpgrades');
 const { requireAuth } = require('../middleware/auth');
 const { requireUsageCapacity } = require('../utils/planAccess');
 const { bulkDeleteHandler } = require('../utils/bulkDelete');
@@ -49,6 +50,8 @@ router.get('/contacts/stats', requireAuth, async (req, res) => {
   );
   res.json({ stats: rows[0] });
 });
+
+router.use(crmUpgradeRouter);
 
 module.exports = router;
 

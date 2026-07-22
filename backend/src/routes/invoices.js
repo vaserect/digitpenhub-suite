@@ -1,4 +1,5 @@
 const express = require('express');
+const invoiceUpgradeRouter = require('./invoiceUpgrades');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { requireUsageCapacity } = require('../utils/planAccess');
@@ -67,5 +68,7 @@ router.get('/:id', getInvoice);
 router.put('/:id', updateInvoice);
 router.patch('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
+
+router.use(invoiceUpgradeRouter);
 
 module.exports = router;

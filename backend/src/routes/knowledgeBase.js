@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const kbUpgradeRouter = require('./kbUpgrades');
 const { requireAuth } = require('../middleware/auth');
 const c = require('../controllers/knowledgeBaseController');
 const r = Router();

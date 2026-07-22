@@ -8,6 +8,7 @@
  */
 
 const SearchService = require('../services/search/SearchService');
+const db = require('../db');
 const logger = require('../utils/logger');
 
 const searchService = new SearchService();
@@ -189,15 +190,13 @@ exports.indexEntity = async (req, res) => {
  */
 exports.rebuildIndex = async (req, res) => {
   try {
-    const { orgId } = req.user;
+    const { orgId, userId } = req.user;
 
-    // TODO: Add admin permission check
-    // if (!req.user.isAdmin) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Admin access required'
-    //   });
-    // }
+    // Verify admin role
+    const { rows } = await db.query('SELECT role FROM users WHERE id = $1', [userId]);
+    if (!rows.length || !['owner', 'admin'].includes(rows[0].role)) {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
 
     const result = await searchService.rebuildIndex(orgId);
 

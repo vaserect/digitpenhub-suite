@@ -1,71 +1,75 @@
-// backend/src/services/crm/ActivityService.js
-// Fixed implementation — writes activities to the activity_timeline table
-// instead of returning throwaway in-memory objects.
-
 const db = require('../../db');
-const logger = require('../../utils/logger');
 
+/**
+ * Service for CRM Activities
+ * Writes to the activity_timeline table which has columns:
+ * id, org_id, contact_id, user_id, activity_type, description, metadata, created_at
+ */
 class ActivityService {
   /**
    * Create a new activity and persist it to the database.
-   * @param {string} orgId - Organization ID
-   * @param {Object} activityData - { type, dealId?, subject?, metadata? }
+   * @param {Object} activityData - { type, description, contactId, metadata? }
    * @param {string} userId - User performing the action
+   * @param {string} orgId - Organisation context
    * @returns {Promise<Object>} Created activity row
    */
-  async create(orgId, activityData, userId) {
-    const { type, dealId, companyId, contactId, subject, metadata } = activityData;
+  async createActivity(activityData, userId, orgId) {
+    const { type, description, contactId, metadata } = activityData;
 
     try {
       const { rows } = await db.query(
         `INSERT INTO activity_timeline
-           (org_id, user_id, activity_type, entity_type, entity_id, subject, metadata)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+           (org_id, user_id, activity_type, description, contact_id, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
         [
           orgId,
           userId,
-          type,
-          activityData.entityType || (dealId ? 'deal' : companyId ? 'company' : contactId ? 'contact' : null) || 'crm',
-          activityData.entityId || dealId || companyId || contactId,
-          subject || type,
-          metadata ? JSON.stringify(metadata) : null,
+          type || 'note',
+          description || type || 'Activity recorded',
+          contactId || null,
+          metadata ? JSON.stringify(metadata) : '{}',
         ]
       );
 
-      logger.info('Activity created', {
-        orgId,
-        activityId: rows[0]?.id,
-        type,
-        userId,
-      });
-
       return rows[0] || null;
     } catch (error) {
-      logger.error('ActivityService: Failed to persist activity', {
-        orgId,
-        type,
-        userId,
-        error: error.message,
+      console.error('ActivityService: Failed to persist activity', {
+        orgId, type, userId, error: error.message,
       });
-      // Fire-and-forget: don't throw — activity logging must never block the
-      // primary operation (e.g. creating a deal should succeed even if the
-      // activity row insert fails).
       return null;
     }
   }
 
   /**
-   * Convenience wrapper around create() with entity context.
+   * Get activities for a contact
    */
-  async logActivity(orgId, entityType, entityId, activityType, metadata, userId) {
-    return this.create(orgId, {
-      type: activityType,
-      entityType,
-      entityId,
-      metadata,
-    }, userId);
+  async getByContact(contactId, orgId) {
+    const { rows } = await db.query(
+      `SELECT a.*, u.full_name as user_name
+       FROM activity_timeline a
+       LEFT JOIN users u ON u.id = a.user_id
+       WHERE a.contact_id = $1 AND a.org_id = $2
+       ORDER BY a.created_at DESC`,
+      [contactId, orgId]
+    );
+    return rows;
+  }
+
+  /**
+   * Get recent activities for an org
+   */
+  async getRecent(orgId, limit = 20) {
+    const { rows } = await db.query(
+      `SELECT a.*, u.full_name as user_name
+       FROM activity_timeline a
+       LEFT JOIN users u ON u.id = a.user_id
+       WHERE a.org_id = $1
+       ORDER BY a.created_at DESC LIMIT $2`,
+      [orgId, limit]
+    );
+    return rows;
   }
 }
 
-module.exports = ActivityService;
+module.exports = new ActivityService();

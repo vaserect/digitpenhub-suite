@@ -41,7 +41,7 @@ router.get('/marketplace/overview', requireAuth, async (req, res) => {
       FROM marketplace_downloads md
       JOIN marketplace_components mc ON md.component_id = mc.id
       WHERE mc.creator_id = $1
-      ${dateFilter.replace('mp.', 'md.')}
+      ${dateFilter ? dateFilter.replace('mp.created_at', 'md.downloaded_at') : ''}
     `;
 
     const downloads = await pool.query(downloadsQuery, [userId]);
@@ -209,7 +209,7 @@ router.get('/marketplace/top-components', requireAuth, async (req, res) => {
         COUNT(DISTINCT md.id) as total_downloads
       FROM marketplace_components mc
       LEFT JOIN marketplace_purchases mp ON mc.id = mp.component_id ${dateFilter}
-      LEFT JOIN marketplace_downloads md ON mc.id = md.component_id ${dateFilter.replace('mp.', 'md.')}
+      LEFT JOIN marketplace_downloads md ON mc.id = md.component_id ${dateFilter ? dateFilter.replace('mp.created_at', 'md.downloaded_at') : ''}
       WHERE mc.creator_id = $1
       GROUP BY mc.id
       ORDER BY ${orderBy}
@@ -328,7 +328,7 @@ router.get('/marketplace/customers', requireAuth, async (req, res) => {
     const customersQuery = `
       SELECT 
         u.id,
-        u.name,
+        u.full_name,
         u.email,
         u.avatar_url,
         COUNT(mp.id) as purchase_count,
@@ -409,7 +409,7 @@ router.get('/marketplace/categories', requireAuth, async (req, res) => {
         COALESCE(AVG(mc.rating_average), 0) as avg_rating
       FROM marketplace_components mc
       LEFT JOIN marketplace_purchases mp ON mc.id = mp.component_id ${dateFilter}
-      LEFT JOIN marketplace_downloads md ON mc.id = md.component_id ${dateFilter.replace('mp.', 'md.')}
+      LEFT JOIN marketplace_downloads md ON mc.id = md.component_id ${dateFilter ? dateFilter.replace('mp.created_at', 'md.downloaded_at') : ''}
       WHERE mc.creator_id = $1
       GROUP BY mc.category
       ORDER BY total_revenue DESC

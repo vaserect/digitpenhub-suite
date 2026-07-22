@@ -29,8 +29,13 @@ class AdCampaignService extends BaseService {
       credentials: data.credentials || {},
     }, orgId);
 
-    // Automatically seed mock campaigns to make the system instantly usable and illustrative
-    await this.seedMockData(orgId, account.id, account.platform);
+    // Only seed demo data if DISABLE_MOCK_SEEDING is not set and no real campaigns exist
+    if (process.env.DISABLE_MOCK_SEEDING !== 'true') {
+      const existing = await this.repository.findAll(orgId, 'active', { ad_account_id: account.id });
+      if (existing.length === 0) {
+        await this.seedMockData(orgId, account.id, account.platform);
+      }
+    }
 
     return account;
   }

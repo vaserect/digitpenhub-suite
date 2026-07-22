@@ -3,6 +3,8 @@
 import { useWorkspace } from '../components/ui/WorkspaceLayout';
 import WorkspaceHome from '../components/home/WorkspaceHome';
 import MarketingHome from '../components/marketing/MarketingHome';
+import ModuleRenderer from '../components/modules/ModuleRenderer';
+import ModuleErrorBoundary from '../components/ui/ModuleErrorBoundary';
 import { useState, useMemo } from 'react';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
@@ -87,59 +89,71 @@ export default function HomePage() {
 
   return (
     <>
-      {view === 'home' && (
-        <WorkspaceHome
-          query={query}
-          handleSearch={handleSearch}
-          totalModules={workspace.totalModules}
-          activeModules={workspace.activeModules}
-          moduleCategories={moduleCategories}
-          pinnedModules={workspace.pinnedModules}
-          recentModules={workspace.recentModules}
-          openModule={workspace.openModule}
-          openCategory={openCategory}
-          liveCount={workspace.liveCount}
-        />
-      )}
-
-      {view === 'category' && activeCategory && (
-        <div className="panel">
-          <div className="breadcrumb"><button onClick={goHome}>Workspace</button> / {activeCategory.name}</div>
-          <div className="panel-head">
-            <h1>{activeCategory.name}</h1>
-            <span className="live-counter">{workspace.liveCount(activeCategory)} of {activeCategory.modules.length} live</span>
-          </div>
-          <p className="panel-sub">Every {activeCategory.name.toLowerCase()} tool planned for the Suite.</p>
-          <div className="tile-grid">
-            {activeCategory.modules.filter(m => (activeCategory.tier || 1) !== 3).map((m) => (
-              <Tile key={m.slug} {...m} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {view === 'search' && (
-        <div className="panel">
-          <div className="search-wrap" style={{ marginBottom: 28 }}>
-            <SearchIcon />
-            <input
-              placeholder={`Search all ${workspace.totalModules} modules…`}
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              autoFocus
+      {workspace.view === 'module' && workspace.activeModuleSlug ? (
+        <ModuleErrorBoundary>
+          <ModuleRenderer
+            moduleSlug={workspace.activeModuleSlug}
+            goHome={workspace.goHome}
+            categories={workspace.categories}
+          />
+        </ModuleErrorBoundary>
+      ) : (
+        <>
+          {view === 'home' && (
+            <WorkspaceHome
+              query={query}
+              handleSearch={handleSearch}
+              totalModules={workspace.totalModules}
+              activeModules={workspace.activeModules}
+              moduleCategories={moduleCategories}
+              pinnedModules={workspace.pinnedModules}
+              recentModules={workspace.recentModules}
+              openModule={workspace.openModule}
+              openCategory={openCategory}
+              liveCount={workspace.liveCount}
             />
-          </div>
-          <p className="panel-sub">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{query}&quot;</p>
-          {searchResults.length ? (
-            <div className="tile-grid">
-              {searchResults.map((m) => (
-                <Tile key={m.slug} {...m} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState icon="🔍" title="No modules match" description={`We couldn't find anything for "${query}". Try a different keyword or browse by category.`} />
           )}
-        </div>
+
+          {view === 'category' && activeCategory && (
+            <div className="panel">
+              <div className="breadcrumb"><button onClick={goHome}>Workspace</button> / {activeCategory.name}</div>
+              <div className="panel-head">
+                <h1>{activeCategory.name}</h1>
+                <span className="live-counter">{workspace.liveCount(activeCategory)} of {activeCategory.modules.length} live</span>
+              </div>
+              <p className="panel-sub">Every {activeCategory.name.toLowerCase()} tool planned for the Suite.</p>
+              <div className="tile-grid">
+                {activeCategory.modules.filter(m => (activeCategory.tier || 1) !== 3).map((m) => (
+                  <Tile key={m.slug} {...m} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {view === 'search' && (
+            <div className="panel">
+              <div className="search-wrap" style={{ marginBottom: 28 }}>
+                <SearchIcon />
+                <input
+                  placeholder={`Search all ${workspace.totalModules} modules…`}
+                  value={query}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <p className="panel-sub">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{query}&quot;</p>
+              {searchResults.length ? (
+                <div className="tile-grid">
+                  {searchResults.map((m) => (
+                    <Tile key={m.slug} {...m} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon="🔍" title="No modules match" description={`We couldn't find anything for "${query}". Try a different keyword or browse by category.`} />
+              )}
+            </div>
+          )}
+        </>
       )}
     </>
   );

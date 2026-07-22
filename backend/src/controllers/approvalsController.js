@@ -5,19 +5,24 @@ exports.getAll = asyncHandler(async (req, res) => {
   const { orgId } = req.user;
   const { status, type } = req.query;
 
-  let query = 'SELECT * FROM approvals WHERE org_id = $1';
+  let query = `
+    SELECT ar.*, at.name as template_name, u.email as submitted_by_email
+    FROM approval_requests ar
+    LEFT JOIN approval_templates at ON at.id = ar.template_id
+    LEFT JOIN users u ON u.id = ar.submitted_by
+    WHERE ar.org_id = $1`;
   const params = [orgId];
 
   if (status) {
     params.push(status);
-    query += ` AND status = $${params.length}`;
+    query += ` AND ar.status = $${params.length}`;
   }
   if (type) {
     params.push(type);
-    query += ` AND approval_type = $${params.length}`;
+    query += ` AND ar.resource_type = $${params.length}`;
   }
 
-  query += ' ORDER BY created_at DESC';
+  query += ' ORDER BY ar.submitted_at DESC';
   const result = await db.query(query, params);
   res.json(result.rows);
 });
@@ -25,106 +30,85 @@ exports.getAll = asyncHandler(async (req, res) => {
 exports.getById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { orgId } = req.user;
-  const result = await db.query('SELECT * FROM approvals WHERE id = $1 AND org_id = $2', [id, orgId]);
-  if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found' });
-  res.json(result.rows[0]);
+  const { rows } = await db.query(
+    `SELECT ar.*, at.name as template_name, u.email as submitted_by_email
+     FROM approval_requests ar
+     LEFT JOIN approval_templates at ON at.id = ar.template_id
+     LEFT JOIN users u ON u.id = ar.submitted_by
+     WHERE ar.id = $1 AND ar.org_id = $2`,
+    [id, orgId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Approval not found' });
+  res.json(rows[0]);
 });
 
 exports.create = asyncHandler(async (req, res) => {
-  const { orgId, userId } = req.user;
-  const { approvalType, entityId, entityType, approvers, metadata } = req.body;
+  const { orgId, id: userId } = req.user;
+  const { templateId, title, resourceType, resourceId } = req.body;
 
-  if (!approvalType || !entityId || !entityType || !approvers) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!title || !resourceType) {
+    return res.status(400).json({ error: 'title and resourceType are required' });
   }
 
-  const result = await db.query(
-    'INSERT INTO approvals (org_id, approval_type, entity_id, entity_type, approvers, metadata, requested_by, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-    [orgId, approvalType, entityId, entityType, JSON.stringify(approvers), metadata ? JSON.stringify(metadata) : null, userId, 'pending']
+  const { rows } = await db.query(
+    `INSERT INTO approval_requests (org_id, template_id, resource_type, resource_id, title, status, submitted_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [orgId, templateId || null, resourceType, resourceId || null, title, 'pending', userId]
   );
-  res.status(201).json(result.rows[0]);
+  res.status(201).json(rows[0]);
 });
 
 exports.update = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { orgId } = req.user;
-  const { approvalType, entityId, entityType, approvers, metadata, status } = req.body;
+  const { title, status } = req.body;
 
   const updates = [];
   const values = [];
   let paramCount = 1;
 
-  if (approvalType !== undefined) {
-    updates.push(`approval_type = $${paramCount++}`);
-    values.push(approvalType);
-  }
-  if (entityId !== undefined) {
-    updates.push(`entity_id = $${paramCount++}`);
-    values.push(entityId);
-  }
-  if (entityType !== undefined) {
-    updates.push(`entity_type = $${paramCount++}`);
-    values.push(entityType);
-  }
-  if (approvers !== undefined) {
-    updates.push(`approvers = $${paramCount++}`);
-    values.push(JSON.stringify(approvers));
-  }
-  if (metadata !== undefined) {
-    updates.push(`metadata = $${paramCount++}`);
-    values.push(metadata ? JSON.stringify(metadata) : null);
-  }
-  if (status !== undefined) {
-    updates.push(`status = $${paramCount++}`);
-    values.push(status);
-  }
+  if (title !== undefined) { updates.push(`title = $${paramCount++}`); values.push(title); }
+  if (status !== undefined) { updates.push(`status = $${paramCount++}`); values.push(status); }
 
-  if (updates.length === 0) {
-    return res.status(400).json({ error: 'No fields to update' });
-  }
-
-  updates.push(`updated_at = NOW()`);
+  if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
   values.push(id, orgId);
 
-  const query = `UPDATE approvals SET ${updates.join(', ')} WHERE id = $${paramCount++} AND org_id = $${paramCount++} RETURNING *`;
+  const query = `UPDATE approval_requests SET ${updates.join(', ')} WHERE id = $${paramCount++} AND org_id = $${paramCount++} RETURNING *`;
   const result = await db.query(query, values);
-  
   if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found' });
   res.json(result.rows[0]);
 });
 
 exports.approve = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { orgId, userId } = req.user;
-  const { comments } = req.body;
+  const { orgId, id: userId } = req.user;
 
-  const result = await db.query(
-    'UPDATE approvals SET status = $1, approved_by = $2, approved_at = NOW(), comments = $3 WHERE id = $4 AND org_id = $5 AND status = $6 RETURNING *',
-    ['approved', userId, comments, id, orgId, 'pending']
+  const { rows } = await db.query(
+    `UPDATE approval_requests SET status = 'approved', resolved_by = $2, resolved_at = NOW()
+     WHERE id = $1 AND org_id = $3 AND status = 'pending' RETURNING *`,
+    [id, userId, orgId]
   );
-  if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found or already processed' });
-  res.json(result.rows[0]);
+  if (!rows[0]) return res.status(404).json({ error: 'Approval not found or already processed' });
+  res.json(rows[0]);
 });
 
 exports.reject = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { orgId, userId } = req.user;
-  const { comments } = req.body;
+  const { orgId, id: userId } = req.user;
 
-  if (!comments) return res.status(400).json({ error: 'Comments required for rejection' });
-
-  const result = await db.query(
-    'UPDATE approvals SET status = $1, rejected_by = $2, rejected_at = NOW(), comments = $3 WHERE id = $4 AND org_id = $5 AND status = $6 RETURNING *',
-    ['rejected', userId, comments, id, orgId, 'pending']
+  const { rows } = await db.query(
+    `UPDATE approval_requests SET status = 'rejected', resolved_by = $2, resolved_at = NOW()
+     WHERE id = $1 AND org_id = $3 AND status = 'pending' RETURNING *`,
+    [id, userId, orgId]
   );
-  if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found or already processed' });
-  res.json(result.rows[0]);
+  if (!rows[0]) return res.status(404).json({ error: 'Approval not found or already processed' });
+  res.json(rows[0]);
 });
 
 exports.delete = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { orgId } = req.user;
-  const result = await db.query('DELETE FROM approvals WHERE id = $1 AND org_id = $2 RETURNING id', [id, orgId]);
-  if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found' });
-  res.json({ message: 'Approval deleted successfully', id: result.rows[0].id });
+  const { rows } = await db.query('DELETE FROM approval_requests WHERE id = $1 AND org_id = $2 RETURNING id', [id, orgId]);
+  if (!rows[0]) return res.status(404).json({ error: 'Approval not found' });
+  res.json({ message: 'Approval deleted successfully', id: rows[0].id });
 });

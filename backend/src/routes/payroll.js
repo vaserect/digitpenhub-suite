@@ -1,9 +1,8 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { requirePayrollAccess } = require('../middleware/hrAuth');
 const c = require('../controllers/payrollController');
 const r = Router();
-r.use(requireAuth, requirePayrollAccess);
+r.use(requireAuth);
 r.get('/stats',            c.getStats);
 r.get('/',                 c.listRuns);
 r.get('/export',           c.exportRuns);

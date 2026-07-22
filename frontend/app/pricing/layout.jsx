@@ -3,8 +3,18 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://suite.digitpenhub.
 
 export async function generateMetadata() {
   let title = 'Pricing';
+  let totalModules = 302;
+  
+  try {
+    const statsRes = await fetch(`${API}/api/v1/modules/stats`, { cache: 'no-store' });
+    if (statsRes.ok) {
+      const stats = await statsRes.json();
+      totalModules = stats.totalModules || 302;
+    }
+  } catch {}
+
   let description =
-    'Start on free CRM and invoicing. Upgrade for all 97 modules, more seats, and higher send limits. No card required to start.';
+    `Start on free CRM and invoicing. Upgrade for all ${totalModules} modules, more seats, and higher send limits. No card required to start.`;
 
   try {
     const res = await fetch(`${API}/api/v1/content/public`, { cache: 'no-store' });

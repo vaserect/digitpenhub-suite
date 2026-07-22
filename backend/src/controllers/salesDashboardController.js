@@ -23,9 +23,9 @@ async function getSalesSummary(req, res) {
     ),
     db.query(
       `SELECT
-         COALESCE(SUM(CASE WHEN ps.started_at >= $2 THEN ps.total_amount ELSE 0 END),0) AS this_month,
-         COALESCE(SUM(CASE WHEN ps.started_at >= $3 THEN ps.total_amount ELSE 0 END),0) AS this_year,
-         COUNT(DISTINCT ps.id) FILTER(WHERE ps.started_at >= $2) AS sessions_this_month
+         COALESCE(SUM(CASE WHEN ps.opened_at >= $2 THEN ps.total_sales ELSE 0 END),0) AS this_month,
+         COALESCE(SUM(CASE WHEN ps.opened_at >= $3 THEN ps.total_sales ELSE 0 END),0) AS this_year,
+         COUNT(DISTINCT ps.id) FILTER(WHERE ps.opened_at >= $2) AS sessions_this_month
        FROM pos_sessions ps WHERE ps.org_id = $1 AND ps.status = 'closed'`,
       [orgId, thisMonthStart, yearStart]
     ),
@@ -34,7 +34,7 @@ async function getSalesSummary(req, res) {
          COUNT(*) AS total,
          COUNT(*) FILTER(WHERE status='pending') AS pending,
          COUNT(*) FILTER(WHERE status='completed') AS completed,
-         COALESCE(SUM(CASE WHEN status='completed' THEN total_amount ELSE 0 END),0) AS revenue
+         COALESCE(SUM(CASE WHEN status='completed' THEN total ELSE 0 END),0) AS revenue
        FROM orders WHERE org_id = $1`,
       [orgId]
     ),

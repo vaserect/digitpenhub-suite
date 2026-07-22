@@ -534,95 +534,15 @@ class InvoiceService extends BaseService {
 
     try {
       const invoice = await this.repository.findByShareToken(shareToken);
-      if (!invoice) return null;
+
+      if (!invoice) {
+        return null;
+      }
+
       return this.enrichEntity(invoice);
     } catch (error) {
       this.logger.error('Error getting invoice by share token:', error);
       throw new Error('Failed to get invoice');
-    }
-  }
-
-  // ── Client Management ──────────────────────────────────────────────────────
-
-  async findAllClients(orgId) {
-    this.logger.debug('InvoiceService: Finding all clients', { orgId });
-    try {
-      const { rows } = await require('../../db').query(
-        `SELECT id, name, email, phone, company, address, created_at
-         FROM invoice_clients WHERE org_id = $1 ORDER BY created_at DESC`,
-        [orgId]
-      );
-      return rows;
-    } catch (error) {
-      this.logger.error('InvoiceService: Error finding clients', { orgId, error: error.message });
-      throw error;
-    }
-  }
-
-  async findClient(id, orgId) {
-    this.logger.debug('InvoiceService: Finding client by ID', { id, orgId });
-    try {
-      const { rows } = await require('../../db').query(
-        `SELECT id, name, email, phone, company, address, created_at
-         FROM invoice_clients WHERE id = $1 AND org_id = $2`,
-        [id, orgId]
-      );
-      return rows[0] || null;
-    } catch (error) {
-      this.logger.error('InvoiceService: Error finding client', { id, orgId, error: error.message });
-      throw error;
-    }
-  }
-
-  async createClient(data, orgId, userId) {
-    this.logger.debug('InvoiceService: Creating client', { orgId });
-    try {
-      const { rows } = await require('../../db').query(
-        `INSERT INTO invoice_clients (org_id, name, email, phone, company, address)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, name, email, phone, company, address, created_at`,
-        [orgId, data.name, data.email || null, data.phone || null, data.company || null, data.address || null]
-      );
-      return rows[0];
-    } catch (error) {
-      this.logger.error('InvoiceService: Error creating client', { orgId, error: error.message });
-      throw error;
-    }
-  }
-
-  async updateClient(id, data, orgId, userId) {
-    this.logger.debug('InvoiceService: Updating client', { id, orgId });
-    try {
-      const { rows } = await require('../../db').query(
-        `UPDATE invoice_clients
-         SET name = COALESCE($1, name),
-             email = COALESCE($2, email),
-             phone = COALESCE($3, phone),
-             company = COALESCE($4, company),
-             address = COALESCE($5, address),
-             updated_at = now()
-         WHERE id = $6 AND org_id = $7
-         RETURNING id, name, email, phone, company, address, created_at`,
-        [data.name || null, data.email || null, data.phone || null, data.company || null, data.address || null, id, orgId]
-      );
-      return rows[0] || null;
-    } catch (error) {
-      this.logger.error('InvoiceService: Error updating client', { id, orgId, error: error.message });
-      throw error;
-    }
-  }
-
-  async deleteClient(id, orgId) {
-    this.logger.debug('InvoiceService: Deleting client', { id, orgId });
-    try {
-      const { rowCount } = await require('../../db').query(
-        `DELETE FROM invoice_clients WHERE id = $1 AND org_id = $2`,
-        [id, orgId]
-      );
-      return rowCount > 0;
-    } catch (error) {
-      this.logger.error('InvoiceService: Error deleting client', { id, orgId, error: error.message });
-      throw error;
     }
   }
 }

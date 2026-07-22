@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
+import GlobalSearchBar from '../search/GlobalSearchBar';
 
 function relTime(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -10,9 +11,24 @@ function relTime(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function Topbar({ title, subtitle, user, onSignOut, onAccountClick, children,
-  notifCount = 0, notifOpen = false, notifList = [], onBellClick, onMarkRead, onMarkAllRead,
-  onToggleSidebar, onToggleTheme, theme }) {
+export default function Topbar({ 
+  title, 
+  subtitle, 
+  user, 
+  onSignOut, 
+  onAccountClick, 
+  children, 
+  notifCount = 0, 
+  notifOpen = false, 
+  notifList = [], 
+  onBellClick, 
+  onMarkRead, 
+  onMarkAllRead, 
+  onToggleSidebar, 
+  onToggleTheme, 
+  theme,
+  onOpenSearch // NEW: callback to open global search modal
+}) {
 
   const dropRef = useRef(null);
 
@@ -40,6 +56,14 @@ export default function Topbar({ title, subtitle, user, onSignOut, onAccountClic
           {subtitle ? <div className="topbar-subtitle">{subtitle}</div> : null}
         </div>
       </div>
+
+      {/* Global Search Bar - NEW */}
+      {onOpenSearch && (
+        <div className="topbar-search">
+          <GlobalSearchBar onOpenSearch={onOpenSearch} theme={theme} />
+        </div>
+      )}
+
       <div className="topbar-actions">
         {children}
 
@@ -87,8 +111,8 @@ export default function Topbar({ title, subtitle, user, onSignOut, onAccountClic
         </div>
 
         <button className="ghost-btn topbar-signout" onClick={onSignOut} type="button">Sign out</button>
-        <button className="avatar-pill" type="button" onClick={onAccountClick} aria-label="Account & security" style={{ cursor: onAccountClick ? 'pointer' : 'default', border: 'none' }}>
-          {user ? user.initials || 'D' : 'D'}
+        <button className="avatar-pill" type="button" onClick={onAccountClick}>
+          {user?.name?.[0]?.toUpperCase() || 'U'}
         </button>
       </div>
     </header>

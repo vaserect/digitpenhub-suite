@@ -26,12 +26,6 @@ class LandingPageRepository extends BaseRepository {
       sortOrder = 'DESC',
     } = options;
 
-    // Security: validate sortBy and sortOrder against allowlists
-    const SORT_ALLOWLIST = ['updated_at', 'created_at', 'title', 'slug', 'status'];
-    const DIR_ALLOWLIST = ['ASC', 'DESC', 'asc', 'desc'];
-    const safeSortBy = SORT_ALLOWLIST.includes(sortBy) ? sortBy : 'updated_at';
-    const safeSortOrder = DIR_ALLOWLIST.includes(sortOrder) ? sortOrder : 'DESC';
-
     let query = `
       SELECT * FROM ${this.tableName}
       WHERE org_id = $1 AND page_type = 'landing'
@@ -51,7 +45,7 @@ class LandingPageRepository extends BaseRepository {
       paramIndex++;
     }
 
-    query += ` ORDER BY ${safeSortBy} ${safeSortOrder} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
     const { rows } = await this.db.query(query, params);

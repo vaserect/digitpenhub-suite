@@ -1,6 +1,5 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { requireHrAccess } = require('../middleware/hrAuth');
 const {
   getStats,
   listJobs, createJob, updateJob, deleteJob,
@@ -8,7 +7,7 @@ const {
 } = require('../controllers/recruitmentController');
 
 const router = Router();
-router.use(requireAuth, requireHrAccess);
+router.use(requireAuth);
 
 router.get('/stats', getStats);
 

@@ -49,7 +49,7 @@ router.get('/components/pending', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.email as creator_email,
         u.avatar_url as creator_avatar,
         o.name as org_name
@@ -99,7 +99,7 @@ router.get('/components', async (req, res) => {
     let query = `
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.email as creator_email,
         u.avatar_url as creator_avatar,
         o.name as org_name
@@ -189,7 +189,17 @@ router.post('/components/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Approved',
+         `Your component "${comp.name}" has been approved and published.`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],
@@ -221,7 +231,18 @@ router.post('/components/:id/reject', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator with rejection reason
+    // Send notification to creator with rejection reason
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Rejected',
+         `Your component "${comp.name}" was rejected.${reason ? ' Reason: ' + reason : ''}`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],
@@ -253,7 +274,18 @@ router.post('/components/:id/unpublish', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator
+    // Send notification to creator
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Unpublished',
+         `Your component "${comp.name}" has been unpublished.${reason ? ' Reason: ' + reason : ''}`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],
@@ -342,7 +374,7 @@ router.get('/reviews', async (req, res) => {
     let query = `
       SELECT 
         mr.*,
-        u.name as user_name,
+        u.full_name as user_name,
         u.email as user_email,
         mc.name as component_name
       FROM marketplace_reviews mr
@@ -504,7 +536,7 @@ router.get('/reports', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mr.*,
-        u.name as reporter_name,
+        u.full_name as reporter_name,
         u.email as reporter_email,
         mc.name as component_name,
         mc.creator_id,
@@ -647,7 +679,7 @@ router.get('/stats', async (req, res) => {
     const topCreators = await pool.query(`
       SELECT 
         u.id,
-        u.name,
+        u.full_name,
         u.email,
         COUNT(DISTINCT mc.id) as component_count,
         COALESCE(SUM(mp.price_paid), 0) as total_earnings,
@@ -658,7 +690,7 @@ router.get('/stats', async (req, res) => {
       LEFT JOIN marketplace_purchases mp ON mc.id = mp.component_id
       LEFT JOIN marketplace_downloads md ON mc.id = md.component_id
       WHERE mc.status = 'published'
-      GROUP BY u.id, u.name, u.email
+      GROUP BY u.id, u.full_name, u.email
       ORDER BY total_earnings DESC, component_count DESC
       LIMIT 10
     `);
@@ -671,7 +703,7 @@ router.get('/stats', async (req, res) => {
         mc.name,
         mc.status,
         mc.created_at as timestamp,
-        u.name as user_name
+        u.full_name as user_name
       FROM marketplace_components mc
       LEFT JOIN users u ON mc.creator_id = u.id
       ORDER BY mc.created_at DESC

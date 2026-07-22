@@ -1,37 +1,51 @@
-import Badge from '../ui/Badge';
-import Button from '../ui/Button';
+'use client';
 
-export default function DraggableFieldRow({
-  field,
+import { useState } from 'react';
+import Button from '../ui/Button';
+import { GripVertical } from 'lucide-react';
+
+export default function DraggableFieldRow({ 
+  field, 
   index,
-  onEdit,
-  onClone,
+  onEdit, 
+  onClone, 
   onDelete,
   onDragStart,
   onDragOver,
   onDrop,
   isDragging,
-  dragOverIndex,
+  dragOverIndex
 }) {
+  const [dragOver, setDragOver] = useState(false);
+
   const handleDragStart = (e) => {
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget);
     onDragStart(index);
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    setDragOver(true);
     onDragOver(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
+    setDragOver(false);
     onDrop(index);
   };
 
-  const handleDragEnd = () => {
-    onDragStart(null);
-    onDragOver(null);
+  const rowStyle = {
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'move',
+    borderTop: dragOver && dragOverIndex === index ? '2px solid var(--primary)' : undefined,
+    transition: 'opacity 0.2s, border 0.2s',
   };
 
   return (
@@ -39,64 +53,37 @@ export default function DraggableFieldRow({
       draggable
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onDragEnd={handleDragEnd}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'move',
-        borderTop: dragOverIndex === index ? '2px solid var(--primary)' : undefined,
-        transition: 'opacity 0.2s',
-      }}
+      style={rowStyle}
     >
-      <td style={{ padding: '12px 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ cursor: 'grab', color: 'var(--text-muted)' }}>⋮⋮</span>
-          <code style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{field.key}</code>
-        </div>
+      <td style={{ width: 40, textAlign: 'center', cursor: 'grab' }}>
+        <GripVertical size={16} style={{ color: 'var(--text-muted)' }} />
       </td>
-      <td style={{ padding: '12px 8px' }}>{field.label}</td>
-      <td style={{ padding: '12px 8px' }}>
-        <Badge variant="secondary">{field.field_type}</Badge>
+      <td>
+        <code style={{ fontSize: '0.85rem' }}>{field.key}</code>
       </td>
-      <td style={{ padding: '12px 8px' }}>
-        {field.required ? (
-          <Badge variant="warning">Required</Badge>
-        ) : (
-          <span style={{ color: 'var(--text-muted)' }}>Optional</span>
+      <td>{field.label}</td>
+      <td>
+        <span className="badge">{field.field_type}</span>
+      </td>
+      <td>
+        {field.required && (
+          <span className="badge" style={{ background: 'var(--error-bg)', color: 'var(--error)' }}>
+            Required
+          </span>
         )}
       </td>
-      <td style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-        {field.field_type === 'select' || field.field_type === 'multiselect'
-          ? `${(field.options || []).length} options`
-          : '—'}
-      </td>
-      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onEdit(field)}
-            title="Edit field"
-          >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onClone(field)}
-            title="Clone field"
-          >
-            Clone
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => onDelete(field)}
-            title="Delete field"
-          >
-            Delete
-          </Button>
-        </div>
+      <td style={{ whiteSpace: 'nowrap' }}>
+        <Button size="sm" variant="ghost" onClick={() => onEdit(field)}>
+          Edit
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onClone(field)}>
+          Clone
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onDelete(field)}>
+          Delete
+        </Button>
       </td>
     </tr>
   );

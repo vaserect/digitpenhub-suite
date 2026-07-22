@@ -73,7 +73,7 @@ async function listBarcodes(req, res) {
     } = req.query;
 
     const offset = (page - 1) * limit;
-    const conditions = ['org_id = $1'];
+    const conditions = ['b.org_id = $1'];
     const params = [req.user.orgId];
     let paramCount = 1;
 
@@ -129,8 +129,10 @@ async function listBarcodes(req, res) {
       [...params, limit, offset]
     );
 
+    const countConditions = conditions.map(c => c.replace(/^[a-z]+\./, ''));
+    const countWhere = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : '';
     const { rows: countRows } = await db.query(
-      `SELECT COUNT(*) as total FROM barcodes ${whereClause}`,
+      `SELECT COUNT(*) as total FROM barcodes ${countWhere}`,
       params
     );
 
@@ -761,7 +763,7 @@ async function listBatches(req, res) {
   try {
     const { status } = req.query;
 
-    const conditions = ['org_id = $1'];
+    const conditions = ['b.org_id = $1'];
     const params = [req.user.orgId];
 
     if (status) {
@@ -1011,7 +1013,7 @@ async function createPrintTemplate(req, res) {
       label_width,
       label_height,
       columns = 1,
-      rows: printRows = 1,
+      rows = 1,
       horizontal_spacing = 0,
       vertical_spacing = 0,
       margin_top = 0.5,
@@ -1028,10 +1030,10 @@ async function createPrintTemplate(req, res) {
       });
     }
 
-    const { rows } = await db.query(
+    const { rows: resultRows } = await db.query(
       `INSERT INTO barcode_print_templates (
         org_id, name, description, paper_size, paper_width, paper_height,
-        label_width, label_height, columns, printRows,
+        label_width, label_height, columns, rows,
         horizontal_spacing, vertical_spacing,
         margin_top, margin_bottom, margin_left, margin_right,
         layout_config, label_type
@@ -1039,14 +1041,14 @@ async function createPrintTemplate(req, res) {
       RETURNING *`,
       [
         req.user.orgId, name.trim(), description, paper_size, paper_width, paper_height,
-        label_width, label_height, columns, printRows,
+        label_width, label_height, columns, rows,
         horizontal_spacing, vertical_spacing,
         margin_top, margin_bottom, margin_left, margin_right,
         layout_config, label_type
       ]
     );
 
-    res.status(201).json({ template: rows[0] });
+    res.status(201).json({ template: resultRows[0] });
   } catch (error) {
     logger.error('Error creating print template:', error);
     res.status(500).json({ error: 'Failed to create print template' });

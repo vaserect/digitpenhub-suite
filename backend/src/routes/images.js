@@ -17,3 +17,4 @@ r.get('/public/search', publicLimiter, c.publicSearch);
 r.get('/search', requireAuth, c.search);
 
 module.exports = r;
+module.exports = r;

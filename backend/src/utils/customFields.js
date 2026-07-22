@@ -33,13 +33,18 @@ async function getExportColumns(recordType, orgId) {
   return rows;
 }
 
-const FIELD_TYPES = ['text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'file', 'relation'];
+// Enhanced field types (Phase 2)
+const FIELD_TYPES = [
+  'text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'file', 'relation',
+  'currency', 'percent', 'url', 'email', 'phone', 'rating', 'progress', 'location'
+];
 
 function validateValue(def, value) {
   if (value === undefined || value === null || value === '') {
     if (def.required) return `${def.label} is required.`;
     return null;
   }
+  
   switch (def.field_type) {
     case 'number':
       if (Number.isNaN(Number(value))) return `${def.label} must be a number.`;
@@ -59,18 +64,75 @@ function validateValue(def, value) {
       if (invalid.length) return `${def.label} contains options that are not configured: ${invalid.join(', ')}.`;
       break;
     }
+    // Enhanced field types validation
+    case 'currency':
+      if (Number.isNaN(Number(value))) return `${def.label} must be a valid currency amount.`;
+      if (Number(value) < 0) return `${def.label} cannot be negative.`;
+      break;
+    case 'percent':
+      if (Number.isNaN(Number(value))) return `${def.label} must be a valid percentage.`;
+      if (Number(value) < 0 || Number(value) > 100) return `${def.label} must be between 0 and 100.`;
+      break;
+    case 'url':
+      try {
+        new URL(value);
+      } catch {
+        return `${def.label} must be a valid URL (e.g., https://example.com).`;
+      }
+      break;
+    case 'email':
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) return `${def.label} must be a valid email address.`;
+      break;
+    case 'phone':
+      // Basic phone validation - can be enhanced with format_pattern
+      const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+      if (!phoneRegex.test(value)) return `${def.label} must be a valid phone number.`;
+      if (def.format_pattern) {
+        const customRegex = new RegExp(def.format_pattern);
+        if (!customRegex.test(value)) return `${def.label} does not match the required format.`;
+      }
+      break;
+    case 'rating':
+      if (Number.isNaN(Number(value))) return `${def.label} must be a number.`;
+      const ratingMin = def.min_value ?? 1;
+      const ratingMax = def.max_value ?? 5;
+      if (Number(value) < ratingMin || Number(value) > ratingMax) {
+        return `${def.label} must be between ${ratingMin} and ${ratingMax}.`;
+      }
+      break;
+    case 'progress':
+      if (Number.isNaN(Number(value))) return `${def.label} must be a number.`;
+      const progressMin = def.min_value ?? 0;
+      const progressMax = def.max_value ?? 100;
+      if (Number(value) < progressMin || Number(value) > progressMax) {
+        return `${def.label} must be between ${progressMin} and ${progressMax}.`;
+      }
+      break;
+    case 'location':
+      // Expect location as object with lat/lng or address
+      if (typeof value === 'object') {
+        if (value.lat !== undefined && value.lng !== undefined) {
+          if (Number.isNaN(Number(value.lat)) || Number.isNaN(Number(value.lng))) {
+            return `${def.label} must have valid latitude and longitude.`;
+          }
+        } else if (!value.address) {
+          return `${def.label} must have either coordinates (lat/lng) or an address.`;
+        }
+      } else if (typeof value !== 'string') {
+        return `${def.label} must be a location object or address string.`;
+      }
+      break;
     default:
       break;
   }
   return null;
 }
 
-// Shared by any controller writing custom field values on create/update.
-// Looks up active definitions for the org+recordType, validates the incoming
-// values against them, and flags any keys that don't match a definition.
 async function validateCustomFieldValues(orgId, recordType, incoming) {
   const { rows: defs } = await db.query(
-    `SELECT id, key, label, field_type, required, options
+    `SELECT id, key, label, field_type, required, options, currency_code, 
+            min_value, max_value, format_pattern
      FROM custom_field_definitions
      WHERE org_id = $1 AND record_type = $2 AND is_active = true`,
     [orgId, recordType]
@@ -94,27 +156,25 @@ async function validateCustomFieldValues(orgId, recordType, incoming) {
   return { errors, defs, defByKey };
 }
 
-// Writes values within a caller-supplied client so it can participate in the
-// same transaction as the parent record's insert/update.
 async function upsertCustomFieldValues(client, orgId, recordType, recordId, incoming, defByKey) {
   for (const [key, value] of Object.entries(incoming)) {
     const def = defByKey[key];
-    if (!def) continue; // caught by validateCustomFieldValues already; skip defensively
+    if (!def) continue;
     await client.query(
       `INSERT INTO custom_field_values (field_id, org_id, record_type, record_id, value)
        VALUES ($1,$2,$3,$4,$5)
        ON CONFLICT (field_id, record_id)
        DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-      [def.id, orgId, recordType, recordId, value === undefined ? null : JSON.stringify(value)]
+      [def.id, orgId, recordType, recordId, JSON.stringify(value)]
     );
   }
 }
 
 module.exports = {
+  FIELD_TYPES,
   attachCustomFields,
   getExportColumns,
-  FIELD_TYPES,
-  validateValue,
   validateCustomFieldValues,
   upsertCustomFieldValues,
+  validateValue,
 };

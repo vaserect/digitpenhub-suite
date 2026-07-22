@@ -710,8 +710,19 @@ class LeadScoringService {
         (threshold.max_score === null || newScore <= threshold.max_score);
       
       if (crossedThreshold) {
-        // TODO: Send notification via notification service
-        console.log(`Contact ${contactId} reached threshold: ${threshold.name} (${newScore} points)`);
+        // Send notification when threshold crossed
+        try {
+          await db.query(
+            `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+             VALUES ($1, NULL, 'lead_scoring', $2, $3, $4)`,
+            [orgId,
+             `Lead Score Threshold Reached`,
+             `Contact ${contactId} reached threshold: ${threshold.name} (${newScore} points)`,
+             `/leads/contacts/${contactId}?tab=scoring`]
+          );
+        } catch (e) {
+          console.error('Failed to send lead scoring notification:', e.message);
+        }
       }
     }
   }

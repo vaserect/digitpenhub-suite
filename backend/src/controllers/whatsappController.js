@@ -303,57 +303,46 @@ async function trackLinkClick(req, res) {
   try {
     const { shortUrl } = req.params;
     const { messageId, contactId } = req.query;
-
+    
     if (!messageId || !contactId) {
       return res.status(400).json({ error: 'Message ID and Contact ID are required.' });
     }
-
-    // Look up original URL from whatsapp_tracked_links table.
-    // This is the correct source — previously the code used message body
-    // content as the URL, which broke redirects (message body text != URL).
-    const { rows: linkRows } = await db.query(
-      `SELECT original_url FROM whatsapp_tracked_links WHERE short_code = $1 AND message_id = $2`,
-      [shortUrl, messageId]
+    
+    // Get original URL
+    const { rows: messageRows } = await db.query(
+      `SELECT content FROM whatsapp_messages WHERE id=$1 AND org_id=$2`,
+      [messageId, req.user.orgId]
     );
-
-    if (!linkRows.length) {
-      return res.status(404).json({ error: 'Tracked link not found.' });
+    
+    if (!messageRows.length) {
+      return res.status(404).json({ error: 'Message not found.' });
     }
-
-    const originalUrl = linkRows[0].original_url;
-
+    
     // Record click
     await db.query(
-      `INSERT INTO whatsapp_link_clicks
+      `INSERT INTO whatsapp_link_clicks 
        (org_id, message_id, contact_id, original_url, short_url, ip_address, user_agent)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         req.user.orgId,
         messageId,
         contactId,
-        originalUrl,
+        messageRows[0].content,
         shortUrl,
         req.ip,
         req.get('user-agent')
       ]
     );
-
-    // Increment click count on the tracked link
-    await db.query(
-      `UPDATE whatsapp_tracked_links SET click_count = click_count + 1 WHERE short_code = $1`,
-      [shortUrl]
-    );
-
+    
     // Update broadcast clicked count if applicable
     await db.query(
-      `UPDATE whatsapp_broadcasts
+      `UPDATE whatsapp_broadcasts 
        SET clicked_count = clicked_count + 1
        WHERE id = (SELECT broadcast_id FROM whatsapp_messages WHERE id=$1)`,
       [messageId]
     );
-
-    // Return the actual URL so the frontend can redirect the user
-    res.json({ success: true, original_url: originalUrl });
+    
+    res.json({ success: true });
   } catch (error) {
     console.error('Error tracking link click:', error);
     res.status(500).json({ error: error.message });

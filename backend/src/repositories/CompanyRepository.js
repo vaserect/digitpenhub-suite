@@ -10,8 +10,7 @@ class CompanyRepository extends BaseRepository {
     super(db, 'crm_companies', {
       primaryKey: 'id',
       timestamps: true,
-      allowedColumns: ['id','org_id','name','website','industry','size','description','phone','email','address','city','state','country','zip_code','logo_url','linkedin_url','twitter_handle','facebook_url','annual_revenue','employee_count','created_at','updated_at','created_by','updated_by','deleted_at','deleted_by','tags','custom_fields','source','status','owner_id'],
-      allowedSortColumns: ['id','name','created_at','updated_at','industry','size','annual_revenue','employee_count'],
+      tenantColumn: 'org_id',
     });
   }
 
@@ -53,13 +52,14 @@ class CompanyRepository extends BaseRepository {
     }
 
     const whereClause = conditions.join(' AND ');
+    const orderBy = filters.orderBy || 'name ASC';
     const limit = filters.limit || 100;
     const offset = filters.offset || 0;
 
     const { rows } = await this.db.query(
       `SELECT * FROM ${this.tableName}
        WHERE ${whereClause}
-       ORDER BY name ASC
+       ORDER BY ${orderBy}
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...params, limit, offset]
     );
@@ -76,6 +76,7 @@ class CompanyRepository extends BaseRepository {
   async findAllWithContactCount(orgId, options = {}) {
     const limit = options.limit || 100;
     const offset = options.offset || 0;
+    const orderBy = options.orderBy || 'c.name ASC';
 
     const { rows } = await this.db.query(
       `SELECT 
@@ -85,7 +86,7 @@ class CompanyRepository extends BaseRepository {
        LEFT JOIN contacts ct ON ct.company_id = c.id AND ct.org_id = c.org_id
        WHERE c.org_id = $1
        GROUP BY c.id
-       ORDER BY c.name ASC
+       ORDER BY ${orderBy}
        LIMIT $2 OFFSET $3`,
       [orgId, limit, offset]
     );

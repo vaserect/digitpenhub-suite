@@ -134,23 +134,9 @@ class PipelineService extends BaseService {
   async list(orgId) {
     const pipelines = await this.repository.list(orgId);
 
-    if (pipelines.length === 0) return [];
-
-    // Batch-load stages for all pipelines (fixes N+1 query pattern)
-    const pipelineIds = pipelines.map((p) => p.id);
-    const allStages = await this.repository.listStagesByPipelineIds(pipelineIds);
-
-    // Index stages by pipeline_id
-    const stagesByPipelineId = {};
-    for (const stage of allStages) {
-      if (!stagesByPipelineId[stage.pipeline_id]) {
-        stagesByPipelineId[stage.pipeline_id] = [];
-      }
-      stagesByPipelineId[stage.pipeline_id].push(stage);
-    }
-
+    // Get stages for each pipeline
     for (const pipeline of pipelines) {
-      pipeline.stages = stagesByPipelineId[pipeline.id] || [];
+      pipeline.stages = await this.repository.listStages(pipeline.id);
     }
 
     return pipelines;

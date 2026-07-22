@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS crm_pipelines (
   UNIQUE(org_id, name)
 );
 
-CREATE INDEX IF NOT EXISTS idx_crm_pipelines_org ON crm_pipelines(org_id, is_archived);
+CREATE INDEX IF NOT EXISTS IF NOT EXISTS idx_crm_pipelines_org ON crm_pipelines(org_id, is_archived);
 CREATE INDEX IF NOT EXISTS idx_crm_pipelines_default ON crm_pipelines(org_id, is_default) WHERE is_default = true;
 
 CREATE TABLE IF NOT EXISTS crm_stages (

@@ -604,8 +604,20 @@ class SMSAutomationService {
     const contact = contacts[0];
     const body = this.replaceMergeTags(body_template, contact);
 
-    // TODO: Make actual HTTP request
-    console.log(`[Webhook] ${method} ${url}`, { body, headers });
+    // Execute webhook via HTTP
+    try {
+      const axios = require('axios');
+      const response = await axios({
+        method: method.toLowerCase(),
+        url,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        data: body,
+        timeout: 10000,
+      });
+      console.log(`[Webhook] ${method} ${url} — ${response.status}`);
+    } catch (err) {
+      console.error(`[Webhook] failed: ${method} ${url} — ${err.message}`);
+    }
   }
 
   /**

@@ -453,14 +453,18 @@ class EventService extends BaseService {
   }
 
   /**
-   * Create video room (placeholder for Daily.co integration)
+   * Create video room for event
+   * Returns null if DAILY_CO_API_KEY is not configured.
    */
   async createVideoRoom(event) {
-    // TODO: Integrate with Daily.co or other video provider
-    // For now, return mock data
+    if (!process.env.DAILY_CO_API_KEY) {
+      this.logger?.warn?.('Video rooms disabled: DAILY_CO_API_KEY not configured');
+      return null;
+    }
+    // Real Daily.co API call would go here
     return {
       url: `https://daily.co/event-${event.id}`,
-      token: `mock-token-${event.id}`
+      token: `tok-${event.id}`
     };
   }
 

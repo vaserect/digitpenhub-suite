@@ -20,56 +20,35 @@ const API_MAP = {
   'asset-management': '/api/v1/assets', 'document-management': '/api/v1/documents',
   'brand-kit': '/api/v1/brand-kit', 'affiliate-system': '/api/v1/affiliates',
   'referral-program': '/api/v1/referrals', 'coupons': '/api/v1/coupons',
-  'whatsapp-marketing': '/api/v1/whatsapp/contacts',
-  'sms-marketing': '/api/v1/sms/contacts',
-  'inventory': '/api/v1/inventory/products', 'pos': '/api/v1/pos/sessions',
-  'recruitment': '/api/v1/recruitment/jobs', 'task-management': '/api/v1/tasks',
-  'forms': '/api/v1/leads/forms', 'webhooks': '/api/v1/api-keys/webhooks',
+  'whatsapp-marketing': '/api/v1/whatsapp',
+  'sms-marketing': '/api/v1/sms',
+  'inventory': '/api/v1/inventory', 'pos': '/api/v1/pos/sessions',
+  'recruitment': '/api/v1/recruitment', 'task-management': '/api/v1/tasks',
+  'forms': '/api/v1/forms', 'webhooks': '/api/v1/api-keys',
   'permissions': '/api/v1/permissions/roles', 'segments': '/api/v1/segments',
   'subscriptions': '/api/v1/customer-subs', 'sso': '/api/v1/auth/sso/providers',
-  'content-calendar': '/api/v1/platform/calendar',
-  'cross-module-activity-feed': '/api/v1/platform/activity',
-  'legal-templates': '/api/v1/platform/legal-templates',
-  'communities': '/api/v1/community/communities', 'events': '/api/v1/community/events',
-  'dedup': '/api/v1/dedup', 'master-data-management': '/api/v1/dedup',
-  'grants': '/api/v1/community/grants', 'donations': '/api/v1/community/donations',
+  'content-calendar': '/api/v1/content-calendar',
+  'legal-templates': '/api/v1/legal-templates',
+  'communities': '/api/v1/community', 'events': '/api/v1/community/events',
+  'dedup': '/api/v1/dedup', 'master-data-management': '/api/v1/master-data',
+  'grants': '/api/v1/grants', 'donations': '/api/v1/community/donations',
   'volunteers': '/api/v1/community/volunteers',
-  'native-integrations': '/api/v1/integrations/connections',
-  'integrations': '/api/v1/integrations/connections',
+  'native-integrations': '/api/v1/integrations-hub',
+  'integrations': '/api/v1/integrations-hub',
   'collaborative-editing': '/api/v1/collaborative-editing',
   'shared-documents': '/api/v1/collaborative-editing',
-  'jobs': '/api/v1/community/jobs', 'ideas': '/api/v1/community/ideas',
-  'skills': '/api/v1/community/skills', 'ambassadors': '/api/v1/community/ambassadors',
-  'timezone-proposals': '/api/v1/community/timezone-proposals',
-  // Module slug → actual API path mappings for routes that don't match their slug
-  'qr-code-generator': '/api/v1/qr-codes',
-  'digital-business-cards': '/api/v1/biz-cards',
-  'link-in-bio': '/api/v1/link-in-bio',
-  'review-management': '/api/v1/reviews',
-  'survey-builder': '/api/v1/forms',
-  'online-store-builder': '/api/v1/store-builder',
-  'custom-fields-engine': '/api/v1/custom-fields',
-  'global-search': '/api/v1/search',
-  'digital-asset-management-dam': '/api/v1/dam',
+  'jobs': '/api/v1/recruitment/jobs', 'ideas': '/api/v1/community/ideas',
+  'skills': '/api/v1/skills', 'ambassadors': '/api/v1/ambassadors',
+  'timezone-proposals': '/api/v1/timezone-proposals',
   'approval-workflow-engine': '/api/v1/approvals',
-  'unified-inbox': '/api/v1/inbox',
-  'granular-role-based-permissions': '/api/v1/permissions',
-  'feature-flags-ab-experimentation-engine': '/api/v1/feature-flags',
-  'notification-center': '/api/v1/notifications',
-  'public-api-webhooks-manager': '/api/v1/webhooks',
-  'knowledge-graph-entity-relationship-mapping': '/api/v1/knowledge-graph',
-  'master-data-management-deduplication-engine': '/api/v1/dedup',
-  'client-portal': '/api/v1/portal',
-  'membership-community-platform': '/api/v1/community',
-  'api-keys': '/api/v1/api-keys',
-  'payment-processing': '/api/v1/payments',
-  'digital-asset-management': '/api/v1/dam',
+  'certificate-generator': '/api/v1/certificates',
 };
 
 const NO_API_SLUGS = new Set([
   'background-removal', 'basic-video-editor', 'resume-builder', 'flyer-builder',
   'graphic-design-editor', 'logo-maker', 'image-compression', 'image-converter',
   'file-converter', 'json-formatter', 'password-generator',
+  'cross-module-activity-feed',
   'business-dashboard', 'power-bi-embed-analytics',
   // Platform Administration (tier 3) — no workspace-facing API exists
   'super-admin-panel', 'add-on-third-party-integration-marketplace-manager',
@@ -81,8 +60,7 @@ const NO_API_SLUGS = new Set([
 function guessApiPath(slug) {
   if (NO_API_SLUGS.has(slug)) return null;
   if (API_MAP[slug]) return API_MAP[slug];
-  // Per-module CRUD — every module with a DB table has explicit endpoints
-  return '/api/v1/module/' + slug;
+  return '/api/v1/' + slug;
 }
 
 function formatCell(v) {
@@ -112,6 +90,7 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
   const [page, setPage] = useState(1);
   const [columns, setColumns] = useState([]);
   const [apiBase, setApiBase] = useState('');
+  const [apiResponded, setApiResponded] = useState(false);
 
   useSearchHotkey();
   const [listKey, setListKey] = useState('');
@@ -132,8 +111,10 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
   const load = useCallback(async () => {
     if (!apiBase) { setLoading(false); return; }
     setLoading(true);
+    setApiResponded(false);
     try {
       const r = await apiFetch(apiBase);
+      setApiResponded(true);
       const entries = Object.entries(r || {}).find(([,v]) => Array.isArray(v) && v.length > 0);
       const items = entries ? entries[1] : (Array.isArray(r) ? r : []);
       const c = items.length > 0 ? Object.keys(items[0]).filter(k =>
@@ -244,7 +225,10 @@ export default function GenericModule({ moduleSlug, goHome, categories }) {
           onChange={e => { setSearch(e.target.value); setPage(1); }}
           style={{ flex: 1, maxWidth: 320, minWidth: 180 }}
         />
-        <Button onClick={() => { setShowForm(true); setEditItem(null); setDraft({}); }}>+ New</Button>
+        <Button onClick={() => { setShowForm(true); setEditItem(null); setDraft({}); }}
+          style={{ display: apiBase && apiResponded ? 'inline-flex' : 'none' }}>
+          + New
+        </Button>
         {data.length > 0 && <Button variant="secondary" onClick={handleExportCsv}>📥 CSV</Button>}
       </div>
 

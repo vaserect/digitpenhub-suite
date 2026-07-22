@@ -3,8 +3,18 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://suite.digitpenhub.
 
 export async function generateMetadata() {
   let title = 'All Features';
+  let totalModules = 302;
+
+  try {
+    const statsRes = await fetch(`${API}/api/v1/modules/stats`, { cache: 'no-store' });
+    if (statsRes.ok) {
+      const stats = await statsRes.json();
+      totalModules = stats.totalModules || 302;
+    }
+  } catch {}
+
   let description =
-    '97 modules across marketing, AI, SEO, creative, business, commerce, education, productivity, analytics and utilities — under one roof.';
+    `${totalModules} modules across marketing, AI, SEO, creative, business, commerce, education, productivity, analytics and utilities — under one roof.`;
 
   try {
     const res = await fetch(`${API}/api/v1/content/public`, { cache: 'no-store' });

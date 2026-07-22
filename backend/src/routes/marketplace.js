@@ -32,24 +32,27 @@ router.get('/components', async (req, res) => {
     } = req.query;
 
     const offset = (page - 1) * limit;
+    const hasSearch = search && search.trim();
+    const searchTerm = hasSearch ? search.trim() : '';
+    
     let query = `
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.avatar_url as creator_avatar,
         COUNT(DISTINCT mf.id) as favorite_count,
-        ts_rank(
+        ${hasSearch ? `ts_rank(
           to_tsvector('english', mc.name || ' ' || mc.description || ' ' || array_to_string(mc.tags, ' ')),
           plainto_tsquery('english', $1)
-        ) as search_rank
+        )` : '0::float4'} as search_rank
       FROM marketplace_components mc
       LEFT JOIN users u ON mc.creator_id = u.id
       LEFT JOIN marketplace_favorites mf ON mc.id = mf.component_id
       WHERE mc.status = 'published'
     `;
     
-    const params = [search || ''];
-    let paramCount = 2;
+    const params = hasSearch ? [searchTerm] : [];
+    let paramCount = hasSearch ? 2 : 1;
 
     // Full-text search with ranking
     if (search && search.trim()) {
@@ -112,7 +115,7 @@ router.get('/components', async (req, res) => {
     }
 
     // Group by for aggregates
-    query += ` GROUP BY mc.id, u.name, u.avatar_url`;
+    query += ` GROUP BY mc.id, u.full_name, u.avatar_url`;
 
     // Sorting
     switch (sort) {
@@ -155,19 +158,19 @@ router.get('/components', async (req, res) => {
       FROM marketplace_components mc
       WHERE mc.status = 'published'
     `;
-    const countParams = [search || ''];
-    let countParamCount = 2;
+    const countParams = [];
+    let countParamCount = 1;
 
     if (search && search.trim()) {
       countQuery += ` AND (
         to_tsvector('english', mc.name || ' ' || mc.description || ' ' || array_to_string(mc.tags, ' '))
         @@ plainto_tsquery('english', $1)
-        OR mc.name ILIKE $${countParamCount}
-        OR mc.description ILIKE $${countParamCount}
-        OR EXISTS (SELECT 1 FROM unnest(mc.tags) tag WHERE tag ILIKE $${countParamCount})
+        OR mc.name ILIKE $${countParamCount + 1}
+        OR mc.description ILIKE $${countParamCount + 1}
+        OR EXISTS (SELECT 1 FROM unnest(mc.tags) tag WHERE tag ILIKE $${countParamCount + 1})
       )`;
-      countParams.push(`%${search}%`);
-      countParamCount++;
+      countParams.push(search.trim(), `%${search}%`);
+      countParamCount += 2;
     }
 
     if (categories) {
@@ -252,7 +255,7 @@ router.get('/components/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.avatar_url as creator_avatar,
         u.email as creator_email,
         COUNT(DISTINCT mf.id) as favorite_count,
@@ -263,7 +266,7 @@ router.get('/components/:id', async (req, res) => {
       LEFT JOIN users u ON mc.creator_id = u.id
       LEFT JOIN marketplace_favorites mf ON mc.id = mf.component_id
       WHERE mc.id = $1 AND mc.status = 'published'
-      GROUP BY mc.id, u.name, u.avatar_url, u.email
+      GROUP BY mc.id, u.full_name, u.avatar_url, u.email
     `, userId ? [id, userId] : [id]);
 
     if (result.rows.length === 0) {
@@ -335,7 +338,7 @@ router.get('/components/:id/reviews', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mr.*,
-        u.name as user_name,
+        u.full_name as user_name,
         u.avatar_url as user_avatar
       FROM marketplace_reviews mr
       LEFT JOIN users u ON mr.user_id = u.id
@@ -384,7 +387,7 @@ router.get('/featured', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         u.avatar_url as creator_avatar
       FROM marketplace_components mc
       LEFT JOIN users u ON mc.creator_id = u.id
@@ -962,7 +965,7 @@ router.get('/my-purchases', requireAuth, async (req, res) => {
         mc.description,
         mc.thumbnail_url,
         mc.component_data,
-        u.name as creator_name
+        u.full_name as creator_name
       FROM marketplace_purchases mp
       LEFT JOIN marketplace_components mc ON mp.component_id = mc.id
       LEFT JOIN users u ON mc.creator_id = u.id
@@ -988,7 +991,7 @@ router.get('/my-favorites', requireAuth, async (req, res) => {
     const result = await pool.query(`
       SELECT 
         mc.*,
-        u.name as creator_name,
+        u.full_name as creator_name,
         mf.created_at as favorited_at
       FROM marketplace_favorites mf
       LEFT JOIN marketplace_components mc ON mf.component_id = mc.id

@@ -96,32 +96,7 @@ async function deleteTask(req, res) {
   res.json({ ok: true });
 }
 
-async function exportProjects(req, res) {
-  const { sendCsv, autoColumns } = require('../utils/csv');
-  const projects = await ProjectService.findAll(req.user.orgId);
-  sendCsv(res, 'projects.csv', projects, autoColumns(projects));
-}
-
-async function exportTasks(req, res) {
-  const { sendCsv, autoColumns } = require('../utils/csv');
-  const tasks = await TaskService.findAll(req.user.orgId);
-  sendCsv(res, 'tasks.csv', tasks, autoColumns(tasks));
-}
-
-async function projectStats(req, res) {
-  const projects = await ProjectService.findAll(req.user.orgId);
-  const tasks = await TaskService.findAll(req.user.orgId);
-  res.json({ stats: { total_projects: projects.length, total_tasks: tasks.length } });
-}
-
-async function taskStats(req, res) {
-  const tasks = await TaskService.findAll(req.user.orgId);
-  res.json({ stats: { total: tasks.length } });
-}
-
 module.exports = {
   listProjects, createProject, updateProject, deleteProject,
-  createTask, updateTask, deleteTask,
-  exportProjects, exportTasks, projectStats, taskStats,
-  STATUSES,
+  createTask, updateTask, deleteTask, STATUSES,
 };

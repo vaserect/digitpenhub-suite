@@ -1,3 +1,4 @@
+const db = require('../db');
 const ChatbotService = require('../services/chatbot/ChatbotService');
 const { generateWithAI } = require('../utils/aiGenerate');
 
@@ -5,7 +6,7 @@ const { generateWithAI } = require('../utils/aiGenerate');
 
 async function getStats(req, res) {
   try {
-    const { rows } = await req.db.query(
+    const { rows } = await db.query(
       `SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE is_active) AS active,
               COALESCE(SUM(conversations),0) AS total_conversations
        FROM chatbot_flows WHERE org_id=$1`, 
@@ -506,14 +507,14 @@ async function generateReply(req, res) {
 
 async function getWidgetSettings(req, res) {
   try {
-    const { rows } = await req.db.query(
+    const { rows } = await db.query(
       `SELECT * FROM chatbot_widget_settings WHERE org_id = $1`,
       [req.user.orgId]
     );
 
     if (!rows.length) {
       // Create default settings
-      const { rows: newSettings } = await req.db.query(
+      const { rows: newSettings } = await db.query(
         `INSERT INTO chatbot_widget_settings (org_id) VALUES ($1) RETURNING *`,
         [req.user.orgId]
       );
@@ -530,7 +531,7 @@ async function updateWidgetSettings(req, res) {
   try {
     const { position, color, greeting, avatarUrl, showBranding, offlineMessage, customCss } = req.body;
 
-    const { rows } = await req.db.query(
+    const { rows } = await db.query(
       `UPDATE chatbot_widget_settings SET
          position = COALESCE($2, position),
          color = COALESCE($3, color),
@@ -571,7 +572,7 @@ async function listHandoffs(req, res) {
 
     query += ` ORDER BY h.requested_at DESC`;
 
-    const { rows } = await req.db.query(query, params);
+    const { rows } = await db.query(query, params);
     res.json({ handoffs: rows });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -580,7 +581,7 @@ async function listHandoffs(req, res) {
 
 async function acceptHandoff(req, res) {
   try {
-    const { rows } = await req.db.query(
+    const { rows } = await db.query(
       `UPDATE chatbot_handoffs SET
          status = 'accepted',
          agent_id = $3,
@@ -603,7 +604,7 @@ async function resolveHandoff(req, res) {
   try {
     const { notes } = req.body;
 
-    const { rows } = await req.db.query(
+    const { rows } = await db.query(
       `UPDATE chatbot_handoffs SET
          status = 'resolved',
          resolved_at = NOW(),

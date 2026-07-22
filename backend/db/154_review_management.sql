@@ -73,3 +73,13 @@ CREATE INDEX IF NOT EXISTS idx_business_reviews_org ON business_reviews(org_id);
 CREATE INDEX IF NOT EXISTS idx_business_reviews_rating ON business_reviews(org_id, rating);
 CREATE INDEX IF NOT EXISTS idx_business_reviews_platform ON business_reviews(org_id, source_platform);
 CREATE INDEX IF NOT EXISTS idx_review_request_logs_org ON review_request_logs(org_id);
+-- Ensure UNIQUE constraint on review_settings.org_id for ON CONFLICT support
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'review_settings_org_id_key'
+  ) THEN
+    ALTER TABLE review_settings ADD CONSTRAINT review_settings_org_id_key UNIQUE (org_id);
+  END IF;
+END
+$$;

@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const seoExpansionRouter = require('./seoExpansion');
 const { requireAuth } = require('../middleware/auth');
 const db = require('../db');
 const { runAudit } = require('../utils/seoAnalyzer');

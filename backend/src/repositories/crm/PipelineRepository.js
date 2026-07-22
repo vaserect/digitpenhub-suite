@@ -275,34 +275,6 @@ class PipelineRepository extends BaseRepository {
   }
 
   /**
-   * Batch-list stages for multiple pipeline IDs (fixes N+1 query pattern)
-   * @param {string[]} pipelineIds - Array of pipeline IDs
-   * @returns {Promise<Array>} All stages with pipeline_id
-   */
-  async listStagesByPipelineIds(pipelineIds) {
-    if (!pipelineIds || pipelineIds.length === 0) return [];
-
-    const placeholders = pipelineIds.map((_, i) => `$${i + 1}`).join(', ');
-    const query = `
-      SELECT 
-        s.*,
-        (SELECT COUNT(*) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS deal_count,
-        (SELECT COALESCE(SUM(amount), 0) FROM crm_deals WHERE stage_id = s.id AND is_archived IS NOT TRUE) AS total_value
-      FROM crm_stages s
-      WHERE s.pipeline_id IN (${placeholders})
-      ORDER BY s.pipeline_id, s.display_order, s.name
-    `;
-
-    try {
-      const result = await this.db.query(query, pipelineIds);
-      return result.rows;
-    } catch (error) {
-      logger.error('Error batch-listing stages', { error: error.message, pipelineIdCount: pipelineIds.length });
-      throw error;
-    }
-  }
-
-  /**
    * Update stage
    * @param {string} stageId - Stage ID
    * @param {Object} updates - Fields to update

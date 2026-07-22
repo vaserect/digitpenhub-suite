@@ -1,21 +1,10 @@
 'use client';
 
-import AppointmentBookingModule from '../../components/modules/AppointmentBooking';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 
-export default function AppointmentsPage() {
+export default function AppointmentsRedirect() {
   const router = useRouter();
-  
-  const goHome = () => {
-    router.push('/');
-  };
-
-  const showToast = (msg) => {
-    toast(msg);
-  };
-
-  return (
-    <AppointmentBookingModule goHome={goHome} showToast={showToast} />
-  );
+  useEffect(() => { router.replace('/appointment-booking'); }, [router]);
+  return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 }

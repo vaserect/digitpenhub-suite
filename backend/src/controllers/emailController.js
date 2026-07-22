@@ -371,7 +371,14 @@ async function sendCampaign(req, res) {
   );
   
   const emailsSentToday = Number(dailyCount[0]?.emails_sent_today || 0);
-  const DAILY_LIMIT = 10000; // TODO: Make this configurable per plan
+  
+  // Get plan-based daily limit
+  let DAILY_LIMIT = 10000;
+  try {
+    const { getOrgPlan } = require('../utils/planAccess');
+    const plan = await getOrgPlan(req.user.orgId);
+    if (plan.max_emails_per_day) DAILY_LIMIT = plan.max_emails_per_day;
+  } catch (e) { /* defaults to 10000 */ }
   
   if (emailsSentToday + subscribers.length > DAILY_LIMIT) {
     return res.status(429).json({ 

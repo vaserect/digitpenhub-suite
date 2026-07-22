@@ -80,6 +80,11 @@ class UGCAggregatorService extends BaseService {
    */
   async triggerFeedSync(feedId, orgId, userId) {
     try {
+      // In production, a real social API key is required
+      if (process.env.NODE_ENV === 'production' && !process.env.UGC_SOCIAL_API_KEY) {
+        throw new Error('UGC social API not configured in production');
+      }
+
       const feed = await this.getFeed(feedId, orgId);
       
       const query = feed.query_value;

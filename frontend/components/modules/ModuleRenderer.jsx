@@ -36,131 +36,157 @@ import AccountingModule from './AccountingModule';
 import QuotationsModule from './QuotationsModule';
 
 export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
-  if (moduleSlug === 'crm') {
+  // Normalize slug from catch-all route patterns:
+  //   'modules/ai-writer' → 'ai-writer'
+  //   'ai/writer' → 'ai-writer'
+  const slug = moduleSlug
+    .replace(/^modules\//, '')
+    .replace(/\//g, '-');
+
+  if (slug === 'crm') {
     return <CRMModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'pm' || moduleSlug === 'project-management') {
+  if (slug === 'pm' || slug === 'project-management') {
     return <ProjectManagementModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'invoices') {
+  if (slug === 'invoices') {
     return <InvoicesModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'email-marketing') {
+  if (slug === 'email-marketing') {
     return <EmailMarketingModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'lead-generation') {
+  if (slug === 'lead-generation') {
     return <LeadGenerationModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'appointment-booking') {
+  if (slug === 'appointment-booking') {
     return <AppointmentBookingModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'forms') {
+  if (slug === 'forms') {
     return <FormsModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'popup-builder') {
+  if (slug === 'popup-builder') {
     return <PopupBuilderModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'quiz-builder') {
+  if (slug === 'quiz-builder') {
     return <QuizBuilderModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'url-shortener') {
+  if (slug === 'url-shortener') {
     return <UrlShortenerModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'qr-code-generator') {
+  if (slug === 'qr-code-generator') {
     return <QrCodeGeneratorModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'link-in-bio') {
+  if (slug === 'link-in-bio') {
     return <LinkInBioModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'digital-business-cards') {
+  if (slug === 'digital-business-cards') {
     return <DigitalBusinessCardsModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'ad-campaign-manager') {
+  if (slug === 'ad-campaign-manager') {
     return <AdCampaignManagerModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'customer-segmentation') {
+  if (slug === 'customer-segmentation') {
     return <CustomerSegmentationModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'push-notification-marketing') {
+  if (slug === 'push-notification-marketing') {
     return <PushNotificationMarketingModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'referral-program') {
+  if (slug === 'referral-program') {
     return <ReferralProgramModule goHome={goHome} showToast={() => {}} />;
   }
-  if (moduleSlug === 'gdpr') {
+  if (slug === 'gdpr') {
     return <GdprModule goHome={goHome} />;
   }
-  if (moduleSlug === 'dunning') {
+  if (slug === 'dunning') {
     return <DunningModule goHome={goHome} />;
   }
-  if (moduleSlug === 'contracts') {
+  if (slug === 'contracts') {
     return <ContractsModule goHome={goHome} />;
   }
-  if (moduleSlug === 'feature-flags') {
+  if (slug === 'feature-flags') {
     return <FeatureFlagsModule goHome={goHome} />;
   }
-  if (moduleSlug === 'custom-fields' || moduleSlug === 'custom-fields-engine') {
+  if (slug === 'custom-fields' || slug === 'custom-fields-engine') {
     return <CustomFieldsModule goHome={goHome} />;
   }
-  if (moduleSlug === 'payroll') {
+  if (slug === 'payroll') {
     return <PayrollModule goHome={goHome} />;
   }
-  if (moduleSlug === 'expenses') {
+  if (slug === 'expenses') {
     return <ExpensesModule goHome={goHome} />;
   }
-  if (moduleSlug === 'accounting') {
+  if (slug === 'accounting') {
     return <AccountingModule goHome={goHome} />;
   }
-  if (moduleSlug === 'quotations') {
+  if (slug === 'quotations') {
     return <QuotationsModule goHome={goHome} />;
   }
 
   // Grouped modules
   if (
-    moduleSlug === 'learning-management-system' ||
-    moduleSlug === 'school-management' ||
-    moduleSlug === 'cbt-platform' ||
-    moduleSlug === 'assignments' ||
-    moduleSlug === 'student-portal' ||
-    moduleSlug === 'parent-portal' ||
-    moduleSlug === 'teacher-portal' ||
-    moduleSlug === 'certificates'
+    slug === 'learning-management-system' ||
+    slug === 'school-management' ||
+    slug === 'cbt-platform' ||
+    slug === 'assignments' ||
+    slug === 'student-portal' ||
+    slug === 'parent-portal' ||
+    slug === 'teacher-portal' ||
+    slug === 'certificates'
   ) {
     return <EducationModule goHome={goHome} />;
   }
 
   if (
-    moduleSlug === 'order-management' ||
-    moduleSlug === 'marketplace' ||
-    moduleSlug === 'subscriptions' ||
-    moduleSlug === 'pos' ||
-    moduleSlug === 'coupons' ||
-    moduleSlug === 'digital-products' ||
-    moduleSlug === 'delivery-tracking'
+    slug === 'order-management' ||
+    slug === 'marketplace' ||
+    slug === 'subscriptions' ||
+    slug === 'pos' ||
+    slug === 'coupons' ||
+    slug === 'digital-products' ||
+    slug === 'delivery-tracking'
   ) {
     return <CommerceModule goHome={goHome} />;
   }
 
-  if (moduleSlug === 'help-desk') {
+  if (slug === 'help-desk') {
     return <HelpdeskModule goHome={goHome} />;
   }
 
   if (
-    moduleSlug.startsWith('seo-') ||
-    moduleSlug === 'keyword-research' ||
-    moduleSlug === 'rank-tracking' ||
-    moduleSlug === 'backlink-monitoring' ||
-    moduleSlug === 'schema-generator' ||
-    moduleSlug === 'sitemap-generator' ||
-    moduleSlug === 'meta-generator' ||
-    moduleSlug === 'robots-generator' ||
-    moduleSlug === 'seo-audit' ||
-    moduleSlug === 'accessibility-wcag-audit-tool' ||
-    moduleSlug === 'page-speed-core-web-vitals-monitor' ||
-    moduleSlug === 'sem-ad-campaign-bid-roas-tracker' ||
-    moduleSlug === 'ai-seo-content-optimizer'
+    slug.startsWith('seo-') ||
+    slug === 'keyword-research' ||
+    slug === 'rank-tracking' ||
+    slug === 'backlink-monitoring' ||
+    slug === 'schema-generator' ||
+    slug === 'sitemap-generator' ||
+    slug === 'meta-generator' ||
+    slug === 'robots-generator' ||
+    slug === 'seo-audit' ||
+    slug === 'accessibility-wcag-audit-tool' ||
+    slug === 'page-speed-core-web-vitals-monitor' ||
+    slug === 'sem-ad-campaign-bid-roas-tracker' ||
+    slug === 'ai-seo-content-optimizer'
   ) {
     return <SeoModule goHome={goHome} />;
+  }
+
+  // AI suite modules
+  if (
+    slug === 'ai-writer' ||
+    slug === 'ai-email-assistant' ||
+    slug === 'ai-proposal-generator' ||
+    slug === 'ai-blog-generator' ||
+    slug === 'ai-chatbot-builder' ||
+    slug === 'ai-meeting-notes' ||
+    slug === 'ai-knowledge-base' ||
+    slug === 'ai-customer-support' ||
+    slug === 'ai-translator'
+  ) {
+    return <AiModule goHome={goHome} />;
+  }
+
+  if (slug === 'integrations') {
+    return <IntegrationsModule goHome={goHome} />;
   }
 
   // Catch-all

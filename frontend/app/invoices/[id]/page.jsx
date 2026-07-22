@@ -48,12 +48,12 @@ export default function InvoiceDetailPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 24, color: 'var(--ink-50)' }}>Loading invoice…</div>;
+    return <div style={{ padding: 24, color: 'var(--text)' }}>Loading invoice…</div>;
   }
 
   if (error) {
     return (
-      <div style={{ padding: 24, color: 'var(--ink-50)' }}>
+      <div style={{ padding: 24, color: 'var(--text)' }}>
         <button className="back-link" onClick={() => router.back()}>← Back</button>
         <div style={{ marginTop: 12 }}>{error}</div>
       </div>
@@ -61,7 +61,7 @@ export default function InvoiceDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--navy-950)', color: 'var(--ink-50)', padding: 24 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <button className="back-link" onClick={() => router.back()}>← Back</button>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -70,47 +70,47 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      <div style={{ background: 'var(--navy-900)', border: '1px solid var(--navy-700)', borderRadius: 16, padding: 24, maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, maxWidth: 900, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>Invoice</div>
-            <div style={{ color: 'var(--navy-300)', marginTop: 4 }}>{invoice?.invoice_number || '—'}</div>
+            <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>{invoice?.invoice_number || '—'}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 700 }}>Digitpen Hub Suite</div>
-            <div style={{ color: 'var(--navy-300)' }}>Billing & operations</div>
+            <div style={{ color: 'var(--text-muted)' }}>Billing & operations</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginTop: 24 }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--navy-400)' }}>Bill to</div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Bill to</div>
             <div style={{ fontWeight: 600, marginTop: 6 }}>{invoice?.client_name || invoice?.client_company || '—'}</div>
-            <div style={{ color: 'var(--navy-300)' }}>{invoice?.client_company ? invoice.client_company : ''}</div>
+            <div style={{ color: 'var(--text-muted)' }}>{invoice?.client_company ? invoice.client_company : ''}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--navy-400)' }}>Status</div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Status</div>
             <div style={{ fontWeight: 600, marginTop: 6 }}>{invoice?.status || 'draft'}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--navy-400)' }}>Issued</div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Issued</div>
             <div style={{ fontWeight: 600, marginTop: 6 }}>{formatDate(invoice?.issue_date)}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--navy-400)' }}>Due</div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Due</div>
             <div style={{ fontWeight: 600, marginTop: 6 }}>{formatDate(invoice?.due_date)}</div>
           </div>
         </div>
 
-        <div style={{ marginTop: 24, border: '1px solid var(--navy-700)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 12px', background: 'var(--navy-950)', fontWeight: 700 }}>
+        <div style={{ marginTop: 24, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 12px', background: 'var(--bg)', fontWeight: 700 }}>
             <div>Description</div>
             <div>Qty</div>
             <div>Unit price</div>
             <div>Amount</div>
           </div>
           {(invoice?.items || []).map((item, index) => (
-            <div key={item.id || index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 12px', borderTop: '1px solid var(--navy-700)' }}>
+            <div key={item.id || index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
               <div>{item.description}</div>
               <div>{item.quantity}</div>
               <div>₦{Number(item.unit_price || 0).toLocaleString()}</div>
@@ -134,7 +134,7 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        {invoice?.notes ? <div style={{ marginTop: 20, color: 'var(--navy-300)' }}>Notes: {invoice.notes}</div> : null}
+        {invoice?.notes ? <div style={{ marginTop: 20, color: 'var(--text-muted)' }}>Notes: {invoice.notes}</div> : null}
       </div>
     </div>
   );

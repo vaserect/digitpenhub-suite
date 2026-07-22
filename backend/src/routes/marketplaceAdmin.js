@@ -189,7 +189,17 @@ router.post('/components/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Approved',
+         `Your component "${comp.name}" has been approved and published.`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],
@@ -221,7 +231,18 @@ router.post('/components/:id/reject', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator with rejection reason
+    // Send notification to creator with rejection reason
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Rejected',
+         `Your component "${comp.name}" was rejected.${reason ? ' Reason: ' + reason : ''}`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],
@@ -253,7 +274,18 @@ router.post('/components/:id/unpublish', async (req, res) => {
       return res.status(404).json({ error: 'Component not found' });
     }
 
-    // TODO: Send notification to creator
+    // Send notification to creator
+    const comp = result.rows[0];
+    try {
+      await pool.query(
+        `INSERT INTO notifications (org_id, user_id, type, title, body, link)
+         VALUES ($1, $2, 'marketplace', $3, $4, $5)`,
+        [comp.org_id, comp.creator_id, 'marketplace',
+         'Component Unpublished',
+         `Your component "${comp.name}" has been unpublished.${reason ? ' Reason: ' + reason : ''}`,
+         `/marketplace/components/${id}`]
+      );
+    } catch (e) { console.error('Failed to send notification:', e.message); }
     
     res.json({ 
       component: result.rows[0],

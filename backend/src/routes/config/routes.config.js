@@ -76,7 +76,9 @@ const ROUTES_CONFIG = [
   moduleRoute('/api/v1/crm/deals', 'crm/deals.routes', 'crm', 'CRM Deals API'),
   moduleRoute('/api/v1/crm/pipelines', 'crm/pipelines.routes', 'crm', 'CRM Pipelines API'),
   publicRoute('/api/v1/crm', 'crm', 'CRM endpoints (mixed auth)'),
-  authRoute('/api/v1/crm', 'crmUpgrades', 'CRM upgrade features'),
+  // Upgrade routers (crmUpgrades, invoiceUpgrades, etc.) are now mounted internally
+  // by their primary route files via router.use(). No separate config entry needed.
+  // Express chains routers at the same path, so this works — but avoid defining the same HTTP method + route pattern in both files.
   authRoute('/api/v1/custom-fields', 'customFields', 'Custom fields management'),
   
   // ============================================================================
@@ -89,8 +91,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   // INVOICING & ACCOUNTING
   // ============================================================================
-  publicRoute('/api/v1/invoices', 'invoices', 'Invoice management (mixed auth)'),
-  authRoute('/api/v1/invoices', 'invoiceUpgrades', 'Invoice upgrade features'),
+  moduleRoute('/api/v1/invoices', 'invoices', 'invoices', 'Invoice management (mixed auth)'),
   authRoute('/api/v1/invoice-extended', 'invoiceExtended', 'Invoice advanced features'),
   moduleRoute('/api/v1/accounting', 'accounting', 'accounting', 'Accounting module'),
   authRoute('/api/v1/procurement', 'procurement', 'Procurement / Purchase Orders'),
@@ -121,7 +122,6 @@ const ROUTES_CONFIG = [
   // EMAIL & MARKETING
   // ============================================================================
   publicRoute('/api/v1/email', 'email', 'Email marketing (mixed auth)'),
-  authRoute('/api/v1/email', 'emailUpgrades', 'Email upgrade features'),
   authRoute('/api/v1/email/segments', 'emailSegments', 'Email segmentation'),
   authRoute('/api/v1/email/automations', 'emailAutomations', 'Email automation workflows'),
   publicRoute('/api/v1/leads', 'leads', 'Lead management'),
@@ -156,20 +156,19 @@ const ROUTES_CONFIG = [
   publicRoute('/api/v1/builder/sites', 'builder-sites', 'Builder sites'),
   publicRoute('/api/v1/builder/assets', 'builder-assets', 'Builder assets'),
   publicRoute('/api/v1/pexels', 'pexels.routes', 'Pexels integration'),
-  authRoute('/api/v1/builder/components', 'componentsController', 'Component Variants System'),
   publicRoute('/api/v1/components', 'components', 'Component library'),
   publicRoute('/api/v1/sections', 'sections', 'Section library'),
   
   // ============================================================================
   // HR & PAYROLL
   // ============================================================================
-  moduleRoute('/api/v1/hr', 'hr', 'hr', 'HR management'),
-  authRoute('/api/v1/hr', 'hrUpgrades', 'HR upgrade features', [requireModuleAccess('hr')]),
+  moduleRoute('/api/v1/hr', 'hr', 'hr', 'HR management with payroll, org chart, onboarding, and reviews'),
   moduleRoute('/api/v1/payroll', 'payroll', 'payroll', 'Payroll management'),
   moduleRoute('/api/v1/recruitment', 'recruitment', 'recruitment', 'Recruitment'),
   moduleRoute('/api/v1/time-tracking', 'timeTracking', 'time-tracking', 'Time tracking'),
   authRoute('/api/v1/file-manager', 'fileManager', 'File Manager'),
   authRoute('/api/v1/people-directory', 'peopleDirectory', 'Internal People/Skills Directory'),
+  authRoute('/api/v1/skills', 'skills', 'Skills Directory'),
   authRoute('/api/v1/ideas', 'ideas', 'Idea Management / Suggestion Box'),
   authRoute('/api/v1/timezone-proposals', 'timezoneProposals', 'Multi-timezone Meeting Coordinator'),
   authRoute('/api/v1/whiteboard', 'whiteboard', 'Whiteboard / Mind-Mapping Tool'),
@@ -179,9 +178,8 @@ const ROUTES_CONFIG = [
   // ============================================================================
   moduleRoute('/api/v1/helpdesk', 'helpdesk', 'help-desk', 'Help desk'),
   authRoute('/api/v1/helpdesk-extended', 'helpdeskExtended', 'Help desk advanced features'),
-  authRoute('/api/v1/helpdesk', 'helpdeskUpgrades', 'Help desk upgrades', [requireModuleAccess('help-desk')]),
   moduleRoute('/api/v1/kb', 'knowledgeBase', 'knowledge-base', 'Knowledge base'),
-  authRoute('/api/v1/kb', 'kbUpgrades', 'Knowledge base upgrades', [requireModuleAccess('knowledge-base')]),
+  // kbUpgrades is mounted internally by knowledgeBase.js
   authRoute('/api/v1/portal', 'portal', 'Client portal'),
   
   // ============================================================================
@@ -316,19 +314,27 @@ const ROUTES_CONFIG = [
   // SEO & OPTIMIZATION
   // ============================================================================
   moduleRoute('/api/v1/seo', 'seo', 'seo-audit', 'SEO audit'),
-  authRoute('/api/v1/seo', 'seoExpansion', 'SEO expansion', [requireModuleAccess('seo-audit')]),
   moduleRoute('/api/v1/pdf', 'pdfTools', 'pdf-tools', 'PDF tools'),
+  // SEO sub-modules (recovered from orphaned route files)
+  authRoute('/api/v1/seo/accessibility', 'accessibility', 'WCAG Accessibility Audit Tool'),
+  authRoute('/api/v1/seo/rank-tracking', 'rankTracking', 'Rank Tracking'),
+  authRoute('/api/v1/seo/sem-tracker', 'semTracker', 'SEM Ad Campaign / Bid ROAS Tracker'),
+  authRoute('/api/v1/seo/voice-search', 'voiceSearch', 'Voice Search Analytics'),
+  authRoute('/api/v1/seo/sitemaps', 'sitemapMeta', 'Sitemap Generator'),
+  authRoute('/api/v1/seo/robots', 'robots', 'Robots.txt Generator'),
+  authRoute('/api/v1/seo/schema', 'schema', 'Schema / Structured Data Generator'),
+  authRoute('/api/v1/seo/meta', 'meta', 'Meta Tag Generator'),
   
   // ============================================================================
   // INTEGRATIONS & AUTOMATION
   // ============================================================================
   moduleRoute('/api/v1/storage', 'cloudStorage', 'cloud-storage', 'Cloud storage'),
   moduleRoute('/api/v1/workflows', 'workflowAutomation', 'workflow-automation', 'Workflow automation'),
-  authRoute('/api/v1/integrations', 'nativeIntegrations', 'Native Integrations Hub'),
+  authRoute('/api/v1/integrations-hub', 'nativeIntegrations', 'Native Integrations Hub'),
   authRoute('/api/v1/developer-portal', 'developerPortal', 'Public Developer Portal + App Submission Pipeline'),
   authRoute('/api/v1/sandbox-playground', 'sandboxPlayground', 'Sandbox API Playground'),
   authRoute('/api/v1/oauth-apps', 'oauthDirectory', 'OAuth App Directory'),
-  authRoute('/api/v1/integrations', 'integrations', 'Third-party integrations'),
+  authRoute('/api/v1/integrations', 'integrations', 'External Integrations Hub (legacy)'),
   
   // ============================================================================
   // MARKETPLACE
@@ -341,10 +347,10 @@ const ROUTES_CONFIG = [
   // EDUCATION & LEARNING
   // ============================================================================
   moduleRoute('/api/v1/lms', 'lms', 'learning-management-system', 'Learning management system'),
-  authRoute('/api/v1/lms', 'educationUpgrades', 'LMS upgrades', [requireModuleAccess('learning-management-system')]),
   moduleRoute('/api/v1/school', 'school', 'school-management', 'School management'),
   moduleRoute('/api/v1/school-assignments', 'assignments', 'assignments', 'School assignments'),
   moduleRoute('/api/v1/cbt', 'cbt', 'cbt-platform', 'CBT platform'),
+  authRoute('/api/v1/student-portal', 'studentPortal', 'Student Portal'),
   
   // ============================================================================
   // E-COMMERCE

@@ -32,7 +32,7 @@ export default function NewLandingPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.data || []);
+        setTemplates(data.templates || []);
       }
     } catch (error) {
       console.error('Error fetching templates:', error);

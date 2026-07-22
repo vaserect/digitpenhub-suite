@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api';
 import RichTextEditor from '@/components/RichTextEditor';
 
 export default function PlaybookEditor() {
@@ -28,10 +29,7 @@ export default function PlaybookEditor() {
 
   const fetchPlaybook = async () => {
     try {
-      const response = await fetch(`/api/v1/sales-playbook/playbooks/${params.id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
+      const data = await apiFetch(`/api/v1/sales-playbook/playbooks/${params.id}`);
       if (data.success) {
         setPlaybook(data.data);
         setFormData({
@@ -55,19 +53,15 @@ export default function PlaybookEditor() {
       const url = params.id === 'create'
         ? '/api/v1/sales-playbook/playbooks'
         : `/api/v1/sales-playbook/playbooks/${params.id}`;
-      
+
       const method = params.id === 'create' ? 'POST' : 'PUT';
-      
-      const response = await fetch(url, {
+
+      const data = await apiFetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      
-      const data = await response.json();
+
       if (data.success) {
         if (params.id === 'create') {
           router.push(`/modules/sales-playbook/playbooks/${data.data.id}`);
@@ -85,11 +79,7 @@ export default function PlaybookEditor() {
   const handlePublish = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`/api/v1/sales-playbook/playbooks/${params.id}/publish`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
+      const data = await apiFetch(`/api/v1/sales-playbook/playbooks/${params.id}/publish`, { method: 'POST' });
       if (data.success) {
         fetchPlaybook();
       }
@@ -111,12 +101,11 @@ export default function PlaybookEditor() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="mb-6 flex justify-between items-center">
           <div>
             <button
               onClick={() => router.push('/modules/sales-playbook')}
-              className="text-blue-600 hover:text-blue-700 mb-2"
+              className="text-blue-600 hover:text-blue-700 mb-2 inline-flex items-center gap-1"
             >
               ← Back to Playbooks
             </button>
@@ -129,7 +118,7 @@ export default function PlaybookEditor() {
               <button
                 onClick={handlePublish}
                 disabled={saving}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? 'Publishing...' : 'Publish'}
               </button>
@@ -137,22 +126,21 @@ export default function PlaybookEditor() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter playbook title"
             />
           </div>
@@ -163,7 +151,7 @@ export default function PlaybookEditor() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Brief description of this playbook"
             />
           </div>
@@ -174,7 +162,7 @@ export default function PlaybookEditor() {
               type="text"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="e.g., Product Launch, Sales Process, Objection Handling"
             />
           </div>
@@ -193,7 +181,7 @@ export default function PlaybookEditor() {
 
           {playbook && (
             <div className="pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm text-gray-600">
                 <div>
                   <span className="font-medium">Status:</span>{' '}
                   <span className={`px-2 py-1 rounded-full text-xs ${
@@ -202,15 +190,9 @@ export default function PlaybookEditor() {
                     {playbook.status}
                   </span>
                 </div>
-                <div>
-                  <span className="font-medium">Views:</span> {playbook.view_count || 0}
-                </div>
-                <div>
-                  <span className="font-medium">Rating:</span> {parseFloat(playbook.avg_rating || 0).toFixed(1)} ⭐
-                </div>
-                <div>
-                  <span className="font-medium">Favorites:</span> {playbook.favorite_count || 0}
-                </div>
+                <div><span className="font-medium">Views:</span> {playbook.view_count || 0}</div>
+                <div><span className="font-medium">Rating:</span> {parseFloat(playbook.avg_rating || 0).toFixed(1)} ⭐</div>
+                <div><span className="font-medium">Favorites:</span> {playbook.favorite_count || 0}</div>
               </div>
             </div>
           )}

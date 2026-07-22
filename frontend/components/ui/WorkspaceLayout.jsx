@@ -329,13 +329,6 @@ export default function WorkspaceLayout({ children }) {
           <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Loading workspace</div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pulling your modules, navigation, and current workspace settings.</div>
         </div>
-        {/* Global Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={handleCloseSearch}
-          theme={theme}
-        />
-
       </div>
     );
   }
@@ -349,13 +342,6 @@ export default function WorkspaceLayout({ children }) {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>{loadError}</div>
           <Button onClick={loadWorkspace}>Try again</Button>
         </div>
-        {/* Global Search Modal */}
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={handleCloseSearch}
-          theme={theme}
-        />
-
       </div>
     );
   }

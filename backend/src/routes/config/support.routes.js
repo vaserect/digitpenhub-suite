@@ -52,12 +52,10 @@ module.exports = {
       description: 'Additional support features',
       public: false,
     },
-    {
-      path: '/api/v1/community',
-      router: require('../greenModules'),
-      middleware: [],
-      description: 'Community features and forums',
-      public: false,
-    },
+    // greenModules.js removed — its 7 modules (old communities, events, jobs, skills,
+    // ideas, timezone-proposals, ambassadors) each have dedicated routes registered
+    // individually in routes.config.js. New community platform uses community.js.
+    // The orphaned route file backend/src/routes/greenModules.js remains as reference
+    // but is NOT loaded by the route loader.
   ],
 };

@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
 const { CATEGORIES, ACTIVE, ROUTES, slugify } = require('./categories.data');
 const { seedEmailTemplates } = require('./seedEmailTemplates');
+const { seedTemplates } = require('./seedBuilderTemplates');
 
 (async () => {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });

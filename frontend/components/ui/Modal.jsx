@@ -4,19 +4,18 @@ import { useEffect, useRef } from 'react';
 
 export default function Modal({ isOpen, onClose, title, description, children, wide = false }) {
   const modalRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;
     const previouslyFocused = document.activeElement;
 
-    // Focus the modal card on open for keyboard users
     if (modalRef.current) modalRef.current.focus();
-
-    // Lock body scroll
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose?.();
+      if (event.key === 'Escape') onCloseRef.current?.();
 
       // Simple focus trap: Tab cycles within the modal
       if (event.key === 'Tab' && modalRef.current) {
@@ -39,9 +38,9 @@ export default function Modal({ isOpen, onClose, title, description, children, w
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      if (previouslyFocused) previouslyFocused.focus();
+      if (previouslyFocused && previouslyFocused !== document.body) previouslyFocused.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -9,9 +9,10 @@ module.exports = {
       env: { 
         NODE_ENV: 'production',
         DATABASE_URL: 'postgresql://digitpenhub:G6MmK49Peb9V7WCzYjlRI1H7ax4NLex7@localhost:5432/digitpenhub',
-        FRONTEND_ORIGIN: 'https://suite.digitpenhub.com'
+        FRONTEND_ORIGIN: 'https://suite.digitpenhub.com',
+        JWT_SECRET: 'otnMRfABB8TicNIZmQjyQZXLTZz+5yq1b0nQjJlP2OUKVUStiyOu0WjEB+MOzIUO',
       },
-      max_memory_restart: '300M',
+      max_memory_restart: '1G',
     },
   ],
 };

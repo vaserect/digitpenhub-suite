@@ -1,4 +1,9 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+
+// Sentry must be initialized before any other module (including express).
+// instrument.js handles Sentry.init() so the v10+ SDK can patch Router.
+require('./instrument');
+
 const app = require('./app');
 const logger = require('./utils/logger');
 const { startAutomationScheduler } = require('./utils/automationScheduler');
@@ -34,40 +39,62 @@ process.on('uncaughtException', (err) => {
 });
 
 const port = process.env.PORT || 4001;
-app.listen(port, '127.0.0.1', () => {
-  logger.info(`digitpenhub-suite-api listening on 127.0.0.1:${port}`, {
-    port,
-    environment: process.env.NODE_ENV || 'development',
-    nodeVersion: process.version,
+const host = '127.0.0.1';
+const MAX_LISTEN_RETRIES = 3;
+const LISTEN_RETRY_DELAY_MS = 2000;
+
+function tryListen(attempt = 1) {
+  const server = app.listen(port, host);
+  server.on('listening', () => {
+    logger.info(`digitpenhub-suite-api listening on ${host}:${port}`, {
+      port,
+      environment: process.env.NODE_ENV || 'development',
+      nodeVersion: process.version,
+    });
+    
+    // Start schedulers with logging
+    try {
+      startAutomationScheduler();
+      logger.info('Automation scheduler started');
+    } catch (err) {
+      logger.error('Failed to start automation scheduler', { error: err.message });
+    }
+    
+    try {
+      startAppointmentReminderScheduler();
+      logger.info('Appointment reminder scheduler started');
+    } catch (err) {
+      logger.error('Failed to start appointment reminder scheduler', { error: err.message });
+    }
+    
+    try {
+      startAbandonedCartRecoveryScheduler();
+      logger.info('Abandoned cart recovery scheduler started');
+    } catch (err) {
+      logger.error('Failed to start abandoned cart recovery scheduler', { error: err.message });
+    }
+    
+    try {
+      startBillingScheduler();
+      startSocialMediaScheduler();
+      logger.info('Billing scheduler started');
+    } catch (err) {
+      logger.error('Failed to start billing scheduler', { error: err.message });
+    }
   });
-  
-  // Start schedulers with logging
-  try {
-    startAutomationScheduler();
-    logger.info('Automation scheduler started');
-  } catch (err) {
-    logger.error('Failed to start automation scheduler', { error: err.message });
-  }
-  
-  try {
-    startAppointmentReminderScheduler();
-    logger.info('Appointment reminder scheduler started');
-  } catch (err) {
-    logger.error('Failed to start appointment reminder scheduler', { error: err.message });
-  }
-  
-  try {
-    startAbandonedCartRecoveryScheduler();
-    logger.info('Abandoned cart recovery scheduler started');
-  } catch (err) {
-    logger.error('Failed to start abandoned cart recovery scheduler', { error: err.message });
-  }
-  
-  try {
-    startBillingScheduler();
-    startSocialMediaScheduler();
-    logger.info('Billing scheduler started');
-  } catch (err) {
-    logger.error('Failed to start billing scheduler', { error: err.message });
-  }
-});
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && attempt < MAX_LISTEN_RETRIES) {
+      logger.warn(`Port ${port} in use, retrying in ${LISTEN_RETRY_DELAY_MS}ms (attempt ${attempt}/${MAX_LISTEN_RETRIES})`);
+      setTimeout(() => tryListen(attempt + 1), LISTEN_RETRY_DELAY_MS);
+    } else {
+      logger.error('Failed to start server', { message: err.message, code: err.code, stack: err.stack });
+      process.exit(1);
+    }
+  });
+  server.on('clientError', (err, socket) => {
+    logger.error('Client error (socket hangup/data before header)', { message: err.message });
+    socket.destroy();
+  });
+}
+
+tryListen();

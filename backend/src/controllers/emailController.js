@@ -1,11 +1,6 @@
-const nodemailer = require('nodemailer');
 const db = require('../db');
 const { validateEmail, normalizeEmail } = require('../utils/emailValidator');
-
-// Sendmail transport — uses the server's local Postfix (with DKIM via opendkim)
-function makeTransport() {
-  return nodemailer.createTransport({ sendmail: true, path: '/usr/sbin/sendmail', newline: 'unix' });
-}
+const { makeTransport } = require('../utils/mailer');
 
 // ── Lists ──────────────────────────────────────────────────────────────────
 

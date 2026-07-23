@@ -61,7 +61,7 @@ const ROUTES_CONFIG = [
   // ============================================================================
   publicRoute('/api/v1/modules', 'modules', 'Module management'),
   authRoute('/api/v1/team', 'team', 'Team management'),
-  authRoute('/api/v1/billing', 'billing', 'Billing and subscriptions'),
+  publicRoute('/api/v1/billing', 'billing', 'Billing and subscriptions (mixed auth)'),
   authRoute('/api/v1/admin', 'admin', 'Admin panel'),
   authRoute('/api/v1/notifications', 'notifications', 'Notifications'),
   authRoute('/api/v1/push-notifications', 'pushNotification', 'Push Notification Marketing'),
@@ -458,6 +458,10 @@ const ROUTES_CONFIG = [
   authRoute('/api/v1/collaborative-editing', 'collaborativeEditing', 'Collaborative editing'),
   authRoute('/api/v1/workspace', 'workspace', 'Workspace management'),
   
+  authRoute('/api/v1/onboarding', 'onboarding', 'Product tours and onboarding'),
+  authRoute('/api/v1/ai-assistant', 'aiAssistant', 'Per-module AI assistant'),
+  authRoute('/api/v1/ai-workflows', 'aiWorkflow', 'AI Workflow templates and generation'),
+  authRoute('/api/v1/enterprise-integrations', 'enterpriseIntegrations', 'Enterprise integration management'),
   // ============================================================================
   // REMAINING MODULES
   // ============================================================================

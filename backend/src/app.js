@@ -11,7 +11,8 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const logger = require('./utils/logger');
-const { Sentry, initSentry, setSentryUser } = require('./utils/sentry');
+const { Sentry, sentryEnabled } = require('./instrument');
+const { setSentryUser } = require('./utils/sentry');
 const { requestIdMiddleware, addUserContext } = require('./middleware/requestId');
 const { csrfProtection } = require('./middleware/csrf');
 const { apiLimiter } = require("./middleware/rateLimiters");
@@ -19,16 +20,7 @@ const { loadRoutes } = require('./routes/loader/routeLoader');
 
 const app = express();
 
-// Initialize Sentry (must be before any other middleware)
-const sentryEnabled = initSentry(app);
-
 app.set('trust proxy', 1); // we sit behind OpenLiteSpeed
-
-// Sentry request handler - must be first middleware if enabled
-if (sentryEnabled) {
-  app.use(Sentry.Handlers.requestHandler());
-  app.use(Sentry.Handlers.tracingHandler());
-}
 
 // Request ID tracking - must be early to track all requests
 app.use(requestIdMiddleware);
@@ -69,11 +61,11 @@ app.use((req, res) => {
 
 // Sentry error handler - must be before other error handlers
 if (sentryEnabled) {
-  app.use(Sentry.Handlers.errorHandler({
+  Sentry.setupExpressErrorHandler(app, {
     shouldHandleError(error) {
       return error.status >= 500 || !error.status;
     },
-  }));
+  });
 }
 
 // Centralised error handler — never leak stack traces to the client in production.

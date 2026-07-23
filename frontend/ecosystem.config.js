@@ -12,7 +12,7 @@ module.exports = {
         API_INTERNAL_URL: 'http://127.0.0.1:4001',
         NEXT_PUBLIC_SITE_URL: 'https://suite.digitpenhub.com'
       },
-      max_memory_restart: '500M',
+      max_memory_restart: '1G',
     },
   ],
 };

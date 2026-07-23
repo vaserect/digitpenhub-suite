@@ -8,6 +8,7 @@ import Topbar from './Topbar';
 import Button from './Button';
 import Modal from './Modal';
 import SearchModal from '../search/SearchModal';
+import HelpOverlay from './HelpOverlay';
 import { toast } from 'sonner';
 
 export const WorkspaceContext = createContext(null);
@@ -37,6 +38,7 @@ export default function WorkspaceLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [upgradePrompt, setUpgradePrompt] = useState(null);
+  const [branding, setBranding] = useState(null);
 
   const [view, setView] = useState('home'); // home | category | search | module
   const [activeCategoryKey, setActiveCategoryKey] = useState(null);
@@ -124,6 +126,17 @@ export default function WorkspaceLayout({ children }) {
     }
   }, []);
 
+  // Apply white-label branding as CSS custom properties
+  useEffect(() => {
+    if (!branding) return;
+    const root = document.documentElement;
+    if (branding.primary_color) root.style.setProperty('--primary', branding.primary_color);
+    if (branding.accent_color) root.style.setProperty('--accent', branding.accent_color);
+    if (branding.display_name) {
+      document.title = branding.display_name + ' — Workspace';
+    }
+  }, [branding]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -159,9 +172,17 @@ export default function WorkspaceLayout({ children }) {
       setOrgPlan(modulesRes.plan || null);
     } catch (err) {
       setLoadError(err.message || 'Could not load the workspace.');
-    } finally {
-      setLoading(false);
     }
+
+    // Fetch white-label branding — non-blocking, silently fails
+    try {
+      const wl = await apiFetch('/api/v1/white-label/status');
+      if (wl?.branding?.is_active) {
+        setBranding(wl.branding);
+      }
+    } catch {}
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -352,6 +373,7 @@ export default function WorkspaceLayout({ children }) {
       setUser,
       categories,
       orgPlan,
+      branding,
       totalModules,
       activeModules,
       pinnedModules,
@@ -444,6 +466,9 @@ export default function WorkspaceLayout({ children }) {
           onClose={handleCloseSearch}
           theme={theme}
         />
+
+        {/* Help overlay (press ?) */}
+        <HelpOverlay isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       </div>
     </WorkspaceContext.Provider>

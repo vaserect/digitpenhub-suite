@@ -2,6 +2,34 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const c = require('../controllers/analyticsController');
+
+// ── Dashboard overview — stat cards ──────────────────────────
+router.get('/overview', requireAuth, c.overview);
+
+// ── 30-day activity bar chart ────────────────────────────────
+router.get('/activity', requireAuth, c.activity);
+
+// ── Per-module record counts ─────────────────────────────────
+router.get('/modules/usage', requireAuth, c.moduleUsage);
+
+// ── Executive command center (full KPI + trends + AI + storage) ─
+router.get('/executive', requireAuth, c.executive);
+
+// ── Month-over-month growth rates ──────────────────────────
+router.get('/growth', requireAuth, c.growth);
+
+// ── Lead conversion analytics ──────────────────────────────
+router.get('/leads/conversion', requireAuth, c.leadConversion);
+
+// ── Task completion rates ──────────────────────────────────
+router.get('/tasks/completion', requireAuth, c.taskCompletion);
+
+// ── Revenue by hour (sparkline data for today) ─────────────
+router.get('/revenue/sparkline', requireAuth, c.revenueSparkline);
+
+// ── Event tracking ───────────────────────────────────────────
+router.post('/track', requireAuth, c.track);
 
 /**
  * GET /api/v1/analytics/marketplace/overview

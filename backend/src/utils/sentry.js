@@ -25,13 +25,10 @@ function initSentry(app) {
     // We recommend adjusting this value in production
     profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     
-    // Integrations
+    // Integrations (v10+ functional API)
     integrations: [
-      // Enable HTTP calls tracing
-      new Sentry.Integrations.Http({ tracing: true }),
-      // Enable Express.js middleware tracing
-      new Sentry.Integrations.Express({ app }),
-      // Enable profiling
+      Sentry.httpIntegration({ tracing: true }),
+      Sentry.expressIntegration({ app }),
       nodeProfilingIntegration(),
     ],
     

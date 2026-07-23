@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@paypal/react-paypal-js": "^10.1.2",
+    "@sentry/nextjs": "^10.67.0",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
     "canvas-confetti": "^1.9.4",

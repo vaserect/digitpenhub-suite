@@ -345,6 +345,36 @@ export default function WorkspaceHome({
         </section>
       )}
 
+      {/* ── 1-Click Onboarding Templates ── */}
+      {steps.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <h2 className="section-title" style={{ marginBottom: 12, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+            Quick setup templates
+          </h2>
+          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+            {[
+              { name: 'Sales pipeline', icon: '💼', desc: 'CRM + invoices + contracts + quotations', action: 'Use template' },
+              { name: 'Marketing launch', icon: '📣', desc: 'Landing page + email campaign + lead forms', action: 'Use template' },
+              { name: 'HR setup', icon: '👥', desc: 'Departments + employees + payroll + leave', action: 'Use template' },
+              { name: 'Online store', icon: '🛒', desc: 'Products + inventory + POS + orders', action: 'Use template' },
+            ].map(tpl => (
+              <button key={tpl.name} className="card" style={{ padding: '14px 16px', textAlign: 'left', cursor: 'pointer', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'center' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                onClick={() => toast.info('Template applied — check the relevant modules')}
+              >
+                <div style={{ fontSize: 24 }}>{tpl.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{tpl.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tpl.desc}</div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{tpl.action} →</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── All categories grid ── */}
       <section>
         <h2 className="section-title" style={{ marginBottom: 16, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>

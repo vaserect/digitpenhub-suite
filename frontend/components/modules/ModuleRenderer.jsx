@@ -1,39 +1,48 @@
 'use client';
 
-import CRMModule from './CRM';
-import ProjectManagementModule from './ProjectManagement';
-import InvoicesModule from './Invoices';
-import EmailMarketingModule from './EmailMarketing';
-import LeadGenerationModule from './LeadGeneration';
-import AppointmentBookingModule from './AppointmentBooking';
-import FormsModule from './Forms';
-import PopupBuilderModule from './PopupBuilder';
-import QuizBuilderModule from './QuizBuilder';
-import UrlShortenerModule from './UrlShortener';
-import QrCodeGeneratorModule from './QrCodeGenerator';
-import LinkInBioModule from './LinkInBio';
-import DigitalBusinessCardsModule from './DigitalBusinessCards';
-import AdCampaignManagerModule from './AdCampaignManager';
-import CustomerSegmentationModule from './CustomerSegmentation';
-import PushNotificationMarketingModule from './PushNotificationMarketing';
-import ReferralProgramModule from './ReferralProgram';
-import GdprModule from './GdprModule';
-import DunningModule from './DunningModule';
-import ContractsModule from './ContractsModule';
-import FeatureFlagsModule from './FeatureFlagsModule';
-import CustomFieldsModule from './CustomFieldsModule';
-import GenericModule from './GenericModule';
-import SettingsModule from './SettingsModule';
-import PlatformCoreModule from './PlatformCoreModule';
-import AiModule from './AiModule';
-import SeoModule from './SeoModule';
-import EducationModule from './EducationModule';
-import CommerceModule from './CommerceModule';
-import HelpdeskModule from './HelpdeskModule';
-import PayrollModule from './PayrollModule';
-import ExpensesModule from './ExpensesModule';
-import AccountingModule from './AccountingModule';
-import QuotationsModule from './QuotationsModule';
+import { lazy, Suspense } from 'react';
+import { SkeletonRows } from '../ui/Skeleton';
+
+// Dynamic imports — each module is loaded only when its slug is matched.
+// This drops ~300 kB from the initial bundle and enables per-route code splitting.
+const CRMModule = lazy(() => import('./CRM'));
+const ProjectManagementModule = lazy(() => import('./ProjectManagement'));
+const InvoicesModule = lazy(() => import('./Invoices'));
+const EmailMarketingModule = lazy(() => import('./EmailMarketing'));
+const LeadGenerationModule = lazy(() => import('./LeadGeneration'));
+const AppointmentBookingModule = lazy(() => import('./AppointmentBooking'));
+const FormsModule = lazy(() => import('./Forms'));
+const PopupBuilderModule = lazy(() => import('./PopupBuilder'));
+const QuizBuilderModule = lazy(() => import('./QuizBuilder'));
+const UrlShortenerModule = lazy(() => import('./UrlShortener'));
+const QrCodeGeneratorModule = lazy(() => import('./QrCodeGenerator'));
+const LinkInBioModule = lazy(() => import('./LinkInBio'));
+const DigitalBusinessCardsModule = lazy(() => import('./DigitalBusinessCards'));
+const AdCampaignManagerModule = lazy(() => import('./AdCampaignManager'));
+const CustomerSegmentationModule = lazy(() => import('./CustomerSegmentation'));
+const PushNotificationMarketingModule = lazy(() => import('./PushNotificationMarketing'));
+const ReferralProgramModule = lazy(() => import('./ReferralProgram'));
+const GdprModule = lazy(() => import('./GdprModule'));
+const DunningModule = lazy(() => import('./DunningModule'));
+const ContractsModule = lazy(() => import('./ContractsModule'));
+const FeatureFlagsModule = lazy(() => import('./FeatureFlagsModule'));
+const CustomFieldsModule = lazy(() => import('./CustomFieldsModule'));
+const GenericModule = lazy(() => import('./GenericModule'));
+const SettingsModule = lazy(() => import('./SettingsModule'));
+const PlatformCoreModule = lazy(() => import('./PlatformCoreModule'));
+const AiModule = lazy(() => import('./AiModule'));
+const SeoModule = lazy(() => import('./SeoModule'));
+const EducationModule = lazy(() => import('./EducationModule'));
+const CommerceModule = lazy(() => import('./CommerceModule'));
+const HelpdeskModule = lazy(() => import('./HelpdeskModule'));
+const PayrollModule = lazy(() => import('./PayrollModule'));
+const ExpensesModule = lazy(() => import('./ExpensesModule'));
+const AccountingModule = lazy(() => import('./AccountingModule'));
+const QuotationsModule = lazy(() => import('./QuotationsModule'));
+
+function L({ children }) {
+  return <Suspense fallback={<div className="panel"><SkeletonRows rows={5} /></div>}>{children}</Suspense>;
+}
 
 export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
   // Normalize slug from catch-all route patterns:
@@ -44,82 +53,82 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
     .replace(/\//g, '-');
 
   if (slug === 'crm') {
-    return <CRMModule goHome={goHome} showToast={() => {}} />;
+    return <L><CRMModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'pm' || slug === 'project-management') {
-    return <ProjectManagementModule goHome={goHome} showToast={() => {}} />;
+    return <L><ProjectManagementModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'invoices') {
-    return <InvoicesModule goHome={goHome} showToast={() => {}} />;
+    return <L><InvoicesModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'email-marketing') {
-    return <EmailMarketingModule goHome={goHome} showToast={() => {}} />;
+    return <L><EmailMarketingModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'lead-generation') {
-    return <LeadGenerationModule goHome={goHome} showToast={() => {}} />;
+    return <L><LeadGenerationModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'appointment-booking') {
-    return <AppointmentBookingModule goHome={goHome} showToast={() => {}} />;
+    return <L><AppointmentBookingModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'forms') {
-    return <FormsModule goHome={goHome} showToast={() => {}} />;
+    return <L><FormsModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'popup-builder') {
-    return <PopupBuilderModule goHome={goHome} showToast={() => {}} />;
+    return <L><PopupBuilderModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'quiz-builder') {
-    return <QuizBuilderModule goHome={goHome} showToast={() => {}} />;
+    return <L><QuizBuilderModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'url-shortener') {
-    return <UrlShortenerModule goHome={goHome} showToast={() => {}} />;
+    return <L><UrlShortenerModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'qr-code-generator') {
-    return <QrCodeGeneratorModule goHome={goHome} showToast={() => {}} />;
+    return <L><QrCodeGeneratorModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'link-in-bio') {
-    return <LinkInBioModule goHome={goHome} showToast={() => {}} />;
+    return <L><LinkInBioModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'digital-business-cards') {
-    return <DigitalBusinessCardsModule goHome={goHome} showToast={() => {}} />;
+    return <L><DigitalBusinessCardsModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'ad-campaign-manager') {
-    return <AdCampaignManagerModule goHome={goHome} showToast={() => {}} />;
+    return <L><AdCampaignManagerModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'customer-segmentation') {
-    return <CustomerSegmentationModule goHome={goHome} showToast={() => {}} />;
+    return <L><CustomerSegmentationModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'push-notification-marketing') {
-    return <PushNotificationMarketingModule goHome={goHome} showToast={() => {}} />;
+    return <L><PushNotificationMarketingModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'referral-program') {
-    return <ReferralProgramModule goHome={goHome} showToast={() => {}} />;
+    return <L><ReferralProgramModule goHome={goHome} showToast={() => {}} /></L>;
   }
   if (slug === 'gdpr') {
-    return <GdprModule goHome={goHome} />;
+    return <L><GdprModule goHome={goHome} /></L>;
   }
   if (slug === 'dunning') {
-    return <DunningModule goHome={goHome} />;
+    return <L><DunningModule goHome={goHome} /></L>;
   }
   if (slug === 'contracts') {
-    return <ContractsModule goHome={goHome} />;
+    return <L><ContractsModule goHome={goHome} /></L>;
   }
   if (slug === 'feature-flags') {
-    return <FeatureFlagsModule goHome={goHome} />;
+    return <L><FeatureFlagsModule goHome={goHome} /></L>;
   }
   if (slug === 'custom-fields' || slug === 'custom-fields-engine') {
-    return <CustomFieldsModule goHome={goHome} />;
+    return <L><CustomFieldsModule goHome={goHome} /></L>;
   }
   if (slug === 'payroll') {
-    return <PayrollModule goHome={goHome} />;
+    return <L><PayrollModule goHome={goHome} /></L>;
   }
   if (slug === 'expenses') {
-    return <ExpensesModule goHome={goHome} />;
+    return <L><ExpensesModule goHome={goHome} /></L>;
   }
   if (slug === 'accounting') {
-    return <AccountingModule goHome={goHome} />;
+    return <L><AccountingModule goHome={goHome} /></L>;
   }
   if (slug === 'quotations') {
-    return <QuotationsModule goHome={goHome} />;
+    return <L><QuotationsModule goHome={goHome} /></L>;
   }
 
   // Grouped modules
@@ -133,7 +142,7 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
     slug === 'teacher-portal' ||
     slug === 'certificates'
   ) {
-    return <EducationModule goHome={goHome} />;
+    return <L><EducationModule goHome={goHome} /></L>;
   }
 
   if (
@@ -145,11 +154,11 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
     slug === 'digital-products' ||
     slug === 'delivery-tracking'
   ) {
-    return <CommerceModule goHome={goHome} />;
+    return <L><CommerceModule goHome={goHome} /></L>;
   }
 
   if (slug === 'help-desk') {
-    return <HelpdeskModule goHome={goHome} />;
+    return <L><HelpdeskModule goHome={goHome} /></L>;
   }
 
   if (
@@ -167,7 +176,7 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
     slug === 'sem-ad-campaign-bid-roas-tracker' ||
     slug === 'ai-seo-content-optimizer'
   ) {
-    return <SeoModule goHome={goHome} />;
+    return <L><SeoModule goHome={goHome} /></L>;
   }
 
   // AI suite modules
@@ -182,13 +191,13 @@ export default function ModuleRenderer({ moduleSlug, goHome, categories }) {
     slug === 'ai-customer-support' ||
     slug === 'ai-translator'
   ) {
-    return <AiModule goHome={goHome} />;
+    return <L><AiModule goHome={goHome} /></L>;
   }
 
   if (slug === 'integrations') {
-    return <IntegrationsModule goHome={goHome} />;
+    return <L><IntegrationsModule goHome={goHome} /></L>;
   }
 
   // Catch-all
-  return <GenericModule moduleSlug={moduleSlug} goHome={goHome} categories={categories} />;
+  return <L><GenericModule moduleSlug={moduleSlug} goHome={goHome} categories={categories} /></L>;
 }

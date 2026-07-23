@@ -9,7 +9,7 @@ export function middleware(request) {
     || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
   // Public marketing front door — '/' renders a marketing homepage for signed-out
   // visitors and the app for signed-in ones (decided server-side in app/page.jsx).
-  const isPublicMarketing = pathname === '/' || pathname === '/pricing' || pathname === '/features';
+  const isPublicMarketing = pathname === '/' || pathname === '/pricing' || pathname === '/features' || pathname === '/privacy' || pathname === '/terms' || pathname === '/cookies' || pathname === '/refund' || pathname === '/support' || pathname === '/changelog' || pathname === '/api-docs';
   const isPublicInvoicePage = pathname.startsWith('/invoices/shared');
   const isPublicLeadForm = pathname.startsWith('/leads/');
   const isPublicForm = pathname.startsWith('/forms/');

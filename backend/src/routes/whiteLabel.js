@@ -6,6 +6,8 @@ const { getStatus, upsertBranding, connectDomain, verifyDomain, activate, deacti
 const router = Router();
 router.use(requireAuth);
 
+// Root handler — returns full white-label status
+router.get('/', getStatus);
 router.get('/status', getStatus);
 router.put('/branding', requireRole('owner', 'admin'), upsertBranding);
 router.post('/domain', requireRole('owner', 'admin'), connectDomain);

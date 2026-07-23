@@ -10,3 +10,9 @@ backend/backups/
 frontend/backups/
 backend/uploads/
 .claude/worktrees/
+*.md
+loadtest.js
+FINAL_CERTIFICATION.md
+*.md
+loadtest.js
+.commandcode/

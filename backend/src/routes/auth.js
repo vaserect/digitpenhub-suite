@@ -64,8 +64,8 @@ router.post('/forgot-password', loginLimiter, forgotPassword);
 router.post('/reset-password', loginLimiter, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
 
-// Protected
-router.post('/logout', logout);
+// Protected — requireAuth extracts sessionId so the DB row is revoked
+router.post('/logout', requireAuth, logout);
 router.get('/me', requireAuth, me);
 router.post('/change-password', requireAuth, loginLimiter, changePassword);
 router.patch('/me', requireAuth, updateProfile);

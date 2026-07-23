@@ -22,3 +22,4 @@
 - After each completed task: show files changed, explain implementation, database changes, env changes, security considerations, run tests, run build checks, confirm no new errors, verify feature through real end-to-end workflow. Confidence: 0.85
 - A feature is only complete after functional verification — never mark tasks done based on code changes alone. Confidence: 0.85
 - Wait for user approval before moving to the next task; do not proceed between tasks without explicit sign-off. Confidence: 0.85
+- When given a project-wide directive or standing prompt, first verify and upgrade all progress ledgers before diving into implementation on any specific module; do not skip directly to module work. Confidence: 0.65
